@@ -239,10 +239,6 @@ export async function savePushSubscription(
   subscriptionData: PushSubscriptionData
 ): Promise<boolean> {
   const supabase = createClient();
-  if (!supabase) {
-    console.error("Supabase client not available");
-    return false;
-  }
 
   try {
     const { data: user } = await supabase.auth.getUser();
@@ -283,9 +279,6 @@ export async function savePushSubscription(
  */
 export async function removePushSubscription(): Promise<boolean> {
   const supabase = createClient();
-  if (!supabase) {
-    return false;
-  }
 
   try {
     const { data: user } = await supabase.auth.getUser();

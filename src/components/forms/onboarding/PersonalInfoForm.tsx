@@ -19,6 +19,10 @@ const GENDER_OPTIONS = [
   { value: "prefer_not_to_say", label: "Prefer not to say" },
 ] as const;
 
+const MIN_AGE_DATE = new Date(Date.now() - 18 * 365.25 * 24 * 60 * 60 * 1000)
+  .toISOString()
+  .split("T")[0];
+
 export default function PersonalInfoForm({
   data,
   onSave,
@@ -115,7 +119,7 @@ export default function PersonalInfoForm({
         <div>
           <label
             htmlFor="firstName"
-            className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+            className="block text-sm font-medium text-foreground mb-1"
           >
             First Name *
           </label>
@@ -128,8 +132,8 @@ export default function PersonalInfoForm({
             className={`w-full px-4 py-2.5 rounded-lg border ${
               errors.firstName
                 ? "border-red-500"
-                : "border-stone-300 dark:border-stone-600"
-            } bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500`}
+                : "border-border"
+            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
           />
           {errors.firstName && (
             <p className="mt-1 text-sm text-red-500">{errors.firstName}</p>
@@ -139,7 +143,7 @@ export default function PersonalInfoForm({
         <div>
           <label
             htmlFor="lastName"
-            className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+            className="block text-sm font-medium text-foreground mb-1"
           >
             Last Name *
           </label>
@@ -152,8 +156,8 @@ export default function PersonalInfoForm({
             className={`w-full px-4 py-2.5 rounded-lg border ${
               errors.lastName
                 ? "border-red-500"
-                : "border-stone-300 dark:border-stone-600"
-            } bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500`}
+                : "border-border"
+            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
           />
           {errors.lastName && (
             <p className="mt-1 text-sm text-red-500">{errors.lastName}</p>
@@ -166,7 +170,7 @@ export default function PersonalInfoForm({
         <div>
           <label
             htmlFor="dateOfBirth"
-            className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+            className="block text-sm font-medium text-foreground mb-1"
           >
             Date of Birth *
           </label>
@@ -176,16 +180,12 @@ export default function PersonalInfoForm({
             type="date"
             value={formData.dateOfBirth}
             onChange={handleChange}
-            max={
-              new Date(Date.now() - 18 * 365.25 * 24 * 60 * 60 * 1000)
-                .toISOString()
-                .split("T")[0]
-            }
+            max={MIN_AGE_DATE}
             className={`w-full px-4 py-2.5 rounded-lg border ${
               errors.dateOfBirth
                 ? "border-red-500"
-                : "border-stone-300 dark:border-stone-600"
-            } bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500`}
+                : "border-border"
+            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
           />
           {errors.dateOfBirth && (
             <p className="mt-1 text-sm text-red-500">{errors.dateOfBirth}</p>
@@ -195,7 +195,7 @@ export default function PersonalInfoForm({
         <div>
           <label
             htmlFor="gender"
-            className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+            className="block text-sm font-medium text-foreground mb-1"
           >
             Gender *
           </label>
@@ -207,8 +207,8 @@ export default function PersonalInfoForm({
             className={`w-full px-4 py-2.5 rounded-lg border ${
               errors.gender
                 ? "border-red-500"
-                : "border-stone-300 dark:border-stone-600"
-            } bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500`}
+                : "border-border"
+            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
           >
             {GENDER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -227,7 +227,7 @@ export default function PersonalInfoForm({
         <div>
           <label
             htmlFor="heightCm"
-            className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+            className="block text-sm font-medium text-foreground mb-1"
           >
             Height (cm) *
           </label>
@@ -243,8 +243,8 @@ export default function PersonalInfoForm({
             className={`w-full px-4 py-2.5 rounded-lg border ${
               errors.heightCm
                 ? "border-red-500"
-                : "border-stone-300 dark:border-stone-600"
-            } bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500`}
+                : "border-border"
+            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
           />
           {errors.heightCm && (
             <p className="mt-1 text-sm text-red-500">{errors.heightCm}</p>
@@ -254,7 +254,7 @@ export default function PersonalInfoForm({
         <div>
           <label
             htmlFor="weightKg"
-            className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+            className="block text-sm font-medium text-foreground mb-1"
           >
             Weight (kg) *
           </label>
@@ -271,8 +271,8 @@ export default function PersonalInfoForm({
             className={`w-full px-4 py-2.5 rounded-lg border ${
               errors.weightKg
                 ? "border-red-500"
-                : "border-stone-300 dark:border-stone-600"
-            } bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500`}
+                : "border-border"
+            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
           />
           {errors.weightKg && (
             <p className="mt-1 text-sm text-red-500">{errors.weightKg}</p>
@@ -292,7 +292,7 @@ export default function PersonalInfoForm({
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+            <span className="text-sm font-medium text-foreground">
               Your BMI
             </span>
             <span
@@ -315,7 +315,7 @@ export default function PersonalInfoForm({
         <div>
           <label
             htmlFor="occupation"
-            className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+            className="block text-sm font-medium text-foreground mb-1"
           >
             Occupation *
           </label>
@@ -329,8 +329,8 @@ export default function PersonalInfoForm({
             className={`w-full px-4 py-2.5 rounded-lg border ${
               errors.occupation
                 ? "border-red-500"
-                : "border-stone-300 dark:border-stone-600"
-            } bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500`}
+                : "border-border"
+            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
           />
           {errors.occupation && (
             <p className="mt-1 text-sm text-red-500">{errors.occupation}</p>
@@ -340,7 +340,7 @@ export default function PersonalInfoForm({
         <div>
           <label
             htmlFor="city"
-            className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+            className="block text-sm font-medium text-foreground mb-1"
           >
             City *
           </label>
@@ -354,8 +354,8 @@ export default function PersonalInfoForm({
             className={`w-full px-4 py-2.5 rounded-lg border ${
               errors.city
                 ? "border-red-500"
-                : "border-stone-300 dark:border-stone-600"
-            } bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500`}
+                : "border-border"
+            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
           />
           {errors.city && (
             <p className="mt-1 text-sm text-red-500">{errors.city}</p>
@@ -367,7 +367,7 @@ export default function PersonalInfoForm({
       <div>
         <label
           htmlFor="phone"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           Phone Number (optional)
         </label>
@@ -378,7 +378,7 @@ export default function PersonalInfoForm({
           value={formData.phone || ""}
           onChange={handleChange}
           placeholder="+91 XXXXX XXXXX"
-          className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
     </form>

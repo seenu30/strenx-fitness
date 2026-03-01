@@ -1,7 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+interface PlanTemplateRow {
+  id: string;
+  name: string;
+  price: number;
+  is_active: boolean;
+}
 import {
   User,
   Bell,
@@ -86,46 +94,42 @@ export default function AdminSettingsPage() {
     dailySummary: false,
   });
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  async function loadSettings() {
+  const loadSettings = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       // Get user profile
-      const { data: userData } = await (supabase as any)
+      const { data: userData } = await (supabase as SupabaseClient)
         .from("users")
         .select("email, full_name, tenant_id")
         .eq("id", user.id)
         .single();
 
       // Parse name
-      const nameParts = (userData?.full_name || "").split(" ");
+      const nameParts = ((userData as { full_name?: string } | null)?.full_name || "").split(" ");
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
 
       setProfile({
         firstName,
         lastName,
-        email: userData?.email || user.email || "",
+        email: (userData as { email?: string } | null)?.email || user.email || "",
         phone: "",
       });
 
       // Get tenant/business info
-      if (userData?.tenant_id) {
-        const { data: tenantData } = await (supabase as any)
+      if ((userData as { tenant_id?: string } | null)?.tenant_id) {
+        const { data: tenantData } = await (supabase as SupabaseClient)
           .from("tenants")
           .select("name, settings")
-          .eq("id", userData.tenant_id)
+          .eq("id", (userData as { tenant_id: string }).tenant_id)
           .single();
 
         if (tenantData) {
-          const settings = tenantData.settings || {};
+          const settings = (tenantData as { settings?: Record<string, string> }).settings || {};
           setBusiness({
-            businessName: tenantData.name || "Strenx Fitness",
+            businessName: (tenantData as { name?: string }).name || "Strenx Fitness",
             tagline: settings.tagline || "",
             website: settings.website || "",
             supportEmail: settings.support_email || "",
@@ -133,14 +137,14 @@ export default function AdminSettingsPage() {
         }
 
         // Get plan templates
-        const { data: planTemplates } = await (supabase as any)
+        const { data: planTemplates } = await (supabase as SupabaseClient)
           .from("plan_templates")
           .select("id, name, price, is_active")
-          .eq("tenant_id", userData.tenant_id)
+          .eq("tenant_id", (userData as { tenant_id: string }).tenant_id)
           .order("price", { ascending: true });
 
         if (planTemplates) {
-          setPlans(planTemplates.map((p: any) => ({
+          setPlans((planTemplates as PlanTemplateRow[]).map((p) => ({
             id: p.id,
             name: p.name,
             price: p.price || 0,
@@ -154,7 +158,11 @@ export default function AdminSettingsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   async function handleSaveProfile() {
     setSaving(true);
@@ -167,7 +175,7 @@ export default function AdminSettingsPage() {
       const fullName = `${profile.firstName} ${profile.lastName}`.trim();
 
       // Update user profile
-      await (supabase as any)
+      await (supabase as SupabaseClient)
         .from("users")
         .update({ full_name: fullName })
         .eq("id", user.id);
@@ -191,15 +199,15 @@ export default function AdminSettingsPage() {
       if (!user) return;
 
       // Get tenant ID
-      const { data: userData } = await (supabase as any)
+      const { data: userData } = await (supabase as SupabaseClient)
         .from("users")
         .select("tenant_id")
         .eq("id", user.id)
         .single();
 
-      if (userData?.tenant_id) {
+      if ((userData as { tenant_id?: string } | null)?.tenant_id) {
         // Update tenant info
-        await (supabase as any)
+        await (supabase as SupabaseClient)
           .from("tenants")
           .update({
             name: business.businessName,
@@ -209,7 +217,7 @@ export default function AdminSettingsPage() {
               support_email: business.supportEmail,
             },
           })
-          .eq("id", userData.tenant_id);
+          .eq("id", (userData as { tenant_id: string }).tenant_id);
       }
 
       setSaveSuccess(true);
@@ -284,7 +292,7 @@ export default function AdminSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-brown-500" />
       </div>
     );
   }
@@ -313,7 +321,7 @@ export default function AdminSettingsPage() {
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
                   className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${
                     activeTab === tab.id
-                      ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-l-2 border-amber-600"
+                      ? "bg-brown-50 dark:bg-brown-900/20 text-brown-500 border-l-2 border-brown-500"
                       : "text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800"
                   }`}
                 >
@@ -338,11 +346,11 @@ export default function AdminSettingsPage() {
                 </h2>
 
                 <div className="flex items-center gap-4 pb-6 border-b border-stone-200 dark:border-stone-700">
-                  <div className="w-20 h-20 rounded-full bg-amber-600 flex items-center justify-center">
+                  <div className="w-20 h-20 rounded-full bg-brown-500 flex items-center justify-center">
                     <span className="text-2xl font-bold text-white">{getInitials()}</span>
                   </div>
                   <div>
-                    <button className="px-4 py-2 text-sm text-amber-600 border border-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                    <button className="px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20">
                       Change Photo
                     </button>
                   </div>
@@ -405,7 +413,7 @@ export default function AdminSettingsPage() {
                   <button
                     onClick={handleSaveProfile}
                     disabled={saving}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 disabled:opacity-50"
                   >
                     {saving ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -498,7 +506,7 @@ export default function AdminSettingsPage() {
                   <button
                     onClick={handleSaveBusiness}
                     disabled={saving}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 disabled:opacity-50"
                   >
                     {saving ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -547,7 +555,7 @@ export default function AdminSettingsPage() {
                         }
                         className={`w-12 h-6 rounded-full transition-colors ${
                           notifications[item.key as keyof typeof notifications]
-                            ? "bg-amber-600"
+                            ? "bg-brown-500"
                             : "bg-stone-300 dark:bg-stone-600"
                         }`}
                       >
@@ -639,7 +647,7 @@ export default function AdminSettingsPage() {
                   <button
                     onClick={handleUpdatePassword}
                     disabled={passwordUpdating}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 disabled:opacity-50"
                   >
                     {passwordUpdating ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -663,7 +671,7 @@ export default function AdminSettingsPage() {
                         </p>
                       </div>
                     </div>
-                    <button className="px-4 py-2 text-sm text-amber-600 border border-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                    <button className="px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20">
                       Enable
                     </button>
                   </div>
@@ -691,7 +699,7 @@ export default function AdminSettingsPage() {
                           <p className="font-medium text-stone-800 dark:text-stone-100">
                             {plan.name}
                           </p>
-                          <p className="text-lg font-bold text-amber-600">
+                          <p className="text-lg font-bold text-brown-500">
                             ₹{plan.price.toLocaleString()}
                           </p>
                         </div>
@@ -709,7 +717,7 @@ export default function AdminSettingsPage() {
                               }`}
                             />
                           </button>
-                          <button className="px-3 py-1.5 text-sm text-amber-600 border border-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                          <button className="px-3 py-1.5 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20">
                             Edit
                           </button>
                         </div>
@@ -722,7 +730,7 @@ export default function AdminSettingsPage() {
                   )}
                 </div>
 
-                <button className="w-full py-3 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg text-stone-500 hover:border-amber-500 hover:text-amber-600 transition-colors">
+                <button className="w-full py-3 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg text-stone-500 hover:border-brown-500 hover:text-brown-500 transition-colors">
                   + Add New Plan
                 </button>
               </div>

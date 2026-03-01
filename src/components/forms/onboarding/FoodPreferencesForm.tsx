@@ -86,7 +86,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
     <form id="form-food_preferences" onSubmit={handleSubmit} className="space-y-6">
       {/* Liked Foods */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Foods you enjoy eating (select all that apply)
         </label>
         <div className="flex flex-wrap gap-2">
@@ -109,7 +109,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
 
       {/* Disliked Foods */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Foods you dislike or avoid (select all that apply)
         </label>
         <div className="flex flex-wrap gap-2">
@@ -132,7 +132,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
 
       {/* Food Allergies */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Food allergies (severe reactions)
         </label>
         <div className="flex flex-wrap gap-2">
@@ -155,7 +155,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
 
       {/* Food Intolerances */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">
+        <label className="block text-sm font-medium text-foreground">
           Food intolerances (cause discomfort but not severe)
         </label>
         <div className="flex gap-2">
@@ -164,12 +164,12 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
             onChange={(e) => setIntoleranceInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addIntolerance())}
             placeholder="e.g., Lactose"
-            className="flex-1 px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <button
             type="button"
             onClick={addIntolerance}
-            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
+            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-foreground hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
           >
             Add
           </button>
@@ -200,7 +200,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
 
       {/* Religious Restrictions */}
       <div>
-        <label htmlFor="religiousRestrictions" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+        <label htmlFor="religiousRestrictions" className="block text-sm font-medium text-foreground mb-1">
           Any religious or cultural food restrictions?
         </label>
         <input
@@ -210,13 +210,13 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
           value={formData.religiousRestrictions || ""}
           onChange={handleChange}
           placeholder="e.g., Halal only, No beef, Jain diet"
-          className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
 
       {/* Cuisine Preferences */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Preferred cuisines
         </label>
         <div className="flex flex-wrap gap-2">
@@ -227,8 +227,8 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
               onClick={() => handleArrayToggle("cuisinePreferences", cuisine)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.cuisinePreferences.includes(cuisine)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {cuisine}
@@ -239,7 +239,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
 
       {/* Spice Tolerance */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Spice tolerance level
         </label>
         <div className="flex flex-wrap gap-2">
@@ -250,8 +250,8 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
               onClick={() => setFormData((prev) => ({ ...prev, spiceToleranceLevel: level.value }))}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 formData.spiceToleranceLevel === level.value
-                  ? "bg-amber-600 text-white"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-500 text-white"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {level.label}

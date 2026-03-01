@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import {
@@ -36,6 +36,55 @@ interface TrainingPlan {
   compliance: number;
 }
 
+interface DbClient {
+  id: string;
+}
+
+interface DbNutritionPlanData {
+  id: string;
+  name: string;
+  version: string;
+  daily_calories: number;
+  protein_grams: number;
+  carbs_grams: number;
+  fat_grams: number;
+  meals_per_day: number;
+  updated_at: string;
+}
+
+interface DbNutritionAssignment {
+  id: string;
+  assigned_at: string;
+  nutrition_plans: DbNutritionPlanData | null;
+}
+
+interface DbTrainingPlanData {
+  id: string;
+  name: string;
+  version: string;
+  days_per_week: number;
+  focus: string;
+  updated_at: string;
+}
+
+interface DbTrainingAssignment {
+  id: string;
+  assigned_at: string;
+  training_plans: DbTrainingPlanData | null;
+}
+
+interface DbCheckin {
+  id: string;
+}
+
+interface DbTrainingSession {
+  id: string;
+}
+
+interface DbExercise {
+  id: string;
+}
+
 export default function PlansPage() {
   const [loading, setLoading] = useState(true);
   const [nutritionPlan, setNutritionPlan] = useState<NutritionPlan | null>(null);
@@ -43,26 +92,20 @@ export default function PlansPage() {
 
   const supabase = createClient();
 
-  useEffect(() => {
-    loadPlans();
-  }, []);
-
-  async function loadPlans() {
+  const loadPlans = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get client info
-      const { data: client } = await (supabase as any)
+      const { data: client } = await supabase
         .from("clients")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .single() as { data: DbClient | null };
 
       if (!client) return;
 
-      // Get assigned nutrition plan
-      const { data: nutritionAssignment } = await (supabase as any)
+      const { data: nutritionAssignment } = await supabase
         .from("client_nutrition_plans")
         .select(`
           id,
@@ -83,10 +126,9 @@ export default function PlansPage() {
         .eq("is_active", true)
         .order("assigned_at", { ascending: false })
         .limit(1)
-        .single();
+        .single() as { data: DbNutritionAssignment | null };
 
-      // Get assigned training plan
-      const { data: trainingAssignment } = await (supabase as any)
+      const { data: trainingAssignment } = await supabase
         .from("client_training_plans")
         .select(`
           id,
@@ -104,41 +146,37 @@ export default function PlansPage() {
         .eq("is_active", true)
         .order("assigned_at", { ascending: false })
         .limit(1)
-        .single();
+        .single() as { data: DbTrainingAssignment | null };
 
-      // Calculate compliance (last 7 days check-ins)
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-      const { data: recentCheckins } = await (supabase as any)
+      const { data: recentCheckins } = await supabase
         .from("daily_checkins")
         .select("id")
         .eq("client_id", client.id)
-        .gte("created_at", sevenDaysAgo.toISOString());
+        .gte("created_at", sevenDaysAgo.toISOString()) as { data: DbCheckin[] | null };
 
       const weeklyCompliance = Math.round(((recentCheckins?.length || 0) / 7) * 100);
 
-      // Get training sessions count for training compliance
-      const { data: trainingSessions } = await (supabase as any)
+      const { data: trainingSessions } = await supabase
         .from("checkin_training")
         .select("id, daily_checkins!inner(client_id, created_at)")
         .eq("daily_checkins.client_id", client.id)
-        .gte("daily_checkins.created_at", sevenDaysAgo.toISOString());
+        .gte("daily_checkins.created_at", sevenDaysAgo.toISOString()) as { data: DbTrainingSession[] | null };
 
       const daysPerWeek = trainingAssignment?.training_plans?.days_per_week || 5;
       const trainingCompliance = Math.round(((trainingSessions?.length || 0) / daysPerWeek) * 100);
 
-      // Get exercise count from training plan
       let exerciseCount = 0;
       if (trainingAssignment?.training_plans?.id) {
-        const { data: exercises } = await (supabase as any)
+        const { data: exercises } = await supabase
           .from("training_plan_exercises")
           .select("id")
-          .eq("training_plan_id", trainingAssignment.training_plans.id);
+          .eq("training_plan_id", trainingAssignment.training_plans.id) as { data: DbExercise[] | null };
         exerciseCount = exercises?.length || 0;
       }
 
-      // Set nutrition plan data
       if (nutritionAssignment?.nutrition_plans) {
         const np = nutritionAssignment.nutrition_plans;
         setNutritionPlan({
@@ -154,7 +192,6 @@ export default function PlansPage() {
         });
       }
 
-      // Set training plan data
       if (trainingAssignment?.training_plans) {
         const tp = trainingAssignment.training_plans;
         setTrainingPlan({
@@ -173,7 +210,11 @@ export default function PlansPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    loadPlans();
+  }, [loadPlans]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -186,7 +227,7 @@ export default function PlansPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -195,10 +236,10 @@ export default function PlansPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100">
+        <h1 className="text-2xl font-bold text-foreground">
           My Plans
         </h1>
-        <p className="text-stone-600 dark:text-stone-400 mt-1">
+        <p className="text-muted-foreground mt-1">
           Your personalized nutrition and training programs
         </p>
       </div>
@@ -206,7 +247,7 @@ export default function PlansPage() {
       {/* Plan Cards */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Nutrition Plan */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -214,11 +255,11 @@ export default function PlansPage() {
                   <Utensils className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+                  <h2 className="font-semibold text-foreground">
                     Nutrition Plan
                   </h2>
                   {nutritionPlan && (
-                    <p className="text-sm text-stone-500">
+                    <p className="text-sm text-muted-foreground">
                       v{nutritionPlan.version}
                     </p>
                   )}
@@ -237,40 +278,40 @@ export default function PlansPage() {
 
             {nutritionPlan ? (
               <>
-                <p className="text-lg font-medium text-stone-800 dark:text-stone-100 mb-4">
+                <p className="text-lg font-medium text-foreground mb-4">
                   {nutritionPlan.name}
                 </p>
 
                 {/* Macros */}
                 <div className="grid grid-cols-4 gap-3 mb-4">
-                  <div className="text-center p-3 bg-stone-50 dark:bg-stone-800 rounded-lg">
-                    <p className="text-lg font-bold text-amber-600">
+                  <div className="text-center p-3 bg-muted rounded-lg">
+                    <p className="text-lg font-bold text-primary">
                       {nutritionPlan.calories}
                     </p>
-                    <p className="text-xs text-stone-500">Calories</p>
+                    <p className="text-xs text-muted-foreground">Calories</p>
                   </div>
-                  <div className="text-center p-3 bg-stone-50 dark:bg-stone-800 rounded-lg">
+                  <div className="text-center p-3 bg-muted rounded-lg">
                     <p className="text-lg font-bold text-blue-600">
                       {nutritionPlan.protein}g
                     </p>
-                    <p className="text-xs text-stone-500">Protein</p>
+                    <p className="text-xs text-muted-foreground">Protein</p>
                   </div>
-                  <div className="text-center p-3 bg-stone-50 dark:bg-stone-800 rounded-lg">
+                  <div className="text-center p-3 bg-muted rounded-lg">
                     <p className="text-lg font-bold text-green-600">
                       {nutritionPlan.carbs}g
                     </p>
-                    <p className="text-xs text-stone-500">Carbs</p>
+                    <p className="text-xs text-muted-foreground">Carbs</p>
                   </div>
-                  <div className="text-center p-3 bg-stone-50 dark:bg-stone-800 rounded-lg">
+                  <div className="text-center p-3 bg-muted rounded-lg">
                     <p className="text-lg font-bold text-purple-600">
                       {nutritionPlan.fat}g
                     </p>
-                    <p className="text-xs text-stone-500">Fat</p>
+                    <p className="text-xs text-muted-foreground">Fat</p>
                   </div>
                 </div>
 
                 {/* Info */}
-                <div className="flex items-center justify-between text-sm text-stone-500 mb-4">
+                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
                     {nutritionPlan.meals} meals/day
@@ -284,12 +325,12 @@ export default function PlansPage() {
                 {/* Compliance */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-stone-500">Weekly Compliance</span>
+                    <span className="text-muted-foreground">Weekly Compliance</span>
                     <span className="font-medium text-green-600">
                       {nutritionPlan.compliance}%
                     </span>
                   </div>
-                  <div className="h-2 bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-green-500 rounded-full"
                       style={{ width: `${nutritionPlan.compliance}%` }}
@@ -298,7 +339,7 @@ export default function PlansPage() {
                 </div>
               </>
             ) : (
-              <div className="py-8 text-center text-stone-500">
+              <div className="py-8 text-center text-muted-foreground">
                 <p>No nutrition plan assigned yet.</p>
                 <p className="text-sm mt-1">Your coach will assign a plan soon.</p>
               </div>
@@ -311,14 +352,14 @@ export default function PlansPage() {
                 className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-colors ${
                   nutritionPlan
                     ? "bg-green-600 text-white hover:bg-green-700"
-                    : "bg-stone-100 text-stone-400 cursor-not-allowed"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
                 }`}
               >
                 View Plan
                 <ChevronRight className="w-4 h-4" />
               </Link>
               {nutritionPlan && (
-                <button className="p-2.5 border border-stone-300 dark:border-stone-600 rounded-lg text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800">
+                <button className="p-2.5 border border-border rounded-lg text-muted-foreground hover:bg-muted">
                   <Download className="w-5 h-5" />
                 </button>
               )}
@@ -327,7 +368,7 @@ export default function PlansPage() {
         </div>
 
         {/* Training Plan */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -335,11 +376,11 @@ export default function PlansPage() {
                   <Dumbbell className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+                  <h2 className="font-semibold text-foreground">
                     Training Plan
                   </h2>
                   {trainingPlan && (
-                    <p className="text-sm text-stone-500">
+                    <p className="text-sm text-muted-foreground">
                       v{trainingPlan.version}
                     </p>
                   )}
@@ -350,7 +391,7 @@ export default function PlansPage() {
                   Active
                 </span>
               ) : (
-                <span className="px-2 py-1 text-xs font-medium bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 rounded-full">
+                <span className="px-2 py-1 text-xs font-medium bg-muted text-muted-foreground rounded-full">
                   Not Assigned
                 </span>
               )}
@@ -358,34 +399,34 @@ export default function PlansPage() {
 
             {trainingPlan ? (
               <>
-                <p className="text-lg font-medium text-stone-800 dark:text-stone-100 mb-4">
+                <p className="text-lg font-medium text-foreground mb-4">
                   {trainingPlan.name}
                 </p>
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="text-center p-3 bg-stone-50 dark:bg-stone-800 rounded-lg">
+                  <div className="text-center p-3 bg-muted rounded-lg">
                     <p className="text-lg font-bold text-purple-600">
                       {trainingPlan.daysPerWeek}
                     </p>
-                    <p className="text-xs text-stone-500">Days/Week</p>
+                    <p className="text-xs text-muted-foreground">Days/Week</p>
                   </div>
-                  <div className="text-center p-3 bg-stone-50 dark:bg-stone-800 rounded-lg">
-                    <p className="text-lg font-bold text-amber-600">
+                  <div className="text-center p-3 bg-muted rounded-lg">
+                    <p className="text-lg font-bold text-primary">
                       {trainingPlan.focus}
                     </p>
-                    <p className="text-xs text-stone-500">Focus</p>
+                    <p className="text-xs text-muted-foreground">Focus</p>
                   </div>
-                  <div className="text-center p-3 bg-stone-50 dark:bg-stone-800 rounded-lg">
+                  <div className="text-center p-3 bg-muted rounded-lg">
                     <p className="text-lg font-bold text-blue-600">
                       {trainingPlan.exercises}
                     </p>
-                    <p className="text-xs text-stone-500">Exercises</p>
+                    <p className="text-xs text-muted-foreground">Exercises</p>
                   </div>
                 </div>
 
                 {/* Info */}
-                <div className="flex items-center justify-between text-sm text-stone-500 mb-4">
+                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                   <span className="flex items-center gap-1">
                     <CheckCircle2 className="w-4 h-4" />
                     {trainingPlan.exercises} exercises
@@ -399,12 +440,12 @@ export default function PlansPage() {
                 {/* Compliance */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-stone-500">Weekly Compliance</span>
+                    <span className="text-muted-foreground">Weekly Compliance</span>
                     <span className="font-medium text-purple-600">
                       {trainingPlan.compliance}%
                     </span>
                   </div>
-                  <div className="h-2 bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-purple-500 rounded-full"
                       style={{ width: `${trainingPlan.compliance}%` }}
@@ -413,7 +454,7 @@ export default function PlansPage() {
                 </div>
               </>
             ) : (
-              <div className="py-8 text-center text-stone-500">
+              <div className="py-8 text-center text-muted-foreground">
                 <p>No training plan assigned yet.</p>
                 <p className="text-sm mt-1">Your coach will assign a plan soon.</p>
               </div>
@@ -426,14 +467,14 @@ export default function PlansPage() {
                 className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-colors ${
                   trainingPlan
                     ? "bg-purple-600 text-white hover:bg-purple-700"
-                    : "bg-stone-100 text-stone-400 cursor-not-allowed"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
                 }`}
               >
                 View Plan
                 <ChevronRight className="w-4 h-4" />
               </Link>
               {trainingPlan && (
-                <button className="p-2.5 border border-stone-300 dark:border-stone-600 rounded-lg text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800">
+                <button className="p-2.5 border border-border rounded-lg text-muted-foreground hover:bg-muted">
                   <Download className="w-5 h-5" />
                 </button>
               )}

@@ -73,7 +73,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
       <div>
         <label
           htmlFor="expectations"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           What do you expect from this program? *
         </label>
@@ -88,8 +88,8 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           rows={4}
           placeholder="I expect to lose 10kg in 3 months, get stronger, and learn how to eat healthy sustainably..."
           className={`w-full px-4 py-2.5 rounded-lg border ${
-            errors.expectations ? "border-red-500" : "border-stone-300 dark:border-stone-600"
-          } bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none`}
+            errors.expectations ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none`}
         />
         {errors.expectations && (
           <p className="mt-1 text-sm text-red-500">{errors.expectations}</p>
@@ -100,7 +100,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
       <div>
         <label
           htmlFor="previousChallenges"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           What challenges have you faced in achieving your fitness goals before? *
         </label>
@@ -112,8 +112,8 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           rows={3}
           placeholder="I struggle with consistency, emotional eating, lack of time..."
           className={`w-full px-4 py-2.5 rounded-lg border ${
-            errors.previousChallenges ? "border-red-500" : "border-stone-300 dark:border-stone-600"
-          } bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none`}
+            errors.previousChallenges ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none`}
         />
         {errors.previousChallenges && (
           <p className="mt-1 text-sm text-red-500">{errors.previousChallenges}</p>
@@ -124,7 +124,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
       <div>
         <label
           htmlFor="whatWorkedBefore"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           What has worked for you in the past?
         </label>
@@ -135,7 +135,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           onChange={handleChange}
           rows={2}
           placeholder="Meal prepping on weekends, morning workouts, having accountability..."
-          className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
         />
       </div>
 
@@ -143,7 +143,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
       <div>
         <label
           htmlFor="whatDidntWork"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           What hasn&apos;t worked for you?
         </label>
@@ -154,13 +154,13 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           onChange={handleChange}
           rows={2}
           placeholder="Strict diets, counting every calorie, exercising late at night..."
-          className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
         />
       </div>
 
       {/* Willingness to Track */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           How willing are you to track your meals and workouts daily?
         </label>
         <div className="space-y-2">
@@ -171,11 +171,11 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
             max="10"
             value={formData.willingnessToTrack}
             onChange={handleChange}
-            className="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-600"
+            className="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-brown-500"
           />
           <div className="flex justify-between text-sm text-stone-500 dark:text-stone-400">
             <span>Not at all (1)</span>
-            <span className="font-bold text-amber-600">{formData.willingnessToTrack}</span>
+            <span className="font-bold text-brown-500">{formData.willingnessToTrack}</span>
             <span>Very willing (10)</span>
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
 
       {/* Preferred Communication */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Preferred communication method
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -194,14 +194,14 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
               onClick={() => setFormData((prev) => ({ ...prev, preferredCommunication: option.value }))}
               className={`p-3 rounded-lg border text-left transition-colors ${
                 formData.preferredCommunication === option.value
-                  ? "bg-amber-600 border-amber-600 text-white"
-                  : "bg-white dark:bg-stone-800 border-stone-300 dark:border-stone-600 hover:border-amber-500"
+                  ? "bg-brown-500 border-brown-500 text-white"
+                  : "bg-card border-border hover:border-brown-500"
               }`}
             >
-              <div className={`font-medium ${formData.preferredCommunication === option.value ? "text-white" : "text-stone-800 dark:text-stone-200"}`}>
+              <div className={`font-medium ${formData.preferredCommunication === option.value ? "text-white" : "text-foreground"}`}>
                 {option.label}
               </div>
-              <div className={`text-xs mt-1 ${formData.preferredCommunication === option.value ? "text-amber-100" : "text-stone-500 dark:text-stone-400"}`}>
+              <div className={`text-xs mt-1 ${formData.preferredCommunication === option.value ? "text-brown-100" : "text-stone-500 dark:text-stone-400"}`}>
                 {option.description}
               </div>
             </button>
@@ -213,7 +213,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
       <div>
         <label
           htmlFor="questionsForCoach"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           Any questions for your coach?
         </label>
@@ -224,7 +224,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           onChange={handleChange}
           rows={3}
           placeholder="Anything you'd like to know or clarify before we begin..."
-          className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
         />
       </div>
     </form>

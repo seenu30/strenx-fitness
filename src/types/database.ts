@@ -249,8 +249,128 @@ export interface Database {
           updated_at?: string
         }
       }
-      // Additional tables will be auto-generated
-      // This is a placeholder showing the structure
+      daily_checkins: {
+        Row: {
+          id: string
+          client_id: string
+          checkin_date: string
+          morning_weight_kg: number | null
+          step_count: number | null
+          training_completed: boolean | null
+          energy_level: number | null
+          sleep_hours: number | null
+          sleep_quality: QualityRating | null
+          stress_level: StressLevel | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          checkin_date: string
+          morning_weight_kg?: number | null
+          step_count?: number | null
+          training_completed?: boolean | null
+          energy_level?: number | null
+          sleep_hours?: number | null
+          sleep_quality?: QualityRating | null
+          stress_level?: StressLevel | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          checkin_date?: string
+          morning_weight_kg?: number | null
+          step_count?: number | null
+          training_completed?: boolean | null
+          energy_level?: number | null
+          sleep_hours?: number | null
+          sleep_quality?: QualityRating | null
+          stress_level?: StressLevel | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      conversations: {
+        Row: {
+          id: string
+          client_id: string
+          coach_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          coach_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          coach_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          sender_id: string
+          content: string
+          read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          sender_id: string
+          content: string
+          read_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          sender_id?: string
+          content?: string
+          read_at?: string | null
+          created_at?: string
+        }
+      }
+      assess_personal: {
+        Row: {
+          id: string
+          client_id: string
+          phone: string | null
+          city: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          phone?: string | null
+          city?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          phone?: string | null
+          city?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

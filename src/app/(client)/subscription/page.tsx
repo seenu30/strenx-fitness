@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   CreditCard,
@@ -50,16 +50,8 @@ export default function SubscriptionPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [plans, setPlans] = useState<PlanTemplate[]>([]);
 
-  useEffect(() => {
-    loadSubscriptionData();
-  }, []);
-
-  async function loadSubscriptionData() {
+  const loadSubscriptionData = useCallback(async () => {
     const supabase = createClient();
-    if (!supabase) {
-      setIsLoading(false);
-      return;
-    }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -180,7 +172,11 @@ export default function SubscriptionPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    loadSubscriptionData();
+  }, [loadSubscriptionData]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -201,7 +197,7 @@ export default function SubscriptionPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brown-500 animate-spin" />
       </div>
     );
   }
@@ -228,7 +224,7 @@ export default function SubscriptionPage() {
           </p>
           <button
             onClick={() => router.push("/messages")}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg hover:bg-brown-600"
           >
             <Zap className="w-4 h-4" />
             Contact Coach
@@ -254,7 +250,7 @@ export default function SubscriptionPage() {
                   <p className="font-semibold text-stone-800 dark:text-stone-100">
                     {plan.name}
                   </p>
-                  <p className="text-2xl font-bold text-amber-600 mt-2">
+                  <p className="text-2xl font-bold text-brown-500 mt-2">
                     {formatCurrency(plan.price)}
                   </p>
                   <p className="text-xs text-stone-500 mt-1">{plan.duration_days} days</p>
@@ -284,10 +280,10 @@ export default function SubscriptionPage() {
       </div>
 
       {/* Current Plan Card */}
-      <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-br from-brown-500 to-brown-500 rounded-xl p-6 text-white">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <p className="text-amber-100 text-sm mb-1">Current Plan</p>
+            <p className="text-brown-100 text-sm mb-1">Current Plan</p>
             <h2 className="text-2xl font-bold">{subscription.plan}</h2>
           </div>
           {subscription.status === "active" ? (
@@ -325,17 +321,17 @@ export default function SubscriptionPage() {
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <p className="text-3xl font-bold">{subscription.daysRemaining}</p>
-            <p className="text-amber-100 text-sm">Days Left</p>
+            <p className="text-brown-100 text-sm">Days Left</p>
           </div>
           <div>
             <p className="text-3xl font-bold">{subscription.totalDays}</p>
-            <p className="text-amber-100 text-sm">Total Days</p>
+            <p className="text-brown-100 text-sm">Total Days</p>
           </div>
           <div>
             <p className="text-3xl font-bold">
               {subscription.totalDays - subscription.daysRemaining}
             </p>
-            <p className="text-amber-100 text-sm">Days Completed</p>
+            <p className="text-brown-100 text-sm">Days Completed</p>
           </div>
         </div>
       </div>
@@ -374,7 +370,7 @@ export default function SubscriptionPage() {
                   Paid
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full text-sm font-medium">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brown-100 text-brown-600 dark:bg-brown-900/30 dark:text-brown-400 rounded-full text-sm font-medium">
                   <Clock className="w-3 h-3" />
                   Pending
                 </span>
@@ -402,21 +398,21 @@ export default function SubscriptionPage() {
 
       {/* Renewal Notice */}
       {subscription.daysRemaining <= 14 && subscription.daysRemaining > 0 && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800 p-4">
+        <div className="bg-brown-50 dark:bg-brown-900/20 rounded-xl border border-brown-200 dark:border-brown-700 p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-brown-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-amber-800 dark:text-amber-200">
+              <p className="font-medium text-brown-700 dark:text-brown-200">
                 Your plan expires soon
               </p>
-              <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+              <p className="text-sm text-brown-600 dark:text-brown-300 mt-1">
                 Your {subscription.plan} plan will expire in {subscription.daysRemaining}{" "}
                 days. Contact your coach to renew and continue your transformation
                 journey.
               </p>
               <button
                 onClick={() => router.push("/messages")}
-                className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700"
+                className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg text-sm font-medium hover:bg-brown-600"
               >
                 <Zap className="w-4 h-4" />
                 Contact Coach to Renew
@@ -484,19 +480,19 @@ export default function SubscriptionPage() {
                   key={plan.id}
                   className={`p-4 rounded-lg border-2 ${
                     isCurrent
-                      ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                      ? "border-brown-500 bg-brown-50 dark:bg-brown-900/20"
                       : "border-stone-200 dark:border-stone-700"
                   }`}
                 >
                   {isCurrent && (
-                    <span className="text-xs font-medium text-amber-600 mb-2 block">
+                    <span className="text-xs font-medium text-brown-500 mb-2 block">
                       Current Plan
                     </span>
                   )}
                   <p className="font-semibold text-stone-800 dark:text-stone-100">
                     {plan.name}
                   </p>
-                  <p className="text-2xl font-bold text-amber-600 mt-2">
+                  <p className="text-2xl font-bold text-brown-500 mt-2">
                     {formatCurrency(plan.price)}
                   </p>
                   <p className="text-xs text-stone-500 mt-1">{plan.duration_days} days</p>

@@ -15,6 +15,44 @@ import {
   Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+interface ClientRow {
+  id: string;
+  status: string;
+  user_id: string;
+  users: { first_name: string; last_name: string };
+}
+
+interface CheckinRow {
+  id: string;
+  created_at: string;
+  coach_reviewed: boolean;
+  clients: { user_id: string; users: { first_name: string; last_name: string } };
+}
+
+interface RiskFlagRow {
+  id: string;
+  flag_type: string;
+  severity: string;
+  description: string;
+  created_at: string;
+  clients: { user_id: string; users: { first_name: string; last_name: string } };
+}
+
+interface ComplianceCheckinRow {
+  checkin_date: string;
+}
+
+interface PaymentRow {
+  amount: number;
+}
+
+interface SubscriptionRow {
+  id: string;
+  status: string;
+  end_date: string | null;
+}
 
 interface DashboardStats {
   totalClients: number;
@@ -76,10 +114,6 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     async function loadDashboardData() {
       const supabase = createClient();
-      if (!supabase) {
-        setIsLoading(false);
-        return;
-      }
 
       try {
         // Get coach's tenant_id
@@ -89,8 +123,7 @@ export default function AdminDashboardPage() {
           return;
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: coach } = await (supabase as any)
+        const { data: coach } = await (supabase as SupabaseClient)
           .from("coaches")
           .select("id, tenant_id")
           .eq("user_id", user.id)
@@ -98,23 +131,18 @@ export default function AdminDashboardPage() {
 
         const tenantId = coach?.tenant_id;
 
-        // 1. Get client counts
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: clients } = await (supabase as any)
+        const { data: clients } = await (supabase as SupabaseClient)
           .from("clients")
           .select("id, status, user_id, users!inner(first_name, last_name)")
           .eq("tenant_id", tenantId);
 
         const totalClients = clients?.length || 0;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const activeClients = clients?.filter((c: any) => c.status === "active").length || 0;
+        const activeClients = (clients as ClientRow[] | null)?.filter((c) => c.status === "active").length || 0;
 
-        // 2. Get recent daily check-ins (last 24 hours)
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: dailyCheckins } = await (supabase as any)
+        const { data: dailyCheckins } = await (supabase as SupabaseClient)
           .from("daily_checkins")
           .select(`
             id,
@@ -127,9 +155,7 @@ export default function AdminDashboardPage() {
           .order("created_at", { ascending: false })
           .limit(10);
 
-        // 3. Get recent weekly check-ins
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: weeklyCheckins } = await (supabase as any)
+        const { data: weeklyCheckins } = await (supabase as SupabaseClient)
           .from("weekly_checkins")
           .select(`
             id,
@@ -145,9 +171,8 @@ export default function AdminDashboardPage() {
         // Combine and format recent check-ins
         const allCheckins: RecentCheckin[] = [];
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        dailyCheckins?.forEach((checkin: any) => {
-          const clientData = checkin.clients as { users: { first_name: string; last_name: string } };
+        (dailyCheckins as CheckinRow[] | null)?.forEach((checkin) => {
+          const clientData = checkin.clients;
           allCheckins.push({
             id: checkin.id,
             clientName: `${clientData.users.first_name} ${clientData.users.last_name}`,
@@ -157,9 +182,8 @@ export default function AdminDashboardPage() {
           });
         });
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        weeklyCheckins?.forEach((checkin: any) => {
-          const clientData = checkin.clients as { users: { first_name: string; last_name: string } };
+        (weeklyCheckins as CheckinRow[] | null)?.forEach((checkin) => {
+          const clientData = checkin.clients;
           allCheckins.push({
             id: checkin.id,
             clientName: `${clientData.users.first_name} ${clientData.users.last_name}`,
@@ -174,9 +198,7 @@ export default function AdminDashboardPage() {
 
         const pendingCount = allCheckins.filter(c => c.status === "pending").length;
 
-        // 4. Get active risk flags
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: flags } = await (supabase as any)
+        const { data: flags } = await (supabase as SupabaseClient)
           .from("risk_flags")
           .select(`
             id,
@@ -191,9 +213,8 @@ export default function AdminDashboardPage() {
           .order("created_at", { ascending: false })
           .limit(3);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const formattedFlags: RiskFlag[] = (flags || []).map((flag: any) => {
-          const clientData = flag.clients as { users: { first_name: string; last_name: string } };
+        const formattedFlags: RiskFlag[] = ((flags || []) as unknown as RiskFlagRow[]).map((flag) => {
+          const clientData = flag.clients;
           return {
             id: flag.id,
             clientName: `${clientData.users.first_name} ${clientData.users.last_name}`,
@@ -204,12 +225,10 @@ export default function AdminDashboardPage() {
           };
         });
 
-        // 5. Calculate compliance for last 4 weeks
         const fourWeeksAgo = new Date();
         fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: complianceCheckins } = await (supabase as any)
+        const { data: complianceCheckins } = await (supabase as SupabaseClient)
           .from("daily_checkins")
           .select("checkin_date")
           .eq("tenant_id", tenantId)
@@ -224,7 +243,7 @@ export default function AdminDashboardPage() {
             targetDate.setDate(targetDate.getDate() - (week * 7) - (6 - day));
             const dateStr = targetDate.toISOString().split('T')[0];
 
-            const checkinsOnDay = complianceCheckins?.filter((c: any) => c.checkin_date === dateStr).length || 0;
+            const checkinsOnDay = (complianceCheckins as ComplianceCheckinRow[] | null)?.filter((c) => c.checkin_date === dateStr).length || 0;
             const compliancePercent = activeClients > 0
               ? Math.round((checkinsOnDay / activeClients) * 100)
               : 0;
@@ -239,33 +258,29 @@ export default function AdminDashboardPage() {
           ? Math.round(allComplianceValues.reduce((a, b) => a + b, 0) / allComplianceValues.length)
           : 0;
 
-        // 6. Get monthly revenue
         const startOfMonth = new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: payments } = await (supabase as any)
+        const { data: payments } = await (supabase as SupabaseClient)
           .from("payments")
           .select("amount")
           .eq("tenant_id", tenantId)
           .eq("status", "completed")
           .gte("payment_date", startOfMonth.toISOString());
 
-        const monthlyRevenue = payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+        const monthlyRevenue = (payments as PaymentRow[] | null)?.reduce((sum: number, p) => sum + (p.amount || 0), 0) || 0;
 
-        // 7. Get last month's revenue for comparison
         const startOfLastMonth = new Date();
         startOfLastMonth.setMonth(startOfLastMonth.getMonth() - 1);
         startOfLastMonth.setDate(1);
         startOfLastMonth.setHours(0, 0, 0, 0);
 
         const endOfLastMonth = new Date();
-        endOfLastMonth.setDate(0); // Last day of previous month
+        endOfLastMonth.setDate(0);
         endOfLastMonth.setHours(23, 59, 59, 999);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: lastMonthPayments } = await (supabase as any)
+        const { data: lastMonthPayments } = await (supabase as SupabaseClient)
           .from("payments")
           .select("amount")
           .eq("tenant_id", tenantId)
@@ -273,22 +288,20 @@ export default function AdminDashboardPage() {
           .gte("payment_date", startOfLastMonth.toISOString())
           .lte("payment_date", endOfLastMonth.toISOString());
 
-        const lastMonthRevenue = lastMonthPayments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+        const lastMonthRevenue = (lastMonthPayments as PaymentRow[] | null)?.reduce((sum: number, p) => sum + (p.amount || 0), 0) || 0;
 
-        // 8. Get subscription stats
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: subscriptions } = await (supabase as any)
+        const { data: subscriptions } = await (supabase as SupabaseClient)
           .from("subscriptions")
           .select("id, status, end_date")
           .eq("tenant_id", tenantId);
 
         // Count active plans
-        const activePlans = subscriptions?.filter((s: any) => s.status === "active").length || 0;
+        const activePlans = (subscriptions as SubscriptionRow[] | null)?.filter((s) => s.status === "active").length || 0;
 
         // Count renewals due (subscriptions ending in next 30 days)
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-        const renewalsDue = subscriptions?.filter((s: any) => {
+        const renewalsDue = (subscriptions as SubscriptionRow[] | null)?.filter((s) => {
           if (s.status !== "active" || !s.end_date) return false;
           const endDate = new Date(s.end_date);
           return endDate <= thirtyDaysFromNow;
@@ -297,15 +310,13 @@ export default function AdminDashboardPage() {
         // Count expiring this week
         const oneWeekFromNow = new Date();
         oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
-        const expiringThisWeek = subscriptions?.filter((s: any) => {
+        const expiringThisWeek = (subscriptions as SubscriptionRow[] | null)?.filter((s) => {
           if (s.status !== "active" || !s.end_date) return false;
           const endDate = new Date(s.end_date);
           return endDate <= oneWeekFromNow;
         }).length || 0;
 
-        // 9. Get pending payments
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: pendingPaymentsList } = await (supabase as any)
+        const { data: pendingPaymentsList } = await (supabase as SupabaseClient)
           .from("payments")
           .select("id")
           .eq("tenant_id", tenantId)
@@ -366,8 +377,8 @@ export default function AdminDashboardPage() {
   const getComplianceColor = (value: number) => {
     if (value >= 90) return "bg-green-500";
     if (value >= 80) return "bg-green-400";
-    if (value >= 70) return "bg-amber-400";
-    if (value >= 60) return "bg-amber-500";
+    if (value >= 70) return "bg-primary/80";
+    if (value >= 60) return "bg-primary";
     return "bg-red-500";
   };
 
@@ -376,7 +387,7 @@ export default function AdminDashboardPage() {
       case "high":
         return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
       case "medium":
-        return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+        return "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary";
       default:
         return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
     }
@@ -385,7 +396,7 @@ export default function AdminDashboardPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
@@ -394,57 +405,57 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100">
+        <h1 className="text-2xl font-bold text-foreground">
           Dashboard Overview
         </h1>
-        <p className="text-stone-600 dark:text-stone-400 mt-1">
+        <p className="text-muted-foreground mt-1">
           Welcome back! Here&apos;s what&apos;s happening with your clients.
         </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center justify-between">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <span className="text-xs text-stone-500 font-medium">{stats.totalClients} total</span>
+            <span className="text-xs text-muted-foreground font-medium">{stats.totalClients} total</span>
           </div>
-          <p className="text-2xl font-bold text-stone-800 dark:text-stone-100 mt-3">
+          <p className="text-2xl font-bold text-foreground mt-3">
             {stats.activeClients}
           </p>
-          <p className="text-sm text-stone-500">Active Clients</p>
+          <p className="text-sm text-muted-foreground">Active Clients</p>
         </div>
 
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center justify-between">
-            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Clock className="w-5 h-5 text-primary" />
             </div>
             {stats.pendingCheckins > 0 && (
-              <span className="text-xs text-amber-600 font-medium">Needs attention</span>
+              <span className="text-xs text-primary font-medium">Needs attention</span>
             )}
           </div>
-          <p className="text-2xl font-bold text-stone-800 dark:text-stone-100 mt-3">
+          <p className="text-2xl font-bold text-foreground mt-3">
             {stats.pendingCheckins}
           </p>
-          <p className="text-sm text-stone-500">Pending Check-ins</p>
+          <p className="text-sm text-muted-foreground">Pending Check-ins</p>
         </div>
 
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center justify-between">
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <Target className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-stone-800 dark:text-stone-100 mt-3">
+          <p className="text-2xl font-bold text-foreground mt-3">
             {stats.avgCompliance}%
           </p>
-          <p className="text-sm text-stone-500">Avg Compliance</p>
+          <p className="text-sm text-muted-foreground">Avg Compliance</p>
         </div>
 
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center justify-between">
             <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
               <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
@@ -456,30 +467,30 @@ export default function AdminDashboardPage() {
               View all
             </Link>
           </div>
-          <p className="text-2xl font-bold text-stone-800 dark:text-stone-100 mt-3">
+          <p className="text-2xl font-bold text-foreground mt-3">
             {stats.riskFlags}
           </p>
-          <p className="text-sm text-stone-500">Risk Flags</p>
+          <p className="text-sm text-muted-foreground">Risk Flags</p>
         </div>
       </div>
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Compliance Heatmap */}
-        <div className="lg:col-span-2 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
+        <div className="lg:col-span-2 bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+              <h2 className="font-semibold text-foreground">
                 Compliance Heatmap
               </h2>
-              <p className="text-sm text-stone-500">Last 4 weeks overview</p>
+              <p className="text-sm text-muted-foreground">Last 4 weeks overview</p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-stone-500">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>Low</span>
               <div className="flex gap-0.5">
                 <div className="w-3 h-3 rounded bg-red-500" />
-                <div className="w-3 h-3 rounded bg-amber-500" />
-                <div className="w-3 h-3 rounded bg-amber-400" />
+                <div className="w-3 h-3 rounded bg-primary" />
+                <div className="w-3 h-3 rounded bg-primary/80" />
                 <div className="w-3 h-3 rounded bg-green-400" />
                 <div className="w-3 h-3 rounded bg-green-500" />
               </div>
@@ -493,7 +504,7 @@ export default function AdminDashboardPage() {
               {DAYS.map((day) => (
                 <div
                   key={day}
-                  className="flex-1 text-center text-xs text-stone-500"
+                  className="flex-1 text-center text-xs text-muted-foreground"
                 >
                   {day}
                 </div>
@@ -503,7 +514,7 @@ export default function AdminDashboardPage() {
             {/* Heatmap rows */}
             {complianceData.map((week, weekIndex) => (
               <div key={weekIndex} className="flex items-center gap-2">
-                <span className="w-14 text-xs text-stone-500 text-right">
+                <span className="w-14 text-xs text-muted-foreground text-right">
                   Week {4 - weekIndex}
                 </span>
                 <div className="flex-1 flex gap-2">
@@ -525,14 +536,14 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Risk Flags */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+            <h2 className="font-semibold text-foreground">
               Active Risk Flags
             </h2>
             <Link
               href="/admin/risk-flags"
-              className="text-sm text-amber-600 hover:text-amber-700 flex items-center gap-1"
+              className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
             >
               View all <ArrowRight className="w-4 h-4" />
             </Link>
@@ -540,14 +551,14 @@ export default function AdminDashboardPage() {
 
           <div className="space-y-3">
             {riskFlags.length === 0 ? (
-              <p className="text-sm text-stone-500 text-center py-4">No active risk flags</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No active risk flags</p>
             ) : riskFlags.map((flag) => (
               <div
                 key={flag.id}
-                className="p-3 rounded-lg border border-stone-200 dark:border-stone-700"
+                className="p-3 rounded-lg border border-border"
               >
                 <div className="flex items-start justify-between mb-2">
-                  <p className="font-medium text-stone-800 dark:text-stone-200">
+                  <p className="font-medium text-foreground">
                     {flag.clientName}
                   </p>
                   <span
@@ -556,10 +567,10 @@ export default function AdminDashboardPage() {
                     {flag.severity}
                   </span>
                 </div>
-                <p className="text-sm text-stone-600 dark:text-stone-400">
+                <p className="text-sm text-muted-foreground">
                   {flag.description}
                 </p>
-                <p className="text-xs text-stone-500 mt-2">{flag.date}</p>
+                <p className="text-xs text-muted-foreground mt-2">{flag.date}</p>
               </div>
             ))}
           </div>
@@ -569,14 +580,14 @@ export default function AdminDashboardPage() {
       {/* Recent Check-ins and Revenue */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Recent Check-ins */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+            <h2 className="font-semibold text-foreground">
               Recent Check-ins
             </h2>
             <Link
               href="/admin/clients"
-              className="text-sm text-amber-600 hover:text-amber-700 flex items-center gap-1"
+              className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
             >
               View all <ArrowRight className="w-4 h-4" />
             </Link>
@@ -584,15 +595,15 @@ export default function AdminDashboardPage() {
 
           <div className="space-y-3">
             {recentCheckins.length === 0 ? (
-              <p className="text-sm text-stone-500 text-center py-4">No recent check-ins</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No recent check-ins</p>
             ) : recentCheckins.map((checkin) => (
               <div
                 key={checkin.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-stone-50 dark:bg-stone-800/50"
+                className="flex items-center justify-between p-3 rounded-lg bg-muted"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-stone-200 dark:bg-stone-700 flex items-center justify-center">
-                    <span className="text-sm font-medium text-stone-600 dark:text-stone-300">
+                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+                    <span className="text-sm font-medium text-muted-foreground">
                       {checkin.clientName
                         .split(" ")
                         .map((n) => n[0])
@@ -600,17 +611,17 @@ export default function AdminDashboardPage() {
                     </span>
                   </div>
                   <div>
-                    <p className="font-medium text-stone-800 dark:text-stone-200">
+                    <p className="font-medium text-foreground">
                       {checkin.clientName}
                     </p>
-                    <p className="text-xs text-stone-500">
+                    <p className="text-xs text-muted-foreground">
                       {checkin.type === "weekly" ? "Weekly" : "Daily"} check-in
                       &bull; {checkin.time}
                     </p>
                   </div>
                 </div>
                 {checkin.status === "pending" ? (
-                  <span className="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+                  <span className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full">
                     Pending
                   </span>
                 ) : (
@@ -622,29 +633,29 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Revenue Overview */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+            <h2 className="font-semibold text-foreground">
               Revenue Overview
             </h2>
             <Link
               href="/admin/subscriptions"
-              className="text-sm text-amber-600 hover:text-amber-700 flex items-center gap-1"
+              className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
             >
               Details <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
           <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600">
-              <div className="flex items-center gap-2 text-amber-100 mb-2">
+            <div className="p-4 rounded-lg bg-gradient-to-r from-primary to-primary/80">
+              <div className="flex items-center gap-2 text-primary-foreground/80 mb-2">
                 <DollarSign className="w-5 h-5" />
                 <span className="text-sm">This Month</span>
               </div>
-              <p className="text-3xl font-bold text-white">
+              <p className="text-3xl font-bold text-primary-foreground">
                 ₹{stats.monthlyRevenue.toLocaleString()}
               </p>
-              <p className="text-sm text-amber-100 mt-1">
+              <p className="text-sm text-primary-foreground/80 mt-1">
                 {stats.lastMonthRevenue > 0 ? (
                   <>
                     {stats.monthlyRevenue >= stats.lastMonthRevenue ? "+" : ""}
@@ -657,27 +668,27 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-lg bg-stone-50 dark:bg-stone-800/50">
-                <p className="text-sm text-stone-500 mb-1">Active Plans</p>
-                <p className="text-xl font-bold text-stone-800 dark:text-stone-100">
+              <div className="p-4 rounded-lg bg-muted">
+                <p className="text-sm text-muted-foreground mb-1">Active Plans</p>
+                <p className="text-xl font-bold text-foreground">
                   {stats.activePlans}
                 </p>
               </div>
-              <div className="p-4 rounded-lg bg-stone-50 dark:bg-stone-800/50">
-                <p className="text-sm text-stone-500 mb-1">Renewals Due</p>
-                <p className="text-xl font-bold text-stone-800 dark:text-stone-100">
+              <div className="p-4 rounded-lg bg-muted">
+                <p className="text-sm text-muted-foreground mb-1">Renewals Due</p>
+                <p className="text-xl font-bold text-foreground">
                   {stats.renewalsDue}
                 </p>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-stone-200 dark:border-stone-700">
+            <div className="pt-4 border-t border-border">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-stone-500">Pending Payments</span>
-                <span className="font-medium text-amber-600">{stats.pendingPayments} client{stats.pendingPayments !== 1 ? "s" : ""}</span>
+                <span className="text-muted-foreground">Pending Payments</span>
+                <span className="font-medium text-primary">{stats.pendingPayments} client{stats.pendingPayments !== 1 ? "s" : ""}</span>
               </div>
               <div className="flex items-center justify-between text-sm mt-2">
-                <span className="text-stone-500">Expiring This Week</span>
+                <span className="text-muted-foreground">Expiring This Week</span>
                 <span className="font-medium text-red-600">{stats.expiringThisWeek} client{stats.expiringThisWeek !== 1 ? "s" : ""}</span>
               </div>
             </div>
@@ -686,44 +697,44 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
-        <h2 className="font-semibold text-stone-800 dark:text-stone-100 mb-4">
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h2 className="font-semibold text-foreground mb-4">
           Quick Actions
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Link
             href="/admin/clients/invite"
-            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-stone-200 dark:border-stone-700 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors"
+            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
           >
-            <Users className="w-6 h-6 text-amber-600" />
-            <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+            <Users className="w-6 h-6 text-primary" />
+            <span className="text-sm font-medium text-foreground">
               Invite Client
             </span>
           </Link>
           <Link
             href="/admin/plans/create"
-            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-stone-200 dark:border-stone-700 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors"
+            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
           >
-            <Activity className="w-6 h-6 text-amber-600" />
-            <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+            <Activity className="w-6 h-6 text-primary" />
+            <span className="text-sm font-medium text-foreground">
               Create Plan
             </span>
           </Link>
           <Link
             href="/admin/risk-flags"
-            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-stone-200 dark:border-stone-700 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors"
+            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
           >
-            <AlertTriangle className="w-6 h-6 text-amber-600" />
-            <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+            <AlertTriangle className="w-6 h-6 text-primary" />
+            <span className="text-sm font-medium text-foreground">
               Review Flags
             </span>
           </Link>
           <Link
             href="/admin/analytics"
-            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-stone-200 dark:border-stone-700 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors"
+            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
           >
-            <TrendingUp className="w-6 h-6 text-amber-600" />
-            <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+            <TrendingUp className="w-6 h-6 text-primary" />
+            <span className="text-sm font-medium text-foreground">
               View Analytics
             </span>
           </Link>

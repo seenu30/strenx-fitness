@@ -17,6 +17,27 @@ import {
   Plus,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+interface SubscriptionRow {
+  id: string;
+  status: string;
+  start_date: string;
+  end_date: string;
+  clients: {
+    id: string;
+    user_id: string;
+    users: { first_name: string; last_name: string; email: string };
+  };
+  plan_templates: { name: string; price: number } | null;
+}
+
+interface PaymentRow {
+  subscription_id: string;
+  status: string;
+  payment_date: string;
+  amount: number;
+}
 
 interface Subscription {
   id: string;
@@ -51,10 +72,6 @@ export default function SubscriptionsPage() {
 
   async function loadSubscriptions() {
     const supabase = createClient();
-    if (!supabase) {
-      setIsLoading(false);
-      return;
-    }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -64,18 +81,16 @@ export default function SubscriptionsPage() {
       }
 
       // Get coach's tenant_id
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: coach } = await (supabase as any)
+      const { data: coach } = await (supabase as SupabaseClient)
         .from("coaches")
         .select("tenant_id")
         .eq("user_id", user.id)
         .single();
 
-      const tenantId = coach?.tenant_id;
+      const tenantId = (coach as { tenant_id: string } | null)?.tenant_id;
 
       // Get subscriptions with client info
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: subs, error } = await (supabase as any)
+      const { data: subs, error } = await (supabase as SupabaseClient)
         .from("subscriptions")
         .select(`
           id,
@@ -99,25 +114,22 @@ export default function SubscriptionsPage() {
       }
 
       // Get latest payment for each subscription
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: payments } = await (supabase as any)
+      const { data: payments } = await (supabase as SupabaseClient)
         .from("payments")
         .select("subscription_id, status, payment_date, amount")
         .eq("tenant_id", tenantId)
         .order("payment_date", { ascending: false });
 
       // Map subscriptions to our format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const formattedSubs: Subscription[] = (subs || []).map((sub: any) => {
+      const formattedSubs: Subscription[] = ((subs || []) as unknown as SubscriptionRow[]).map((sub) => {
         const client = sub.clients;
         const user = client.users;
         const plan = sub.plan_templates;
 
         // Find latest payment for this subscription
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const subPayments = (payments || []).filter((p: any) => p.subscription_id === sub.id);
+        const subPayments = ((payments || []) as PaymentRow[]).filter((p) => p.subscription_id === sub.id);
         const latestPayment = subPayments[0];
-        const hasPaidPayment = subPayments.some((p: any) => p.status === "completed");
+        const hasPaidPayment = subPayments.some((p) => p.status === "completed");
 
         // Determine subscription status based on dates
         let status = sub.status;
@@ -163,28 +175,25 @@ export default function SubscriptionsPage() {
       if (!user) return;
 
       // Get coach's tenant_id
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: coach } = await (supabase as any)
+      const { data: coach } = await (supabase as SupabaseClient)
         .from("coaches")
         .select("tenant_id")
         .eq("user_id", user.id)
         .single();
 
       // Get subscription details
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: sub } = await (supabase as any)
+      const { data: sub } = await (supabase as SupabaseClient)
         .from("subscriptions")
         .select("client_id, plan_templates(price)")
         .eq("id", subscriptionId)
         .single();
 
       // Create payment record
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from("payments").insert({
-        tenant_id: coach.tenant_id,
-        client_id: sub.client_id,
+      await (supabase as SupabaseClient).from("payments").insert({
+        tenant_id: (coach as { tenant_id: string }).tenant_id,
+        client_id: (sub as { client_id: string }).client_id,
         subscription_id: subscriptionId,
-        amount: sub.plan_templates?.price || 0,
+        amount: (sub as unknown as { plan_templates?: { price: number } }).plan_templates?.price || 0,
         status: "completed",
         payment_method: "manual",
         payment_date: new Date().toISOString(),
@@ -192,8 +201,7 @@ export default function SubscriptionsPage() {
       });
 
       // Update subscription status to active if pending
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
+      await (supabase as SupabaseClient)
         .from("subscriptions")
         .update({ status: "active" })
         .eq("id", subscriptionId)
@@ -255,7 +263,7 @@ export default function SubscriptionsPage() {
         );
       case "expiring":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-brown-100 text-brown-600 dark:bg-brown-900/30 dark:text-brown-400 rounded-full">
             <AlertTriangle className="w-3 h-3" />
             Expiring Soon
           </span>
@@ -321,7 +329,7 @@ export default function SubscriptionsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brown-500 animate-spin" />
       </div>
     );
   }
@@ -340,7 +348,7 @@ export default function SubscriptionsPage() {
         </div>
         <Link
           href="/admin/clients/invite"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg hover:bg-brown-600 transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Subscription
@@ -379,7 +387,7 @@ export default function SubscriptionsPage() {
             <Clock className="w-4 h-4" />
             <span className="text-sm">Expiring Soon</span>
           </div>
-          <p className="text-2xl font-bold text-amber-600">{expiringCount}</p>
+          <p className="text-2xl font-bold text-brown-500">{expiringCount}</p>
         </div>
       </div>
 
@@ -392,7 +400,7 @@ export default function SubscriptionsPage() {
             placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-brown-500 focus:border-transparent"
           />
         </div>
         <select
@@ -462,7 +470,7 @@ export default function SubscriptionsPage() {
                       href={`/admin/clients/${sub.clientId}`}
                       className="group"
                     >
-                      <p className="font-medium text-stone-800 dark:text-stone-200 group-hover:text-amber-600">
+                      <p className="font-medium text-stone-800 dark:text-stone-200 group-hover:text-brown-500">
                         {sub.clientName}
                       </p>
                       <p className="text-xs text-stone-500">{sub.email}</p>
@@ -501,7 +509,7 @@ export default function SubscriptionsPage() {
                           getDaysRemaining(sub.endDate) <= 7
                             ? "text-red-600"
                             : getDaysRemaining(sub.endDate) <= 14
-                            ? "text-amber-600"
+                            ? "text-brown-500"
                             : "text-stone-800 dark:text-stone-200"
                         }`}
                       >
@@ -544,7 +552,7 @@ export default function SubscriptionsPage() {
             </p>
             <Link
               href="/admin/clients/invite"
-              className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+              className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-brown-500 text-white rounded-lg hover:bg-brown-600"
             >
               <Plus className="w-4 h-4" />
               Invite Client

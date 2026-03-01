@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import {
@@ -28,6 +28,22 @@ interface Measurement {
 
 type MeasurementKey = "chest" | "waist" | "hips" | "leftArm" | "rightArm" | "leftThigh" | "rightThigh";
 
+interface ClientRow {
+  id: string;
+  start_date: string | null;
+}
+
+interface MeasurementRow {
+  measured_at: string;
+  chest_cm: number | null;
+  waist_cm: number | null;
+  hips_cm: number | null;
+  left_arm_cm: number | null;
+  right_arm_cm: number | null;
+  left_thigh_cm: number | null;
+  right_thigh_cm: number | null;
+}
+
 const MEASUREMENT_CONFIG: Array<{
   key: MeasurementKey;
   label: string;
@@ -38,8 +54,8 @@ const MEASUREMENT_CONFIG: Array<{
   { key: "hips", label: "Hips", color: "text-purple-500" },
   { key: "leftArm", label: "Left Arm", color: "text-green-500" },
   { key: "rightArm", label: "Right Arm", color: "text-green-600" },
-  { key: "leftThigh", label: "Left Thigh", color: "text-amber-500" },
-  { key: "rightThigh", label: "Right Thigh", color: "text-amber-600" },
+  { key: "leftThigh", label: "Left Thigh", color: "text-brown-500" },
+  { key: "rightThigh", label: "Right Thigh", color: "text-brown-500" },
 ];
 
 export default function MeasurementsPage() {
@@ -49,35 +65,29 @@ export default function MeasurementsPage() {
 
   const supabase = createClient();
 
-  useEffect(() => {
-    loadMeasurements();
-  }, []);
-
-  async function loadMeasurements() {
+  const loadMeasurements = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get client info
-      const { data: client } = await (supabase as any)
+      const { data: client } = await supabase
         .from("clients")
         .select("id, start_date")
         .eq("user_id", user.id)
-        .single();
+        .single() as { data: ClientRow | null };
 
       if (!client) return;
 
-      // Get measurements
-      const { data: measurementsData } = await (supabase as any)
+      const { data: measurementsData } = await supabase
         .from("measurements")
         .select("*")
         .eq("client_id", client.id)
-        .order("measured_at", { ascending: true });
+        .order("measured_at", { ascending: true }) as { data: MeasurementRow[] | null };
 
       if (measurementsData && measurementsData.length > 0) {
         const startDate = client.start_date ? new Date(client.start_date) : new Date(measurementsData[0].measured_at);
 
-        const formatted = measurementsData.map((m: any) => {
+        const formatted = measurementsData.map((m: MeasurementRow) => {
           const measureDate = new Date(m.measured_at);
           const weekNum = Math.ceil((measureDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)) || 1;
 
@@ -102,7 +112,11 @@ export default function MeasurementsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    loadMeasurements();
+  }, [loadMeasurements]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -114,7 +128,7 @@ export default function MeasurementsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-brown-500" />
       </div>
     );
   }
@@ -141,7 +155,7 @@ export default function MeasurementsPage() {
           </div>
           <Link
             href="/check-in/weekly"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Measurements
@@ -158,7 +172,7 @@ export default function MeasurementsPage() {
           </p>
           <Link
             href="/check-in/weekly"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add First Measurement
@@ -208,7 +222,7 @@ export default function MeasurementsPage() {
         </div>
         <Link
           href="/check-in/weekly"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Measurements
@@ -396,7 +410,7 @@ export default function MeasurementsPage() {
               {[...measurements].reverse().map((measurement, index) => (
                 <tr
                   key={measurement.date}
-                  className={index === 0 ? "bg-amber-50 dark:bg-amber-900/10" : ""}
+                  className={index === 0 ? "bg-brown-50 dark:bg-brown-900/10" : ""}
                 >
                   <td className="py-3 px-4 text-stone-800 dark:text-stone-200">
                     <div className="flex items-center gap-2">

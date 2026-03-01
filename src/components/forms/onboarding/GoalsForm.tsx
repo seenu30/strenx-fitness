@@ -110,7 +110,7 @@ export default function GoalsForm({
     <form id="form-goals" onSubmit={handleSubmit} className="space-y-6">
       {/* Primary Goal */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           What is your primary goal? *
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -126,8 +126,8 @@ export default function GoalsForm({
               }}
               className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
                 formData.primaryGoal === goal.value
-                  ? "bg-amber-600 border-amber-600 text-white"
-                  : "bg-white dark:bg-stone-800 border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300 hover:border-amber-500"
+                  ? "bg-brown-500 border-brown-500 text-white"
+                  : "bg-card border-border text-foreground hover:border-brown-500"
               }`}
             >
               {goal.label}
@@ -141,7 +141,7 @@ export default function GoalsForm({
 
       {/* Secondary Goals */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Any secondary goals? (Select all that apply)
         </label>
         <div className="flex flex-wrap gap-2">
@@ -152,8 +152,8 @@ export default function GoalsForm({
               onClick={() => handleSecondaryGoalToggle(goal)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.secondaryGoals.includes(goal)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {goal}
@@ -166,7 +166,7 @@ export default function GoalsForm({
       <div>
         <label
           htmlFor="targetWeightKg"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           Target Weight (kg) - Optional
         </label>
@@ -180,7 +180,7 @@ export default function GoalsForm({
           max="200"
           step="0.5"
           placeholder="Leave blank if unsure"
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
 
@@ -188,7 +188,7 @@ export default function GoalsForm({
       <div>
         <label
           htmlFor="targetTimelineWeeks"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           How long do you want to achieve your goal? *
         </label>
@@ -197,7 +197,7 @@ export default function GoalsForm({
           name="targetTimelineWeeks"
           value={formData.targetTimelineWeeks}
           onChange={handleChange}
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           {TIMELINE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -209,7 +209,7 @@ export default function GoalsForm({
 
       {/* Motivation Level */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           How motivated are you to achieve this goal? *
         </label>
         <div className="space-y-2">
@@ -220,11 +220,11 @@ export default function GoalsForm({
             max="10"
             value={formData.motivationLevel}
             onChange={handleChange}
-            className="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-600"
+            className="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-brown-500"
           />
           <div className="flex justify-between text-sm text-stone-500 dark:text-stone-400">
             <span>Not very (1)</span>
-            <span className="font-bold text-amber-600">{formData.motivationLevel}</span>
+            <span className="font-bold text-brown-500">{formData.motivationLevel}</span>
             <span>Extremely (10)</span>
           </div>
         </div>
@@ -237,7 +237,7 @@ export default function GoalsForm({
       <div>
         <label
           htmlFor="commitmentHoursPerWeek"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           Hours per week you can commit to training *
         </label>
@@ -253,8 +253,8 @@ export default function GoalsForm({
           className={`w-full max-w-xs px-4 py-2.5 rounded-lg border ${
             errors.commitmentHoursPerWeek
               ? "border-red-500"
-              : "border-stone-300 dark:border-stone-600"
-          } bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500`}
+              : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
         />
         {errors.commitmentHoursPerWeek && (
           <p className="mt-1 text-sm text-red-500">{errors.commitmentHoursPerWeek}</p>
@@ -265,7 +265,7 @@ export default function GoalsForm({
       <div>
         <label
           htmlFor="previousAttempts"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           Have you tried achieving this goal before? What happened?
         </label>
@@ -276,7 +276,7 @@ export default function GoalsForm({
           onChange={handleChange}
           rows={3}
           placeholder="Share your past experiences..."
-          className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
         />
       </div>
     </form>

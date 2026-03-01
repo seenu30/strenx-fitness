@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import {
   Camera,
@@ -89,7 +90,6 @@ export default function WeeklyCheckinPage() {
   useEffect(() => {
     async function loadClientInfo() {
       const supabase = createClient();
-      if (!supabase) return;
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -158,7 +158,7 @@ export default function WeeklyCheckinPage() {
 
     try {
       const supabase = createClient();
-      if (!supabase || !clientId || !tenantId) {
+      if (!clientId || !tenantId) {
         throw new Error("Unable to submit. Please try again.");
       }
 
@@ -285,10 +285,11 @@ export default function WeeklyCheckinPage() {
                     </label>
                     {photo ? (
                       <div className="relative aspect-[3/4] rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700">
-                        <img
+                        <Image
                           src={photo.preview}
                           alt={angle.label}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
                         />
                         <button
                           type="button"
@@ -306,7 +307,7 @@ export default function WeeklyCheckinPage() {
                           onChange={(e) => handlePhotoUpload(angle.id, e)}
                           className="hidden"
                         />
-                        <div className="aspect-[3/4] rounded-lg border-2 border-dashed border-stone-300 dark:border-stone-600 flex flex-col items-center justify-center gap-2 hover:border-amber-500 transition-colors">
+                        <div className="aspect-[3/4] rounded-lg border-2 border-dashed border-stone-300 dark:border-stone-600 flex flex-col items-center justify-center gap-2 hover:border-brown-500 transition-colors">
                           <Plus className="w-8 h-8 text-stone-400" />
                           <span className="text-sm text-stone-500">
                             {angle.description}
@@ -320,9 +321,9 @@ export default function WeeklyCheckinPage() {
             </div>
 
             {formData.progressPhotos.length < 3 && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-700 dark:text-amber-300">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-brown-50 dark:bg-brown-900/20 border border-brown-200 dark:border-brown-700">
+                <AlertTriangle className="w-5 h-5 text-brown-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-brown-600 dark:text-brown-300">
                   Please upload all 3 photos for accurate progress tracking.
                 </p>
               </div>
@@ -352,7 +353,7 @@ export default function WeeklyCheckinPage() {
                     value={formData.measurements[measurement.id as keyof typeof formData.measurements] || ""}
                     onChange={(e) => updateMeasurement(measurement.id, e.target.value)}
                     placeholder={`e.g., 90`}
-                    className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-brown-500"
                   />
                 </div>
               ))}
@@ -375,7 +376,7 @@ export default function WeeklyCheckinPage() {
                 }
                 rows={4}
                 placeholder="Reflect on your nutrition, training, sleep, stress levels..."
-                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-brown-500 resize-none"
               />
             </div>
 
@@ -391,7 +392,7 @@ export default function WeeklyCheckinPage() {
                 }
                 rows={3}
                 placeholder="e.g., Hit all my protein targets, completed every workout, slept 8 hours every night..."
-                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-brown-500 resize-none"
               />
             </div>
 
@@ -407,7 +408,7 @@ export default function WeeklyCheckinPage() {
                 }
                 rows={3}
                 placeholder="e.g., Struggled with cravings, missed one workout due to work, stress eating..."
-                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-brown-500 resize-none"
               />
             </div>
 
@@ -423,7 +424,7 @@ export default function WeeklyCheckinPage() {
                 }
                 rows={3}
                 placeholder="Anything you'd like to discuss or clarify..."
-                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-brown-500 resize-none"
               />
             </div>
           </div>
@@ -462,7 +463,7 @@ export default function WeeklyCheckinPage() {
                 <div
                   className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
                     isActive
-                      ? "bg-amber-600 text-white"
+                      ? "bg-brown-500 text-white"
                       : isCompleted
                       ? "bg-green-500 text-white"
                       : "bg-stone-200 dark:bg-stone-700 text-stone-500"
@@ -477,7 +478,7 @@ export default function WeeklyCheckinPage() {
                 <span
                   className={`text-xs font-medium ${
                     isActive
-                      ? "text-amber-600"
+                      ? "text-brown-500"
                       : isCompleted
                       ? "text-green-600"
                       : "text-stone-500"
@@ -531,7 +532,7 @@ export default function WeeklyCheckinPage() {
           <button
             type="button"
             onClick={() => setCurrentStep((prev) => prev + 1)}
-            className="px-6 py-3 rounded-lg font-medium bg-amber-600 text-white hover:bg-amber-700 transition-colors"
+            className="px-6 py-3 rounded-lg font-medium bg-brown-500 text-white hover:bg-brown-600 transition-colors"
           >
             Next
           </button>

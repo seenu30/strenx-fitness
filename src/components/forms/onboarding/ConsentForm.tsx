@@ -83,17 +83,17 @@ export default function ConsentForm({ onSubmit, onBack, isSubmitting }: ConsentF
   );
 
   return (
-    <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
+    <div className="bg-card rounded-xl border border-border p-6">
       {/* Header */}
       <div className="flex items-start gap-4 mb-6">
         <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
           <Shield className="w-6 h-6 text-green-600 dark:text-green-500" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-stone-800 dark:text-stone-100">
+          <h2 className="text-xl font-semibold text-foreground">
             Review & Consent
           </h2>
-          <p className="text-stone-600 dark:text-stone-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             Please review and accept the following to complete your registration
           </p>
         </div>
@@ -156,14 +156,14 @@ export default function ConsentForm({ onSubmit, onBack, isSubmitting }: ConsentF
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-stone-800 dark:text-stone-200">
+                    <span className="font-medium text-foreground">
                       {item.title}
                     </span>
                     {item.required && (
                       <span className="text-xs text-red-500 font-medium">Required</span>
                     )}
                   </div>
-                  <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {item.description}
                   </p>
                 </div>
@@ -175,21 +175,21 @@ export default function ConsentForm({ onSubmit, onBack, isSubmitting }: ConsentF
         {/* Terms link */}
         <div className="mb-8 flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400">
           <FileText className="w-4 h-4" />
-          <a href="#" className="text-amber-600 hover:text-amber-700 underline">
+          <a href="#" className="text-brown-500 hover:text-brown-600 underline">
             Read full Terms of Service
           </a>
           <span>|</span>
-          <a href="#" className="text-amber-600 hover:text-amber-700 underline">
+          <a href="#" className="text-brown-500 hover:text-brown-600 underline">
             Privacy Policy
           </a>
         </div>
 
         {/* Actions */}
-        <div className="flex justify-between items-center pt-6 border-t border-stone-200 dark:border-stone-800">
+        <div className="flex justify-between items-center pt-6 border-t border-border">
           <button
             type="button"
             onClick={onBack}
-            className="px-4 py-2 text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200"
+            className="px-4 py-2 text-muted-foreground hover:text-stone-800 dark:hover:text-stone-200"
           >
             &larr; Back to form
           </button>

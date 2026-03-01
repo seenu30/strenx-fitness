@@ -1,13 +1,31 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { useTheme } from "next-themes";
+
+interface UserRow {
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+}
+
+interface ClientIdRow {
+  id: string;
+}
+
+interface PersonalDataRow {
+  phone: string | null;
+  city: string | null;
+}
 import {
   User,
   Bell,
   Lock,
   Moon,
   Sun,
+  Monitor,
   Smartphone,
   Mail,
   Shield,
@@ -36,7 +54,10 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "security" | "preferences">("profile");
   const [showPassword, setShowPassword] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Theme management
+  const { theme, setTheme, resolvedTheme } = useTheme();
 
   // Password update state
   const [passwords, setPasswords] = useState({
@@ -79,47 +100,39 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    loadProfile();
+    setMounted(true);
   }, []);
 
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get user profile
-      const { data: userData } = await (supabase as any)
+      const { data: userData } = await (supabase as SupabaseClient)
         .from("users")
-        .select("email, full_name")
+        .select("email, first_name, last_name")
         .eq("id", user.id)
-        .single();
+        .single() as { data: UserRow | null };
 
-      // Get client info for additional details
-      const { data: clientData } = await (supabase as any)
+      const { data: clientData } = await (supabase as SupabaseClient)
         .from("clients")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .single() as { data: ClientIdRow | null };
 
-      // Get personal assessment data (phone, city)
-      let personalData = null;
+      let personalData: PersonalDataRow | null = null;
       if (clientData) {
-        const { data } = await (supabase as any)
+        const { data } = await (supabase as SupabaseClient)
           .from("assess_personal")
           .select("phone, city")
           .eq("client_id", clientData.id)
-          .single();
+          .single() as { data: PersonalDataRow | null };
         personalData = data;
       }
 
-      // Parse name
-      const nameParts = (userData?.full_name || "").split(" ");
-      const firstName = nameParts[0] || "";
-      const lastName = nameParts.slice(1).join(" ") || "";
-
       setProfile({
-        firstName,
-        lastName,
+        firstName: userData?.first_name || "",
+        lastName: userData?.last_name || "",
         email: userData?.email || user.email || "",
         phone: personalData?.phone || "",
         city: personalData?.city || "",
@@ -130,7 +143,11 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   async function handleSaveProfile() {
     setSaving(true);
@@ -140,24 +157,19 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const fullName = `${profile.firstName} ${profile.lastName}`.trim();
-
-      // Update user profile
-      await (supabase as any)
+      await (supabase as SupabaseClient)
         .from("users")
-        .update({ full_name: fullName })
+        .update({ first_name: profile.firstName, last_name: profile.lastName })
         .eq("id", user.id);
 
-      // Get client ID
-      const { data: clientData } = await (supabase as any)
+      const { data: clientData } = await (supabase as SupabaseClient)
         .from("clients")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .single() as { data: ClientIdRow | null };
 
-      // Update personal assessment if client exists
       if (clientData) {
-        await (supabase as any)
+        await (supabase as SupabaseClient)
           .from("assess_personal")
           .upsert({
             client_id: clientData.id,
@@ -237,7 +249,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-brown-500" />
       </div>
     );
   }
@@ -266,7 +278,7 @@ export default function SettingsPage() {
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
                   className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${
                     activeTab === tab.id
-                      ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-l-2 border-amber-600"
+                      ? "bg-brown-50 dark:bg-brown-900/20 text-brown-500 border-l-2 border-brown-500"
                       : "text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800"
                   }`}
                 >
@@ -291,13 +303,13 @@ export default function SettingsPage() {
                 </h2>
 
                 <div className="flex items-center gap-4 pb-6 border-b border-stone-200 dark:border-stone-700">
-                  <div className="w-20 h-20 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+                  <div className="w-20 h-20 rounded-full bg-brown-100 dark:bg-brown-900/30 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-brown-600 dark:text-brown-400">
                       {getInitials()}
                     </span>
                   </div>
                   <div>
-                    <button className="px-4 py-2 text-sm text-amber-600 border border-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                    <button className="px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20">
                       Change Photo
                     </button>
                     <p className="text-xs text-stone-500 mt-2">
@@ -379,7 +391,7 @@ export default function SettingsPage() {
                   <button
                     onClick={handleSaveProfile}
                     disabled={saving}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 disabled:opacity-50"
                   >
                     {saving ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -434,7 +446,7 @@ export default function SettingsPage() {
                         }
                         className={`w-12 h-6 rounded-full transition-colors ${
                           notifications[item.key as keyof typeof notifications]
-                            ? "bg-amber-600"
+                            ? "bg-brown-500"
                             : "bg-stone-300 dark:bg-stone-600"
                         }`}
                       >
@@ -494,7 +506,7 @@ export default function SettingsPage() {
                         className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                           pushSubscribed
                             ? "bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600"
-                            : "bg-amber-600 text-white hover:bg-amber-700"
+                            : "bg-brown-500 text-white hover:bg-brown-600"
                         }`}
                       >
                         {pushLoading ? (
@@ -543,7 +555,7 @@ export default function SettingsPage() {
                             }
                             className={`w-12 h-6 rounded-full transition-colors ${
                               notifications[item.key as keyof typeof notifications]
-                                ? "bg-amber-600"
+                                ? "bg-brown-500"
                                 : "bg-stone-300 dark:bg-stone-600"
                             }`}
                           >
@@ -637,7 +649,7 @@ export default function SettingsPage() {
                   <button
                     onClick={handleUpdatePassword}
                     disabled={passwordUpdating}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 disabled:opacity-50"
                   >
                     {passwordUpdating ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -661,7 +673,7 @@ export default function SettingsPage() {
                         </p>
                       </div>
                     </div>
-                    <button className="px-4 py-2 text-sm text-amber-600 border border-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                    <button className="px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20">
                       Enable
                     </button>
                   </div>
@@ -676,34 +688,68 @@ export default function SettingsPage() {
                 </h2>
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3">
-                    <div className="flex items-center gap-3">
-                      {darkMode ? (
+                  <div className="py-3">
+                    <div className="flex items-center gap-3 mb-4">
+                      {mounted && resolvedTheme === "dark" ? (
                         <Moon className="w-5 h-5 text-stone-500" />
-                      ) : (
+                      ) : mounted && resolvedTheme === "light" ? (
                         <Sun className="w-5 h-5 text-stone-500" />
+                      ) : (
+                        <Monitor className="w-5 h-5 text-stone-500" />
                       )}
                       <div>
                         <p className="font-medium text-stone-800 dark:text-stone-100">
-                          Dark Mode
+                          Theme
                         </p>
                         <p className="text-sm text-stone-500">
-                          Use dark theme for the app
+                          Choose how the app looks
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setDarkMode(!darkMode)}
-                      className={`w-12 h-6 rounded-full transition-colors ${
-                        darkMode ? "bg-amber-600" : "bg-stone-300 dark:bg-stone-600"
-                      }`}
-                    >
-                      <div
-                        className={`w-5 h-5 rounded-full bg-white shadow transform transition-transform ${
-                          darkMode ? "translate-x-6" : "translate-x-0.5"
+
+                    {/* Theme selector buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setTheme("light")}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors ${
+                          mounted && theme === "light"
+                            ? "bg-brown-50 dark:bg-brown-900/20 border-brown-500 text-brown-500"
+                            : "border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800"
                         }`}
-                      />
-                    </button>
+                      >
+                        <Sun className="w-4 h-4" />
+                        Light
+                      </button>
+                      <button
+                        onClick={() => setTheme("dark")}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors ${
+                          mounted && theme === "dark"
+                            ? "bg-brown-50 dark:bg-brown-900/20 border-brown-500 text-brown-500"
+                            : "border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800"
+                        }`}
+                      >
+                        <Moon className="w-4 h-4" />
+                        Dark
+                      </button>
+                      <button
+                        onClick={() => setTheme("system")}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors ${
+                          mounted && theme === "system"
+                            ? "bg-brown-50 dark:bg-brown-900/20 border-brown-500 text-brown-500"
+                            : "border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800"
+                        }`}
+                      >
+                        <Monitor className="w-4 h-4" />
+                        System
+                      </button>
+                    </div>
+                    <p className="text-xs text-stone-500 mt-2">
+                      {mounted && theme === "system"
+                        ? "Following your system preference"
+                        : mounted && theme === "dark"
+                        ? "Always use dark theme"
+                        : "Always use light theme"}
+                    </p>
                   </div>
                 </div>
 

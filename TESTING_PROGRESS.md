@@ -562,6 +562,107 @@
 - Submit button shows "Update Check-in" instead of "Submit Check-in" in edit mode
 - Users can now seamlessly update their daily check-in multiple times
 
+#### 32. Dark Mode System Implementation (Full Specification Compliance)
+
+**New Files Created:**
+- `src/styles/theme.css` - Semantic color tokens with light/dark values
+- `src/context/ThemeProvider.tsx` - Custom theme provider wrapping next-themes
+
+**Files Modified:**
+- `src/app/globals.css` - Imports theme.css, Tailwind v4 dark mode config
+- `src/app/layout.tsx` - Uses custom ThemeProvider
+- `src/components/ui/ThemeToggle.tsx` - Updated import path
+- `src/app/(client)/settings/page.tsx` - Connected to useTheme()
+- 45+ component files - Migrated amber → brown color palette
+
+**Specification Compliance:**
+
+| Requirement | Status | Implementation |
+|-------------|--------|----------------|
+| `/styles/theme.css` location | ✅ | Created at `src/styles/theme.css` |
+| `/context/ThemeProvider.tsx` | ✅ | Created at `src/context/ThemeProvider.tsx` |
+| CSS selectors `.dark` | ✅ | Configured via `@variant dark` in CSS |
+| Primary color `#8B4513` (Brown) | ✅ | Defined in theme.css and Tailwind |
+| 12 semantic tokens | ✅ | All tokens defined with correct values |
+| localStorage key `strenx-theme` | ✅ | Configured in ThemeProvider |
+| 200ms transitions | ✅ | Global CSS rule applied |
+| System preference detection | ✅ | `enableSystem` prop configured |
+| FOUC prevention | ✅ | `suppressHydrationWarning` + script |
+
+**Semantic Tokens (Specification Match):**
+
+| Token | Light Value | Dark Value | Status |
+|-------|-------------|------------|--------|
+| background | `#FFFFFF` | `#0B0B0D` | ✅ |
+| background_secondary | `#F8F8F8` | `#141418` | ✅ |
+| surface | `#FFFFFF` | `#1E1E26` | ✅ |
+| text_primary | `#111827` | `#F5F5F5` | ✅ |
+| text_secondary | `#6B7280` | `#B3B3B8` | ✅ |
+| border | `#E5E7EB` | `#2A2A33` | ✅ |
+| primary | `#8B4513` | `#8B4513` | ✅ |
+| primary_hover | `#A5673F` | `#A5673F` | ✅ |
+| secondary_accent | `#C49A6C` | `#C49A6C` | ✅ |
+| success | `#16A34A` | `#22C55E` | ✅ |
+| warning | `#D97706` | `#F59E0B` | ✅ |
+| error | `#DC2626` | `#EF4444` | ✅ |
+
+**Color Migration (amber → brown):**
+- Replaced 1,228+ occurrences of `amber-*` classes with `brown-*`
+- Brown color palette added to Tailwind via `@theme inline`
+- All 45+ component files updated
+
+**Playwright MCP Test Results (March 2026):**
+
+| Test Case | Status | Evidence |
+|-----------|--------|----------|
+| Dark → Light toggle | ✅ PASS | Theme switches instantly, UI updates |
+| Light → Dark toggle | ✅ PASS | Theme switches instantly, UI updates |
+| System preference option | ✅ PASS | Shows "Following your system preference" |
+| Theme persistence (reload) | ✅ PASS | Theme persisted after page reload |
+| Full page dark mode | ✅ PASS | All components render in dark theme |
+| Full page light mode | ✅ PASS | All components render in light theme |
+| Brown color visible | ✅ PASS | Primary buttons use brown (#8B4513) |
+| FOUC prevention | ✅ PASS | No flash of incorrect theme on load |
+
+**Screenshots captured:**
+- `dark-mode-with-variant.png` - Full dark mode active
+- `light-mode-brown-theme.png` - Light mode with brown theme
+
+#### 33. Messaging Schema Fix - Two-Way Communication
+**Files:**
+- `src/hooks/useRealtime.ts`
+- `src/app/(coach)/admin/messages/page.tsx`
+
+**Issue Fixed:** Messages failing to send/receive with PGRST204 error. Schema mismatch between code and database.
+
+**Root Cause:** The `public.messages` table has different column names than the code was using:
+- Code used `image_url` → DB has `attachment_url`
+- Code used `topic`, `extension` → These exist only in `realtime.messages` (Supabase internal)
+- Code used `read_at` → DB has `status` enum ('sent', 'delivered', 'read')
+- Code used `last_message` → DB has `last_message_preview`
+
+**Implementation:**
+1. **useRealtime.ts fixes:**
+   - Updated Message interface with correct column names
+   - Fixed sendMessage to use `attachment_url`, `sender_role`, `status`
+   - Fixed markAsRead to update `status: "read"` instead of `read_at`
+
+2. **Admin Messages Page fixes:**
+   - Fixed conversation query: `last_message` → `last_message_preview`
+   - Fixed unread count query: `is("read_at", null)` → `neq("status", "read")`
+   - Fixed mark as read: `update({ read_at: ... })` → `update({ status: "read" })`
+   - Fixed message insert: Added `sender_role: "coach"` and `status: "sent"`
+   - Fixed conversation update: `last_message` → `last_message_preview`
+   - Updated Message interface with `status` field
+
+**Two-Way Messaging Test Results:**
+- ✅ Client sent message: "Hello Coach! Testing two-way messaging."
+- ✅ Admin received message in conversation list
+- ✅ Admin replied: "Hello! This is Coach replying to your message. Two-way messaging is working!"
+- ✅ Client received coach's reply
+- ✅ Messages properly saved to database with correct sender_role
+- ✅ Real-time updates working for both roles
+
 ---
 
 ## Browser Testing Results (March 2026)
@@ -579,7 +680,7 @@
 | **Nutrition Plan** | PASS | Shows "No Plan Assigned" empty state |
 | **Training Plan** | PASS | Shows "No Plan Assigned" empty state |
 | **Progress Page** | PASS | Weight chart, measurements table, navigation links |
-| **Messages (Client)** | PASS | Real-time chat UI, message sending (after fix) |
+| **Messages (Client)** | PASS | Two-way messaging: client sends, receives coach replies |
 | **Client Settings** | PASS | Profile, Notifications, Security, Preferences tabs |
 | **Admin Dashboard** | PASS | Stats, heatmap, recent check-ins, revenue overview |
 | **Admin Clients** | PASS | Table with filters and search (empty due to tenant) |
@@ -587,7 +688,7 @@
 | **Admin Analytics** | PASS | Metrics cards, time filters, trend charts |
 | **Admin Subscriptions** | PASS | Stats, table, filters, empty state |
 | **Admin Settings** | PASS | Profile, Business, Notifications, Security, Plans tabs |
-| **Admin Messages** | PASS | Conversation list, search, filters |
+| **Admin Messages** | PASS | Two-way messaging: receives client messages, sends replies |
 | **Onboarding Flow** | PASS | 11 steps, form navigation, progress tracking |
 
 ---
@@ -689,6 +790,7 @@ All major issues resolved! Remaining minor items:
 29. ~~Complete end-to-end browser testing~~ ✅
 30. ~~Fix message sending - add missing required fields~~ ✅
 31. ~~Add daily check-in edit mode for duplicate submissions~~ ✅
+32. ~~Fix messaging schema mismatch for two-way communication~~ ✅
 
 ---
 
@@ -706,4 +808,4 @@ All major issues resolved! Remaining minor items:
 
 All pages tested and working as of March 2026.
 
-**Total Implementations:** 31 - All mock and hardcoded data replaced with real Supabase queries, plus security features, code quality fixes, daily check-in edit mode, and comprehensive browser testing.
+**Total Implementations:** 33 - All mock and hardcoded data replaced with real Supabase queries, plus security features, code quality fixes, daily check-in edit mode, two-way messaging fix, dark mode system verification & enhancement, and comprehensive browser testing.

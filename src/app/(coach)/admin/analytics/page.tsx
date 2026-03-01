@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   Users,
@@ -44,6 +44,52 @@ interface TrendData {
 
 type TimeRange = "7d" | "30d" | "90d" | "12m";
 
+interface CoachData {
+  id: string;
+  tenant_id: string;
+}
+
+interface UserData {
+  first_name: string;
+  last_name: string;
+}
+
+interface PlanTemplate {
+  name: string;
+  price: number;
+}
+
+interface Subscription {
+  id: string;
+  status: string;
+  plan_templates: PlanTemplate | null;
+}
+
+interface ClientData {
+  id: string;
+  user_id: string;
+  status: string;
+  start_date: string | null;
+  created_at: string;
+  users: UserData | null;
+  subscriptions: Subscription[] | null;
+}
+
+interface CheckinData {
+  client_id: string;
+  created_at: string;
+}
+
+interface WeightData {
+  weight: number;
+  created_at: string;
+}
+
+interface PaymentData {
+  amount: number;
+  payment_date?: string;
+}
+
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [loading, setLoading] = useState(true);
@@ -67,22 +113,17 @@ export default function AnalyticsPage() {
 
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [timeRange]);
-
-  async function loadAnalytics() {
+  const loadAnalytics = useCallback(async () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get coach info
-      const { data: coach } = await (supabase as any)
+      const { data: coach } = await supabase
         .from("coaches")
         .select("id, tenant_id")
         .eq("user_id", user.id)
-        .single();
+        .single() as { data: CoachData | null };
 
       if (!coach) return;
 
@@ -101,8 +142,7 @@ export default function AnalyticsPage() {
       const previousStartDate = new Date(startDate);
       previousStartDate.setDate(previousStartDate.getDate() - daysBack);
 
-      // Get all clients with user info
-      const { data: clients } = await (supabase as any)
+      const { data: clients } = await supabase
         .from("clients")
         .select(`
           id,
@@ -117,30 +157,28 @@ export default function AnalyticsPage() {
             plan_templates(name, price)
           )
         `)
-        .eq("tenant_id", coach.tenant_id);
+        .eq("tenant_id", coach.tenant_id) as { data: ClientData[] | null };
 
-      const allClients = clients || [];
+      const allClients: ClientData[] = clients || [];
       const totalClients = allClients.length;
-      const activeClients = allClients.filter((c: any) => c.status === "active").length;
+      const activeClients = allClients.filter((c) => c.status === "active").length;
 
-      // Calculate clients added in current period vs previous period
-      const clientsInPeriod = allClients.filter((c: any) =>
+      const clientsInPeriod = allClients.filter((c) =>
         new Date(c.created_at) >= startDate
       ).length;
-      const clientsInPreviousPeriod = allClients.filter((c: any) =>
+      const clientsInPreviousPeriod = allClients.filter((c) =>
         new Date(c.created_at) >= previousStartDate && new Date(c.created_at) < startDate
       ).length;
       const clientChange = clientsInPreviousPeriod > 0
         ? ((clientsInPeriod - clientsInPreviousPeriod) / clientsInPreviousPeriod) * 100
         : clientsInPeriod > 0 ? 100 : 0;
 
-      // Get compliance data
-      const clientIds = allClients.map((c: any) => c.id);
-      const { data: checkins } = await (supabase as any)
+      const clientIds = allClients.map((c) => c.id);
+      const { data: checkins } = await supabase
         .from("daily_checkins")
         .select("client_id, created_at")
         .in("client_id", clientIds.length > 0 ? clientIds : ["no-clients"])
-        .gte("created_at", startDate.toISOString());
+        .gte("created_at", startDate.toISOString()) as { data: CheckinData[] | null };
 
       // Calculate average compliance (check-ins per client / days in period)
       const checkinCount = checkins?.length || 0;
@@ -148,13 +186,12 @@ export default function AnalyticsPage() {
         ? Math.round((checkinCount / (totalClients * daysBack)) * 100)
         : 0;
 
-      // Get previous period compliance
-      const { data: previousCheckins } = await (supabase as any)
+      const { data: previousCheckins } = await supabase
         .from("daily_checkins")
         .select("id")
         .in("client_id", clientIds.length > 0 ? clientIds : ["no-clients"])
         .gte("created_at", previousStartDate.toISOString())
-        .lt("created_at", startDate.toISOString());
+        .lt("created_at", startDate.toISOString()) as { data: { id: string }[] | null };
 
       const previousCheckinCount = previousCheckins?.length || 0;
       const previousAvgCompliance = totalClients > 0
@@ -164,46 +201,42 @@ export default function AnalyticsPage() {
         ? avgCompliance - previousAvgCompliance
         : 0;
 
-      // Get revenue data - current month
       const monthStart = new Date(currentYear, currentMonth, 1);
-      const { data: payments } = await (supabase as any)
+      const { data: payments } = await supabase
         .from("payments")
         .select("amount, payment_date")
         .eq("tenant_id", coach.tenant_id)
         .eq("status", "completed")
-        .gte("payment_date", monthStart.toISOString());
+        .gte("payment_date", monthStart.toISOString()) as { data: PaymentData[] | null };
 
-      const monthlyRevenue = payments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+      const monthlyRevenue = payments?.reduce((sum: number, p: PaymentData) => sum + (p.amount || 0), 0) || 0;
 
-      // Get previous month revenue
       const prevMonthStart = new Date(currentYear, currentMonth - 1, 1);
-      const { data: prevPayments } = await (supabase as any)
+      const { data: prevPayments } = await supabase
         .from("payments")
         .select("amount")
         .eq("tenant_id", coach.tenant_id)
         .eq("status", "completed")
         .gte("payment_date", prevMonthStart.toISOString())
-        .lt("payment_date", monthStart.toISOString());
+        .lt("payment_date", monthStart.toISOString()) as { data: PaymentData[] | null };
 
-      const prevMonthRevenue = prevPayments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+      const prevMonthRevenue = prevPayments?.reduce((sum: number, p: PaymentData) => sum + (p.amount || 0), 0) || 0;
       const revenueChange = prevMonthRevenue > 0
         ? ((monthlyRevenue - prevMonthRevenue) / prevMonthRevenue) * 100
         : monthlyRevenue > 0 ? 100 : 0;
 
-      // Calculate churn rate (inactive clients / total clients)
-      const inactiveClients = allClients.filter((c: any) => c.status === "inactive").length;
+      const inactiveClients = allClients.filter((c) => c.status === "inactive").length;
       const churnRate = totalClients > 0 ? (inactiveClients / totalClients) * 100 : 0;
 
-      // Calculate average client duration
       const durations = allClients
-        .filter((c: any) => c.start_date)
-        .map((c: any) => {
+        .filter((c): c is ClientData & { start_date: string } => c.start_date !== null)
+        .map((c) => {
           const start = new Date(c.start_date);
           const diff = now.getTime() - start.getTime();
           return Math.floor(diff / (1000 * 60 * 60 * 24));
         });
       const avgDuration = durations.length > 0
-        ? Math.round(durations.reduce((a: number, b: number) => a + b, 0) / durations.length)
+        ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
         : 0;
 
       setMetrics({
@@ -224,32 +257,29 @@ export default function AnalyticsPage() {
         const monthDate = new Date(currentYear, currentMonth - i, 1);
         const nextMonthDate = new Date(currentYear, currentMonth - i + 1, 1);
 
-        // Revenue for that month
-        const { data: monthPayments } = await (supabase as any)
+        const { data: monthPayments } = await supabase
           .from("payments")
           .select("amount")
           .eq("tenant_id", coach.tenant_id)
           .eq("status", "completed")
           .gte("payment_date", monthDate.toISOString())
-          .lt("payment_date", nextMonthDate.toISOString());
+          .lt("payment_date", nextMonthDate.toISOString()) as { data: PaymentData[] | null };
 
-        const monthRevenue = monthPayments?.reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0;
+        const monthRevenue = monthPayments?.reduce((sum: number, p: PaymentData) => sum + (p.amount || 0), 0) || 0;
         revenueTrend.push(monthRevenue);
 
-        // Client count at end of month
-        const clientsAtMonth = allClients.filter((c: any) =>
+        const clientsAtMonth = allClients.filter((c) =>
           new Date(c.created_at) <= nextMonthDate
         ).length;
         clientTrend.push(clientsAtMonth);
 
-        // Compliance for that month (if data exists)
         const daysInMonth = Math.floor((nextMonthDate.getTime() - monthDate.getTime()) / (1000 * 60 * 60 * 24));
-        const { data: monthCheckins } = await (supabase as any)
+        const { data: monthCheckins } = await supabase
           .from("daily_checkins")
           .select("id")
           .in("client_id", clientIds.length > 0 ? clientIds : ["no-clients"])
           .gte("created_at", monthDate.toISOString())
-          .lt("created_at", nextMonthDate.toISOString());
+          .lt("created_at", nextMonthDate.toISOString()) as { data: { id: string }[] | null };
 
         const monthCheckinCount = monthCheckins?.length || 0;
         const monthCompliance = clientsAtMonth > 0
@@ -264,28 +294,25 @@ export default function AnalyticsPage() {
         clients: clientTrend,
       });
 
-      // Get top performing clients by compliance
       const topClientsData: TopClient[] = [];
-      for (const client of allClients.slice(0, 10)) {
-        // Get check-in count for last 30 days
+      for (const clientItem of allClients.slice(0, 10)) {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const { data: clientCheckins } = await (supabase as any)
+        const { data: clientCheckins } = await supabase
           .from("daily_checkins")
           .select("id, weight")
-          .eq("client_id", client.id)
-          .gte("created_at", thirtyDaysAgo.toISOString());
+          .eq("client_id", clientItem.id)
+          .gte("created_at", thirtyDaysAgo.toISOString()) as { data: { id: string; weight: number | null }[] | null };
 
         const compliance = Math.round(((clientCheckins?.length || 0) / 30) * 100);
 
-        // Calculate weight lost
-        const { data: weightData } = await (supabase as any)
+        const { data: weightData } = await supabase
           .from("daily_checkins")
           .select("weight, created_at")
-          .eq("client_id", client.id)
+          .eq("client_id", clientItem.id)
           .not("weight", "is", null)
-          .order("created_at", { ascending: true });
+          .order("created_at", { ascending: true }) as { data: WeightData[] | null };
 
         let weightLost = 0;
         if (weightData && weightData.length >= 2) {
@@ -294,11 +321,11 @@ export default function AnalyticsPage() {
           weightLost = Math.round((firstWeight - lastWeight) * 10) / 10;
         }
 
-        const activeSub = client.subscriptions?.find((s: any) => s.status === "active");
+        const activeSub = clientItem.subscriptions?.find((s) => s.status === "active");
         const planName = activeSub?.plan_templates?.name || "No Plan";
 
         topClientsData.push({
-          name: `${client.users?.first_name || ""} ${client.users?.last_name || ""}`.trim() || "Unknown",
+          name: `${clientItem.users?.first_name || ""} ${clientItem.users?.last_name || ""}`.trim() || "Unknown",
           compliance: Math.min(compliance, 100),
           weightLost,
           plan: planName,
@@ -309,8 +336,7 @@ export default function AnalyticsPage() {
       topClientsData.sort((a, b) => b.compliance - a.compliance);
       setTopClients(topClientsData.slice(0, 5));
 
-      // Get plan distribution
-      const { data: subscriptions } = await (supabase as any)
+      const { data: subscriptions } = await supabase
         .from("subscriptions")
         .select(`
           id,
@@ -318,10 +344,10 @@ export default function AnalyticsPage() {
           plan_templates(name, price)
         `)
         .eq("tenant_id", coach.tenant_id)
-        .eq("status", "active");
+        .eq("status", "active") as { data: Subscription[] | null };
 
       const planCounts: Record<string, { count: number; revenue: number }> = {};
-      (subscriptions || []).forEach((sub: any) => {
+      (subscriptions || []).forEach((sub) => {
         const planName = sub.plan_templates?.name || "Unknown Plan";
         const price = sub.plan_templates?.price || 0;
         if (!planCounts[planName]) {
@@ -347,7 +373,11 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase, timeRange]);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -384,7 +414,7 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-brown-500" />
       </div>
     );
   }
@@ -408,7 +438,7 @@ export default function AnalyticsPage() {
               onClick={() => setTimeRange(range)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 timeRange === range
-                  ? "bg-amber-600 text-white"
+                  ? "bg-brown-500 text-white"
                   : "bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-700"
               }`}
             >
@@ -482,8 +512,8 @@ export default function AnalyticsPage() {
 
         <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-              <DollarSign className="w-5 h-5 text-amber-600" />
+            <div className="p-2 bg-brown-100 dark:bg-brown-900/30 rounded-lg">
+              <DollarSign className="w-5 h-5 text-brown-500" />
             </div>
             {metrics.monthlyRevenue.change !== 0 && (
               <div
@@ -668,7 +698,7 @@ export default function AnalyticsPage() {
           <div className="space-y-4">
             {planDistribution.length > 0 ? (
               planDistribution.map((plan, index) => {
-                const colors = ["bg-amber-500", "bg-blue-500", "bg-green-500", "bg-purple-500"];
+                const colors = ["bg-brown-500", "bg-blue-500", "bg-green-500", "bg-purple-500"];
                 return (
                   <div key={plan.name}>
                     <div className="flex items-center justify-between mb-1.5">
@@ -734,7 +764,7 @@ export default function AnalyticsPage() {
                       <span
                         className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                           index === 0
-                            ? "bg-amber-100 text-amber-700"
+                            ? "bg-brown-100 text-brown-600"
                             : index === 1
                             ? "bg-stone-200 text-stone-700"
                             : index === 2
@@ -759,7 +789,7 @@ export default function AnalyticsPage() {
                           client.compliance >= 90
                             ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                             : client.compliance >= 80
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            ? "bg-brown-100 text-brown-600 dark:bg-brown-900/30 dark:text-brown-400"
                             : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                         }`}
                       >

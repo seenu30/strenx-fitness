@@ -1,16 +1,22 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 export interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
+  sender_role: "client" | "coach";
   content: string;
-  message_type: "text" | "image";
-  image_url?: string;
+  message_type?: string;
+  attachment_url?: string;
+  attachment_type?: string;
+  attachment_name?: string;
+  status?: "sent" | "delivered" | "read";
+  metadata?: Record<string, unknown>;
   created_at: string;
-  read_at?: string;
+  edited_at?: string;
+  deleted_at?: string;
 }
 
 export interface Conversation {
@@ -20,6 +26,17 @@ export interface Conversation {
   last_message?: string;
   last_message_at?: string;
   unread_count: number;
+}
+
+export interface RealtimeNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  data?: Record<string, unknown>;
+  read: boolean;
+  created_at: string;
 }
 
 /**
@@ -34,10 +51,6 @@ export function useRealtimeMessages(conversationId: string | null) {
     if (!conversationId) return;
 
     const supabase = createClient();
-    if (!supabase) {
-      setError(new Error("Supabase client not available"));
-      return;
-    }
 
     let channel: RealtimeChannel;
 
@@ -54,7 +67,7 @@ export function useRealtimeMessages(conversationId: string | null) {
               table: "messages",
               filter: `conversation_id=eq.${conversationId}`,
             },
-            (payload) => {
+            (payload: RealtimePostgresChangesPayload<Message>) => {
               const newMessage = payload.new as Message;
               setMessages((prev) => [...prev, newMessage]);
             }
@@ -67,7 +80,7 @@ export function useRealtimeMessages(conversationId: string | null) {
               table: "messages",
               filter: `conversation_id=eq.${conversationId}`,
             },
-            (payload) => {
+            (payload: RealtimePostgresChangesPayload<Message>) => {
               const updatedMessage = payload.new as Message;
               setMessages((prev) =>
                 prev.map((msg) =>
@@ -76,7 +89,7 @@ export function useRealtimeMessages(conversationId: string | null) {
               );
             }
           )
-          .subscribe((status) => {
+          .subscribe((status: string) => {
             setIsConnected(status === "SUBSCRIBED");
           });
       } catch (err) {
@@ -96,14 +109,13 @@ export function useRealtimeMessages(conversationId: string | null) {
   const sendMessage = useCallback(
     async (
       content: string,
-      messageType: "text" | "image" = "text",
-      imageUrl?: string,
+      messageType: string = "text",
+      attachmentUrl?: string,
       recipientId?: string
     ) => {
       if (!conversationId) return null;
 
       const supabase = createClient();
-      if (!supabase) return null;
 
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return null;
@@ -119,10 +131,9 @@ export function useRealtimeMessages(conversationId: string | null) {
           sender_id: user.user.id,
           content,
           message_type: messageType,
-          image_url: imageUrl,
-          topic: "chat",
+          attachment_url: attachmentUrl || null,
           sender_role: userRole,
-          extension: "realtime:broadcast",
+          status: "sent",
         })
         .select()
         .single();
@@ -158,12 +169,11 @@ export function useRealtimeMessages(conversationId: string | null) {
   const markAsRead = useCallback(
     async (messageId: string) => {
       const supabase = createClient();
-      if (!supabase) return;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any)
         .from("messages")
-        .update({ read_at: new Date().toISOString() })
+        .update({ status: "read" })
         .eq("id", messageId);
     },
     []
@@ -190,7 +200,6 @@ export function useRealtimeConversations(userId: string | null) {
     if (!userId) return;
 
     const supabase = createClient();
-    if (!supabase) return;
 
     let channel: RealtimeChannel;
 
@@ -204,7 +213,7 @@ export function useRealtimeConversations(userId: string | null) {
             schema: "public",
             table: "conversations",
           },
-          (payload) => {
+          (payload: RealtimePostgresChangesPayload<Conversation>) => {
             if (payload.eventType === "INSERT") {
               setConversations((prev) => [payload.new as Conversation, ...prev]);
             } else if (payload.eventType === "UPDATE") {
@@ -218,7 +227,7 @@ export function useRealtimeConversations(userId: string | null) {
             }
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: string) => {
           setIsConnected(status === "SUBSCRIBED");
         });
     };
@@ -239,14 +248,13 @@ export function useRealtimeConversations(userId: string | null) {
  * Hook for real-time notifications
  */
 export function useRealtimeNotifications(userId: string | null) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<RealtimeNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!userId) return;
 
     const supabase = createClient();
-    if (!supabase) return;
 
     let channel: RealtimeChannel;
 
@@ -261,8 +269,8 @@ export function useRealtimeNotifications(userId: string | null) {
             table: "notification_queue",
             filter: `user_id=eq.${userId}`,
           },
-          (payload) => {
-            setNotifications((prev) => [payload.new as Notification, ...prev]);
+          (payload: RealtimePostgresChangesPayload<RealtimeNotification>) => {
+            setNotifications((prev) => [payload.new as RealtimeNotification, ...prev]);
             setUnreadCount((prev) => prev + 1);
           }
         )
@@ -279,8 +287,9 @@ export function useRealtimeNotifications(userId: string | null) {
   }, [userId]);
 
   const markAllRead = useCallback(async () => {
+    if (!userId) return;
+
     const supabase = createClient();
-    if (!supabase || !userId) return;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase as any)
@@ -305,7 +314,6 @@ export function useTypingIndicator(conversationId: string | null) {
     if (!conversationId) return;
 
     const supabase = createClient();
-    if (!supabase) return;
 
     let channel: RealtimeChannel;
 
@@ -341,7 +349,6 @@ export function useTypingIndicator(conversationId: string | null) {
       if (!conversationId) return;
 
       const supabase = createClient();
-      if (!supabase) return;
 
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;

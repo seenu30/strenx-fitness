@@ -126,7 +126,7 @@ export default function TrainingBackgroundForm({
     <form id="form-training_background" onSubmit={handleSubmit} className="space-y-6">
       {/* Experience Level */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           What is your training experience level? *
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -139,20 +139,20 @@ export default function TrainingBackgroundForm({
               }
               className={`p-4 rounded-lg border text-left transition-colors ${
                 formData.experienceLevel === level.value
-                  ? "bg-amber-600 border-amber-600 text-white"
-                  : "bg-white dark:bg-stone-800 border-stone-300 dark:border-stone-600 hover:border-amber-500"
+                  ? "bg-brown-500 border-brown-500 text-white"
+                  : "bg-card border-border hover:border-brown-500"
               }`}
             >
               <div className={`font-medium ${
                 formData.experienceLevel === level.value
                   ? "text-white"
-                  : "text-stone-800 dark:text-stone-200"
+                  : "text-foreground"
               }`}>
                 {level.label}
               </div>
               <div className={`text-sm mt-1 ${
                 formData.experienceLevel === level.value
-                  ? "text-amber-100"
+                  ? "text-brown-100"
                   : "text-stone-500 dark:text-stone-400"
               }`}>
                 {level.description}
@@ -169,7 +169,7 @@ export default function TrainingBackgroundForm({
       <div>
         <label
           htmlFor="currentTrainingFrequency"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           How many days per week do you currently train?
         </label>
@@ -182,13 +182,13 @@ export default function TrainingBackgroundForm({
           min="0"
           max="7"
           placeholder="0"
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
 
       {/* Current Training Style */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           What type of training do you currently do?
         </label>
         <div className="flex flex-wrap gap-2">
@@ -199,8 +199,8 @@ export default function TrainingBackgroundForm({
               onClick={() => handleArrayToggle("currentTrainingStyle", style)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.currentTrainingStyle.includes(style)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {style}
@@ -211,7 +211,7 @@ export default function TrainingBackgroundForm({
 
       {/* Preferred Training Style */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           What type of training would you prefer?
         </label>
         <div className="flex flex-wrap gap-2">
@@ -222,8 +222,8 @@ export default function TrainingBackgroundForm({
               onClick={() => handleArrayToggle("preferredTrainingStyle", style)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.preferredTrainingStyle.includes(style)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {style}
@@ -240,11 +240,11 @@ export default function TrainingBackgroundForm({
           type="checkbox"
           checked={formData.gymAccess}
           onChange={handleChange}
-          className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+          className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
         />
         <label
           htmlFor="gymAccess"
-          className="text-sm font-medium text-stone-700 dark:text-stone-300"
+          className="text-sm font-medium text-foreground"
         >
           I have access to a gym
         </label>
@@ -252,7 +252,7 @@ export default function TrainingBackgroundForm({
 
       {/* Home Equipment */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           What equipment do you have at home?
         </label>
         <div className="flex flex-wrap gap-2">
@@ -263,8 +263,8 @@ export default function TrainingBackgroundForm({
               onClick={() => handleArrayToggle("homeEquipment", equipment)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.homeEquipment.includes(equipment)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {equipment}
@@ -275,7 +275,7 @@ export default function TrainingBackgroundForm({
 
       {/* Injuries */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Do you have any current injuries or pain?
         </label>
         <div className="flex flex-wrap gap-2">
@@ -300,7 +300,7 @@ export default function TrainingBackgroundForm({
       <div>
         <label
           htmlFor="physicalLimitations"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           Any other physical limitations we should know about?
         </label>
@@ -311,7 +311,7 @@ export default function TrainingBackgroundForm({
           onChange={handleChange}
           rows={3}
           placeholder="Describe any limitations or concerns..."
-          className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
         />
       </div>
     </form>

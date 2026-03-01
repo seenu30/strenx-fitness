@@ -11,7 +11,30 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationToggle } from "@/components/NotificationToggle";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel, SupabaseClient, RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+
+interface ConversationRow {
+  id: string;
+  client_id: string;
+  last_message_preview: string | null;
+  last_message_at: string | null;
+  clients: {
+    id: string;
+    users: {
+      first_name: string;
+      last_name: string;
+    };
+    subscriptions: Array<{
+      subscription_plans: {
+        name: string;
+      };
+    }>;
+  };
+}
+
+interface ClientRow {
+  user_id: string;
+}
 
 interface Conversation {
   id: string;
@@ -27,9 +50,10 @@ interface Conversation {
 interface Message {
   id: string;
   sender_id: string;
+  sender_role: string;
   content: string;
   created_at: string;
-  read_at: string | null;
+  status: "sent" | "delivered" | "read" | null;
   message_type: string;
 }
 
@@ -54,10 +78,6 @@ export default function AdminMessagesPage() {
   useEffect(() => {
     async function loadConversations() {
       const supabase = createClient();
-      if (!supabase) {
-        setIsLoading(false);
-        return;
-      }
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -67,9 +87,7 @@ export default function AdminMessagesPage() {
 
       setCurrentUserId(user.id);
 
-      // Get coach ID
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: coach } = await (supabase as any)
+      const { data: coach } = await (supabase as SupabaseClient)
         .from("coaches")
         .select("id")
         .eq("user_id", user.id)
@@ -80,14 +98,12 @@ export default function AdminMessagesPage() {
         return;
       }
 
-      // Get all conversations for this coach
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: convs } = await (supabase as any)
+      const { data: convs } = await (supabase as SupabaseClient)
         .from("conversations")
         .select(`
           id,
           client_id,
-          last_message,
+          last_message_preview,
           last_message_at,
           clients!inner (
             id,
@@ -106,13 +122,14 @@ export default function AdminMessagesPage() {
         .order("last_message_at", { ascending: false, nullsFirst: false });
 
       if (convs) {
-        const mappedConvs: Conversation[] = convs.map((conv: any) => {
+        const typedConvs = convs as unknown as ConversationRow[];
+        const mappedConvs: Conversation[] = typedConvs.map((conv) => {
           const firstName = conv.clients?.users?.first_name || "";
           const lastName = conv.clients?.users?.last_name || "";
           const name = `${firstName} ${lastName}`.trim() || "Client";
           const initials = name
             .split(" ")
-            .map((n: string) => n[0])
+            .map((n) => n[0])
             .join("")
             .toUpperCase();
           const planName = conv.clients?.subscriptions?.[0]?.subscription_plans?.name || "No Plan";
@@ -122,22 +139,20 @@ export default function AdminMessagesPage() {
             client_id: conv.client_id,
             client_name: name,
             client_initials: initials,
-            last_message: conv.last_message || "No messages yet",
+            last_message: conv.last_message_preview || "No messages yet",
             last_message_at: conv.last_message_at ? new Date(conv.last_message_at) : new Date(),
-            unread_count: 0, // Will calculate below
+            unread_count: 0,
             plan_name: planName,
           };
         });
 
-        // Get unread counts
         for (const conv of mappedConvs) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { count } = await (supabase as any)
+          const { count } = await (supabase as SupabaseClient)
             .from("messages")
             .select("*", { count: "exact", head: true })
             .eq("conversation_id", conv.id)
             .neq("sender_id", user.id)
-            .is("read_at", null);
+            .neq("status", "read");
           conv.unread_count = count || 0;
         }
 
@@ -151,53 +166,47 @@ export default function AdminMessagesPage() {
     }
 
     loadConversations();
-  }, []);
+  }, [selectedConversation]);
 
-  // Load messages when conversation changes
   useEffect(() => {
     if (!selectedConversation) return;
 
     const conversation = selectedConversation;
+    const supabaseForEffect = createClient();
 
     async function loadMessages() {
       setIsLoadingMessages(true);
       const supabase = createClient();
-      if (!supabase) return;
 
-      // Get client user ID for push notifications
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: client } = await (supabase as any)
+      const { data: client } = await (supabase as SupabaseClient)
         .from("clients")
         .select("user_id")
         .eq("id", conversation.client_id)
         .single();
 
       if (client) {
-        setClientUserId(client.user_id);
+        const typedClient = client as unknown as ClientRow;
+        setClientUserId(typedClient.user_id);
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: msgs } = await (supabase as any)
+      const { data: msgs } = await (supabase as SupabaseClient)
         .from("messages")
         .select("*")
         .eq("conversation_id", conversation.id)
         .order("created_at", { ascending: true });
 
       if (msgs) {
-        setMessages(msgs);
+        setMessages(msgs as Message[]);
       }
 
-      // Mark messages as read
       if (currentUserId) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any)
+        await (supabase as SupabaseClient)
           .from("messages")
-          .update({ read_at: new Date().toISOString() })
+          .update({ status: "read" })
           .eq("conversation_id", conversation.id)
           .neq("sender_id", currentUserId)
-          .is("read_at", null);
+          .neq("status", "read");
 
-        // Update unread count in local state
         setConversations(prev =>
           prev.map(c =>
             c.id === conversation.id ? { ...c, unread_count: 0 } : c
@@ -210,15 +219,12 @@ export default function AdminMessagesPage() {
 
     loadMessages();
 
-    // Subscribe to new messages
-    const supabase = createClient();
-    if (supabase && selectedConversation) {
-      // Clean up previous channel
+    if (supabaseForEffect && selectedConversation) {
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        supabaseForEffect.removeChannel(channelRef.current);
       }
 
-      channelRef.current = supabase
+      channelRef.current = supabaseForEffect
         .channel(`messages:${selectedConversation.id}`)
         .on(
           "postgres_changes",
@@ -228,7 +234,7 @@ export default function AdminMessagesPage() {
             table: "messages",
             filter: `conversation_id=eq.${selectedConversation.id}`,
           },
-          (payload) => {
+          (payload: RealtimePostgresChangesPayload<Message>) => {
             const newMsg = payload.new as Message;
             setMessages((prev) => [...prev, newMsg]);
           }
@@ -237,8 +243,8 @@ export default function AdminMessagesPage() {
     }
 
     return () => {
-      if (channelRef.current && supabase) {
-        supabase.removeChannel(channelRef.current);
+      if (channelRef.current && supabaseForEffect) {
+        supabaseForEffect.removeChannel(channelRef.current);
       }
     };
   }, [selectedConversation, currentUserId]);
@@ -253,39 +259,35 @@ export default function AdminMessagesPage() {
 
     setIsSending(true);
     const supabase = createClient();
-    if (!supabase) return;
 
     const messageContent = newMessage;
     setNewMessage("");
 
-    // Insert message
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
+    const { data, error } = await (supabase as SupabaseClient)
       .from("messages")
       .insert({
         conversation_id: selectedConversation.id,
         sender_id: currentUserId,
         content: messageContent,
         message_type: "text",
+        sender_role: "coach",
+        status: "sent",
       })
       .select()
       .single();
 
     if (error) {
       console.error("Error sending message:", error);
-      setNewMessage(messageContent); // Restore message
+      setNewMessage(messageContent);
     } else if (data) {
-      // Update conversation last message
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
+      await (supabase as SupabaseClient)
         .from("conversations")
         .update({
-          last_message: messageContent,
+          last_message_preview: messageContent,
           last_message_at: new Date().toISOString(),
         })
         .eq("id", selectedConversation.id);
 
-      // Update local state
       setConversations(prev =>
         prev.map(c =>
           c.id === selectedConversation.id
@@ -294,7 +296,6 @@ export default function AdminMessagesPage() {
         )
       );
 
-      // Send push notification to client
       if (clientUserId) {
         try {
           await fetch("/api/messages/notify", {
@@ -360,7 +361,7 @@ export default function AdminMessagesPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
-        <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brown-500 animate-spin" />
       </div>
     );
   }
@@ -375,7 +376,7 @@ export default function AdminMessagesPage() {
             <h1 className="text-lg font-semibold text-stone-800 dark:text-stone-100">
               Messages
               {totalUnread > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs font-bold bg-amber-600 text-white rounded-full">
+                <span className="ml-2 px-2 py-0.5 text-xs font-bold bg-brown-500 text-white rounded-full">
                   {totalUnread}
                 </span>
               )}
@@ -391,7 +392,7 @@ export default function AdminMessagesPage() {
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 text-stone-800 dark:text-stone-200 text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 text-stone-800 dark:text-stone-200 text-sm focus:ring-2 focus:ring-brown-500 focus:border-transparent"
             />
           </div>
 
@@ -403,7 +404,7 @@ export default function AdminMessagesPage() {
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1 text-xs font-medium rounded-full capitalize ${
                   filter === f
-                    ? "bg-amber-600 text-white"
+                    ? "bg-brown-500 text-white"
                     : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
                 }`}
               >
@@ -429,13 +430,13 @@ export default function AdminMessagesPage() {
                 onClick={() => setSelectedConversation(conv)}
                 className={`w-full p-4 flex items-start gap-3 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors ${
                   selectedConversation?.id === conv.id
-                    ? "bg-amber-50 dark:bg-amber-900/20 border-l-2 border-amber-600"
+                    ? "bg-brown-50 dark:bg-brown-900/20 border-l-2 border-brown-500"
                     : ""
                 }`}
               >
                 {/* Avatar */}
-                <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                  <span className="text-amber-700 dark:text-amber-400 font-semibold">
+                <div className="w-12 h-12 rounded-full bg-brown-100 dark:bg-brown-900/30 flex items-center justify-center flex-shrink-0">
+                  <span className="text-brown-600 dark:text-brown-400 font-semibold">
                     {conv.client_initials}
                   </span>
                 </div>
@@ -455,7 +456,7 @@ export default function AdminMessagesPage() {
                       {conv.last_message}
                     </p>
                     {conv.unread_count > 0 && (
-                      <span className="ml-2 px-1.5 py-0.5 text-xs font-bold bg-amber-600 text-white rounded-full min-w-[20px] text-center">
+                      <span className="ml-2 px-1.5 py-0.5 text-xs font-bold bg-brown-500 text-white rounded-full min-w-[20px] text-center">
                         {conv.unread_count}
                       </span>
                     )}
@@ -475,8 +476,8 @@ export default function AdminMessagesPage() {
             {/* Chat Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200 dark:border-stone-800">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                  <span className="text-amber-700 dark:text-amber-400 font-semibold">
+                <div className="w-10 h-10 rounded-full bg-brown-100 dark:bg-brown-900/30 flex items-center justify-center">
+                  <span className="text-brown-600 dark:text-brown-400 font-semibold">
                     {selectedConversation.client_initials}
                   </span>
                 </div>
@@ -489,7 +490,7 @@ export default function AdminMessagesPage() {
               </div>
               <Link
                 href={`/admin/clients/${selectedConversation.client_id}`}
-                className="px-3 py-1.5 text-sm text-amber-600 border border-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                className="px-3 py-1.5 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20"
               >
                 View Profile
               </Link>
@@ -499,7 +500,7 @@ export default function AdminMessagesPage() {
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center h-full">
-                  <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+                  <Loader2 className="w-8 h-8 text-brown-500 animate-spin" />
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-stone-500">
@@ -518,7 +519,7 @@ export default function AdminMessagesPage() {
                       <div
                         className={`max-w-[75%] ${
                           isOwn
-                            ? "bg-amber-600 text-white rounded-2xl rounded-br-md"
+                            ? "bg-brown-500 text-white rounded-2xl rounded-br-md"
                             : "bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 rounded-2xl rounded-bl-md"
                         }`}
                       >
@@ -530,16 +531,16 @@ export default function AdminMessagesPage() {
                         >
                           <span
                             className={`text-xs ${
-                              isOwn ? "text-amber-200" : "text-stone-500"
+                              isOwn ? "text-brown-200" : "text-stone-500"
                             }`}
                           >
                             {formatMessageTime(msg.created_at)}
                           </span>
                           {isOwn && (
-                            msg.read_at ? (
+                            msg.status === "read" ? (
                               <CheckCheck className="w-3 h-3 text-blue-300" />
                             ) : (
-                              <CheckCheck className="w-3 h-3 text-amber-200" />
+                              <CheckCheck className="w-3 h-3 text-brown-200" />
                             )
                           )}
                         </div>
@@ -560,12 +561,12 @@ export default function AdminMessagesPage() {
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
                   placeholder="Type a message..."
-                  className="flex-1 px-4 py-2.5 rounded-full border border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="flex-1 px-4 py-2.5 rounded-full border border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-brown-500"
                 />
                 <button
                   onClick={handleSend}
                   disabled={!newMessage.trim() || isSending}
-                  className="p-2.5 bg-amber-600 text-white rounded-full hover:bg-amber-700 disabled:bg-stone-300 disabled:cursor-not-allowed transition-colors"
+                  className="p-2.5 bg-brown-500 text-white rounded-full hover:bg-brown-600 disabled:bg-stone-300 disabled:cursor-not-allowed transition-colors"
                 >
                   {isSending ? (
                     <Loader2 className="w-5 h-5 animate-spin" />

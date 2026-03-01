@@ -11,15 +11,15 @@ export default function OnboardingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-stone-50 dark:bg-stone-950">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800">
+      <header className="sticky top-0 z-50 bg-card border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-stone-800 dark:text-stone-100">
+            <h1 className="text-xl font-bold text-foreground">
               Strenx Fitness
             </h1>
-            <span className="text-sm text-stone-500 dark:text-stone-400">
+            <span className="text-sm text-muted-foreground">
               Complete Your Profile
             </span>
           </div>

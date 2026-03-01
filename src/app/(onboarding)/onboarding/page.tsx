@@ -3,8 +3,37 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+interface AssessmentRow {
+  assess_personal: Record<string, unknown>[];
+  assess_goals: Record<string, unknown>[];
+  assess_training: Record<string, unknown>[];
+  assess_medical: Record<string, unknown>[];
+  assess_blood_reports: Record<string, unknown>[];
+  assess_lifestyle: Record<string, unknown>[];
+  assess_diet: Record<string, unknown>[];
+  assess_food_preferences: Record<string, unknown>[];
+  assess_supplements: Record<string, unknown>[];
+  assess_skin_hair: Record<string, unknown>[];
+  assess_expectations: Record<string, unknown>[];
+}
 import { ONBOARDING_STEPS, getStepIndex } from "@/constants/onboarding-steps";
-import type { AssessmentData, OnboardingState } from "@/types/onboarding";
+import type {
+  AssessmentData,
+  OnboardingState,
+  PersonalInfoData,
+  GoalsData,
+  TrainingBackgroundData,
+  MedicalHistoryData,
+  BloodReportsData,
+  LifestyleData,
+  DietData,
+  FoodPreferencesData,
+  SupplementsData,
+  SkinHairData,
+  ExpectationsData,
+} from "@/types/onboarding";
 
 // Form components
 import PersonalInfoForm from "@/components/forms/onboarding/PersonalInfoForm";
@@ -94,7 +123,7 @@ export default function OnboardingPage() {
           .from("client_assessments")
           .select("*, assess_personal(*), assess_goals(*), assess_training(*), assess_medical(*), assess_blood_reports(*), assess_lifestyle(*), assess_diet(*), assess_food_preferences(*), assess_supplements(*), assess_skin_hair(*), assess_expectations(*)")
           .eq("user_id", user.id)
-          .single() as { data: any };
+          .single() as { data: AssessmentRow | null };
 
         if (assessment) {
           // Map loaded data to state
@@ -102,47 +131,47 @@ export default function OnboardingPage() {
           const completedSteps: string[] = [];
 
           if (assessment.assess_personal?.[0]) {
-            loadedData.personalInfo = assessment.assess_personal[0];
+            loadedData.personalInfo = assessment.assess_personal[0] as unknown as PersonalInfoData;
             completedSteps.push("personal_info");
           }
           if (assessment.assess_goals?.[0]) {
-            loadedData.goals = assessment.assess_goals[0];
+            loadedData.goals = assessment.assess_goals[0] as unknown as GoalsData;
             completedSteps.push("goals");
           }
           if (assessment.assess_training?.[0]) {
-            loadedData.trainingBackground = assessment.assess_training[0];
+            loadedData.trainingBackground = assessment.assess_training[0] as unknown as TrainingBackgroundData;
             completedSteps.push("training_background");
           }
           if (assessment.assess_medical?.[0]) {
-            loadedData.medicalHistory = assessment.assess_medical[0];
+            loadedData.medicalHistory = assessment.assess_medical[0] as unknown as MedicalHistoryData;
             completedSteps.push("medical_history");
           }
           if (assessment.assess_blood_reports?.[0]) {
-            loadedData.bloodReports = assessment.assess_blood_reports[0];
+            loadedData.bloodReports = assessment.assess_blood_reports[0] as unknown as BloodReportsData;
             completedSteps.push("blood_reports");
           }
           if (assessment.assess_lifestyle?.[0]) {
-            loadedData.lifestyle = assessment.assess_lifestyle[0];
+            loadedData.lifestyle = assessment.assess_lifestyle[0] as unknown as LifestyleData;
             completedSteps.push("lifestyle");
           }
           if (assessment.assess_diet?.[0]) {
-            loadedData.diet = assessment.assess_diet[0];
+            loadedData.diet = assessment.assess_diet[0] as unknown as DietData;
             completedSteps.push("diet");
           }
           if (assessment.assess_food_preferences?.[0]) {
-            loadedData.foodPreferences = assessment.assess_food_preferences[0];
+            loadedData.foodPreferences = assessment.assess_food_preferences[0] as unknown as FoodPreferencesData;
             completedSteps.push("food_preferences");
           }
           if (assessment.assess_supplements?.[0]) {
-            loadedData.supplements = assessment.assess_supplements[0];
+            loadedData.supplements = assessment.assess_supplements[0] as unknown as SupplementsData;
             completedSteps.push("supplements");
           }
           if (assessment.assess_skin_hair?.[0]) {
-            loadedData.skinHair = assessment.assess_skin_hair[0];
+            loadedData.skinHair = assessment.assess_skin_hair[0] as unknown as SkinHairData;
             completedSteps.push("skin_hair");
           }
           if (assessment.assess_expectations?.[0]) {
-            loadedData.expectations = assessment.assess_expectations[0];
+            loadedData.expectations = assessment.assess_expectations[0] as unknown as ExpectationsData;
             completedSteps.push("expectations");
           }
 
@@ -216,8 +245,8 @@ export default function OnboardingPage() {
       }
 
       // Mark onboarding as complete
-      const { error } = await (supabase
-        .from("clients") as any)
+      const { error } = await (supabase as SupabaseClient)
+        .from("clients")
         .update({
           onboarding_completed: true,
           onboarding_completed_at: new Date().toISOString(),
@@ -281,7 +310,7 @@ export default function OnboardingPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <svg
-            className="animate-spin h-10 w-10 text-amber-600 mx-auto mb-4"
+            className="animate-spin h-10 w-10 text-primary mx-auto mb-4"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -300,7 +329,7 @@ export default function OnboardingPage() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          <p className="text-stone-500 dark:text-stone-400">Loading your progress...</p>
+          <p className="text-muted-foreground">Loading your progress...</p>
         </div>
       </div>
     );
@@ -324,13 +353,13 @@ export default function OnboardingPage() {
     <div className="space-y-8">
       {/* Progress bar */}
       <div className="space-y-2">
-        <div className="flex justify-between text-sm text-stone-600 dark:text-stone-400">
+        <div className="flex justify-between text-sm text-muted-foreground">
           <span>Step {currentStepIndex + 1} of {ONBOARDING_STEPS.length}</span>
           <span>{progress}% complete</span>
         </div>
-        <div className="h-2 bg-stone-200 dark:bg-stone-800 rounded-full overflow-hidden">
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
-            className="h-full bg-amber-600 transition-all duration-300 ease-out"
+            className="h-full bg-primary transition-all duration-300 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -351,12 +380,12 @@ export default function OnboardingPage() {
               disabled={!isAccessible}
               className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 isCurrent
-                  ? "bg-amber-600 text-white"
+                  ? "bg-primary text-primary-foreground"
                   : isCompleted
                   ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                   : isAccessible
-                  ? "bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-400 dark:text-stone-600 cursor-not-allowed"
+                  ? "bg-muted text-foreground hover:bg-secondary"
+                  : "bg-muted text-muted-foreground cursor-not-allowed"
               }`}
             >
               {isCompleted && !isCurrent ? (
@@ -367,7 +396,7 @@ export default function OnboardingPage() {
               <span className="hidden sm:inline">{step.title}</span>
               <span className="sm:hidden">{step.number}</span>
               {"sensitive" in step && step.sensitive && (
-                <Shield className="w-3 h-3 text-amber-500" />
+                <Shield className="w-3 h-3 text-primary" />
               )}
             </button>
           );
@@ -375,25 +404,25 @@ export default function OnboardingPage() {
       </div>
 
       {/* Current step header */}
-      <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-start gap-4 mb-6">
           {(() => {
             const Icon = ICON_MAP[currentStepData.icon] || User;
             return (
-              <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                <Icon className="w-6 h-6 text-amber-600 dark:text-amber-500" />
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-6 h-6 text-primary" />
               </div>
             );
           })()}
           <div>
-            <h2 className="text-xl font-semibold text-stone-800 dark:text-stone-100">
+            <h2 className="text-xl font-semibold text-foreground">
               {currentStepData.title}
             </h2>
-            <p className="text-stone-600 dark:text-stone-400 mt-1">
+            <p className="text-muted-foreground mt-1">
               {currentStepData.description}
             </p>
             {"sensitive" in currentStepData && currentStepData.sensitive && (
-              <p className="text-sm text-amber-600 dark:text-amber-500 mt-2 flex items-center gap-1">
+              <p className="text-sm text-primary mt-2 flex items-center gap-1">
                 <Shield className="w-4 h-4" />
                 This information is encrypted and kept confidential
               </p>
@@ -412,14 +441,14 @@ export default function OnboardingPage() {
         {renderCurrentForm()}
 
         {/* Navigation */}
-        <div className="flex justify-between mt-8 pt-6 border-t border-stone-200 dark:border-stone-800">
+        <div className="flex justify-between mt-8 pt-6 border-t border-border">
           <button
             onClick={goToPreviousStep}
             disabled={currentStepIndex === 0}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               currentStepIndex === 0
-                ? "text-stone-400 dark:text-stone-600 cursor-not-allowed"
-                : "text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
+                ? "text-muted-foreground cursor-not-allowed"
+                : "text-foreground hover:bg-muted"
             }`}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -429,7 +458,7 @@ export default function OnboardingPage() {
           <button
             type="submit"
             form={`form-${state.currentStep}`}
-            className="flex items-center gap-2 px-6 py-2 rounded-lg bg-amber-600 text-white font-medium hover:bg-amber-700 transition-colors"
+            className="flex items-center gap-2 px-6 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
           >
             {currentStepIndex === ONBOARDING_STEPS.length - 1 ? "Review & Submit" : "Continue"}
             <ChevronRight className="w-4 h-4" />

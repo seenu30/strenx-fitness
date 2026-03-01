@@ -130,7 +130,7 @@ export default function BloodReportsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "low":
-        return "text-amber-600 bg-amber-50 dark:bg-amber-900/20";
+        return "text-brown-500 bg-brown-50 dark:bg-brown-900/20";
       case "high":
         return "text-red-600 bg-red-50 dark:bg-red-900/20";
       case "unknown":
@@ -181,7 +181,7 @@ export default function BloodReportsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brown-500 animate-spin" />
       </div>
     );
   }
@@ -216,7 +216,7 @@ export default function BloodReportsPage() {
           </p>
           <Link
             href="/messages"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 transition-colors"
           >
             <Plus className="w-5 h-5" />
             Contact Coach to Add Report
@@ -263,7 +263,7 @@ export default function BloodReportsPage() {
         </div>
         <Link
           href="/messages"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Report
@@ -285,7 +285,7 @@ export default function BloodReportsPage() {
             </div>
             <div className="flex items-center gap-2">
               {latestReport.hasAbnormalValues || issueCount > 0 ? (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 text-sm">
                   <AlertTriangle className="w-4 h-4" />
                   {issueCount || latestReport.abnormalMarkers?.length || 0} markers need attention
                 </span>
@@ -342,7 +342,7 @@ export default function BloodReportsPage() {
           onClick={() => setSelectedCategory("all")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             selectedCategory === "all"
-              ? "bg-amber-600 text-white"
+              ? "bg-brown-500 text-white"
               : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700"
           }`}
         >
@@ -354,7 +354,7 @@ export default function BloodReportsPage() {
             onClick={() => setSelectedCategory(category)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               selectedCategory === category
-                ? "bg-amber-600 text-white"
+                ? "bg-brown-500 text-white"
                 : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700"
             }`}
           >
@@ -458,7 +458,7 @@ export default function BloodReportsPage() {
                 </div>
               </div>
               {report.hasAbnormalValues && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 text-xs">
                   <AlertTriangle className="w-3 h-3" />
                   Needs Review
                 </span>

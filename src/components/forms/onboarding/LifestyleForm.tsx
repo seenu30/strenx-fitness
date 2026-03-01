@@ -99,7 +99,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
     <form id="form-lifestyle" onSubmit={handleSubmit} className="space-y-6">
       {/* Sleep Hours */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           How many hours of sleep do you get on average?
         </label>
         <div className="flex items-center gap-4">
@@ -111,9 +111,9 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
             step="0.5"
             value={formData.sleepHours}
             onChange={handleChange}
-            className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-600"
+            className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-brown-500"
           />
-          <span className="text-lg font-bold text-amber-600 w-16 text-center">
+          <span className="text-lg font-bold text-brown-500 w-16 text-center">
             {formData.sleepHours}h
           </span>
         </div>
@@ -121,7 +121,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
 
       {/* Sleep Quality */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           How would you rate your sleep quality?
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -132,14 +132,14 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
               onClick={() => setFormData((prev) => ({ ...prev, sleepQuality: option.value }))}
               className={`p-3 rounded-lg border text-left transition-colors ${
                 formData.sleepQuality === option.value
-                  ? "bg-amber-600 border-amber-600 text-white"
-                  : "bg-white dark:bg-stone-800 border-stone-300 dark:border-stone-600 hover:border-amber-500"
+                  ? "bg-brown-500 border-brown-500 text-white"
+                  : "bg-card border-border hover:border-brown-500"
               }`}
             >
-              <div className={`font-medium ${formData.sleepQuality === option.value ? "text-white" : "text-stone-800 dark:text-stone-200"}`}>
+              <div className={`font-medium ${formData.sleepQuality === option.value ? "text-white" : "text-foreground"}`}>
                 {option.label}
               </div>
-              <div className={`text-xs mt-1 ${formData.sleepQuality === option.value ? "text-amber-100" : "text-stone-500 dark:text-stone-400"}`}>
+              <div className={`text-xs mt-1 ${formData.sleepQuality === option.value ? "text-brown-100" : "text-stone-500 dark:text-stone-400"}`}>
                 {option.description}
               </div>
             </button>
@@ -149,7 +149,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
 
       {/* Sleep Issues */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Do you have any sleep issues?
         </label>
         <div className="flex flex-wrap gap-2">
@@ -160,8 +160,8 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
               onClick={() => handleArrayToggle("sleepIssues", issue)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.sleepIssues.includes(issue)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {issue}
@@ -172,7 +172,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
 
       {/* Stress Level */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           What is your typical stress level?
         </label>
         <div className="space-y-2">
@@ -183,11 +183,11 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
             max="10"
             value={formData.stressLevel}
             onChange={handleChange}
-            className="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-600"
+            className="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-brown-500"
           />
           <div className="flex justify-between text-sm text-stone-500 dark:text-stone-400">
             <span>Very Low (1)</span>
-            <span className="font-bold text-amber-600">{formData.stressLevel}</span>
+            <span className="font-bold text-brown-500">{formData.stressLevel}</span>
             <span>Very High (10)</span>
           </div>
         </div>
@@ -195,7 +195,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
 
       {/* Stress Sources */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           What are your main sources of stress?
         </label>
         <div className="flex flex-wrap gap-2">
@@ -206,8 +206,8 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
               onClick={() => handleArrayToggle("stressSources", source)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.stressSources.includes(source)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {source}
@@ -218,7 +218,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
 
       {/* Activity Level */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           What is your current activity level (outside of planned workouts)?
         </label>
         <div className="space-y-2">
@@ -229,14 +229,14 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
               onClick={() => setFormData((prev) => ({ ...prev, activityLevel: level.value }))}
               className={`w-full p-3 rounded-lg border text-left transition-colors ${
                 formData.activityLevel === level.value
-                  ? "bg-amber-600 border-amber-600 text-white"
-                  : "bg-white dark:bg-stone-800 border-stone-300 dark:border-stone-600 hover:border-amber-500"
+                  ? "bg-brown-500 border-brown-500 text-white"
+                  : "bg-card border-border hover:border-brown-500"
               }`}
             >
-              <span className={`font-medium ${formData.activityLevel === level.value ? "text-white" : "text-stone-800 dark:text-stone-200"}`}>
+              <span className={`font-medium ${formData.activityLevel === level.value ? "text-white" : "text-foreground"}`}>
                 {level.label}
               </span>
-              <span className={`text-sm ml-2 ${formData.activityLevel === level.value ? "text-amber-100" : "text-stone-500 dark:text-stone-400"}`}>
+              <span className={`text-sm ml-2 ${formData.activityLevel === level.value ? "text-brown-100" : "text-stone-500 dark:text-stone-400"}`}>
                 - {level.description}
               </span>
             </button>
@@ -246,7 +246,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
 
       {/* Daily Steps */}
       <div>
-        <label htmlFor="dailySteps" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+        <label htmlFor="dailySteps" className="block text-sm font-medium text-foreground mb-1">
           Approximate daily steps (if you track)
         </label>
         <input
@@ -256,13 +256,13 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
           value={formData.dailySteps || ""}
           onChange={handleChange}
           placeholder="e.g., 5000"
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
 
       {/* Work Type */}
       <div>
-        <label htmlFor="workType" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+        <label htmlFor="workType" className="block text-sm font-medium text-foreground mb-1">
           What type of work do you do?
         </label>
         <select
@@ -270,7 +270,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
           name="workType"
           value={formData.workType}
           onChange={handleChange}
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           {WORK_TYPES.map((type) => (
             <option key={type.value} value={type.value}>{type.label}</option>
@@ -280,7 +280,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
 
       {/* Screen Time */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Daily screen time (hours)
         </label>
         <div className="flex items-center gap-4">
@@ -291,9 +291,9 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
             max="16"
             value={formData.screenTimeHours}
             onChange={handleChange}
-            className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-600"
+            className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-brown-500"
           />
-          <span className="text-lg font-bold text-amber-600 w-16 text-center">
+          <span className="text-lg font-bold text-brown-500 w-16 text-center">
             {formData.screenTimeHours}h
           </span>
         </div>

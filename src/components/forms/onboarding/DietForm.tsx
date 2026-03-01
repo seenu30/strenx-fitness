@@ -84,7 +84,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
     <form id="form-diet" onSubmit={handleSubmit} className="space-y-6">
       {/* Diet Preference */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           What is your diet preference?
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -95,14 +95,14 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
               onClick={() => setFormData((prev) => ({ ...prev, dietPreference: pref.value }))}
               className={`p-4 rounded-lg border text-left transition-colors ${
                 formData.dietPreference === pref.value
-                  ? "bg-amber-600 border-amber-600 text-white"
-                  : "bg-white dark:bg-stone-800 border-stone-300 dark:border-stone-600 hover:border-amber-500"
+                  ? "bg-brown-500 border-brown-500 text-white"
+                  : "bg-card border-border hover:border-brown-500"
               }`}
             >
-              <div className={`font-medium ${formData.dietPreference === pref.value ? "text-white" : "text-stone-800 dark:text-stone-200"}`}>
+              <div className={`font-medium ${formData.dietPreference === pref.value ? "text-white" : "text-foreground"}`}>
                 {pref.label}
               </div>
-              <div className={`text-sm mt-1 ${formData.dietPreference === pref.value ? "text-amber-100" : "text-stone-500 dark:text-stone-400"}`}>
+              <div className={`text-sm mt-1 ${formData.dietPreference === pref.value ? "text-brown-100" : "text-stone-500 dark:text-stone-400"}`}>
                 {pref.description}
               </div>
             </button>
@@ -112,7 +112,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
 
       {/* Meals Per Day */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           How many meals do you typically eat per day?
         </label>
         <div className="flex items-center gap-4">
@@ -123,9 +123,9 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
             max="6"
             value={formData.mealsPerDay}
             onChange={handleChange}
-            className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-600"
+            className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-brown-500"
           />
-          <span className="text-lg font-bold text-amber-600 w-16 text-center">
+          <span className="text-lg font-bold text-brown-500 w-16 text-center">
             {formData.mealsPerDay}
           </span>
         </div>
@@ -133,7 +133,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
 
       {/* Meal Timings */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">
+        <label className="block text-sm font-medium text-foreground">
           Typical meal timings (optional)
         </label>
         <div className="flex gap-2">
@@ -141,12 +141,12 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
             type="time"
             value={mealTimeInput}
             onChange={(e) => setMealTimeInput(e.target.value)}
-            className="px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <button
             type="button"
             onClick={addMealTime}
-            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
+            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-foreground hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
           >
             Add
           </button>
@@ -156,7 +156,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
             {formData.mealTimings.map((time, index) => (
               <span
                 key={index}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 text-sm"
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-foreground text-sm"
               >
                 {time}
                 <button type="button" onClick={() => removeMealTime(index)} className="hover:text-red-500">
@@ -170,7 +170,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
 
       {/* Eating Out */}
       <div>
-        <label htmlFor="eatsOutFrequency" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+        <label htmlFor="eatsOutFrequency" className="block text-sm font-medium text-foreground mb-1">
           How often do you eat out or order food?
         </label>
         <select
@@ -178,7 +178,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
           name="eatsOutFrequency"
           value={formData.eatsOutFrequency}
           onChange={handleChange}
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           {FREQUENCY_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -188,7 +188,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
 
       {/* Cooking */}
       <div>
-        <label htmlFor="cookingFrequency" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+        <label htmlFor="cookingFrequency" className="block text-sm font-medium text-foreground mb-1">
           How often do you cook your own meals?
         </label>
         <select
@@ -196,7 +196,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
           name="cookingFrequency"
           value={formData.cookingFrequency}
           onChange={handleChange}
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           {FREQUENCY_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -206,7 +206,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
 
       {/* Water Intake */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Daily water intake (liters)
         </label>
         <div className="flex items-center gap-4">
@@ -218,9 +218,9 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
             step="0.5"
             value={formData.waterIntakeLiters}
             onChange={handleChange}
-            className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-600"
+            className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-brown-500"
           />
-          <span className="text-lg font-bold text-amber-600 w-16 text-center">
+          <span className="text-lg font-bold text-brown-500 w-16 text-center">
             {formData.waterIntakeLiters}L
           </span>
         </div>
@@ -228,7 +228,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
 
       {/* Alcohol */}
       <div>
-        <label htmlFor="alcoholFrequency" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+        <label htmlFor="alcoholFrequency" className="block text-sm font-medium text-foreground mb-1">
           Alcohol consumption
         </label>
         <select
@@ -236,7 +236,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
           name="alcoholFrequency"
           value={formData.alcoholFrequency}
           onChange={handleChange}
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           {FREQUENCY_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -246,7 +246,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
 
       {/* Smoking */}
       <div>
-        <label htmlFor="smokingStatus" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+        <label htmlFor="smokingStatus" className="block text-sm font-medium text-foreground mb-1">
           Smoking status
         </label>
         <select
@@ -254,7 +254,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
           name="smokingStatus"
           value={formData.smokingStatus}
           onChange={handleChange}
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           {SMOKING_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -264,7 +264,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
 
       {/* Caffeine */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Cups of tea/coffee per day
         </label>
         <div className="flex items-center gap-4">
@@ -275,9 +275,9 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
             max="10"
             value={formData.caffeineCupsPerDay}
             onChange={handleChange}
-            className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-600"
+            className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-brown-500"
           />
-          <span className="text-lg font-bold text-amber-600 w-16 text-center">
+          <span className="text-lg font-bold text-brown-500 w-16 text-center">
             {formData.caffeineCupsPerDay}
           </span>
         </div>
@@ -285,7 +285,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
 
       {/* Snacking Habits */}
       <div>
-        <label htmlFor="snackingHabits" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+        <label htmlFor="snackingHabits" className="block text-sm font-medium text-foreground mb-1">
           Describe your snacking habits
         </label>
         <textarea
@@ -295,7 +295,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
           onChange={handleChange}
           rows={3}
           placeholder="e.g., I snack a lot in the evening, usually chips or biscuits..."
-          className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
         />
       </div>
     </form>

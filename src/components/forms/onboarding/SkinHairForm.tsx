@@ -85,7 +85,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
 
       {/* Skin Type */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           What is your skin type?
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -96,14 +96,14 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
               onClick={() => setFormData((prev) => ({ ...prev, skinType: type.value }))}
               className={`p-3 rounded-lg border text-left transition-colors ${
                 formData.skinType === type.value
-                  ? "bg-amber-600 border-amber-600 text-white"
-                  : "bg-white dark:bg-stone-800 border-stone-300 dark:border-stone-600 hover:border-amber-500"
+                  ? "bg-brown-500 border-brown-500 text-white"
+                  : "bg-card border-border hover:border-brown-500"
               }`}
             >
-              <div className={`font-medium ${formData.skinType === type.value ? "text-white" : "text-stone-800 dark:text-stone-200"}`}>
+              <div className={`font-medium ${formData.skinType === type.value ? "text-white" : "text-foreground"}`}>
                 {type.label}
               </div>
-              <div className={`text-xs mt-1 ${formData.skinType === type.value ? "text-amber-100" : "text-stone-500 dark:text-stone-400"}`}>
+              <div className={`text-xs mt-1 ${formData.skinType === type.value ? "text-brown-100" : "text-stone-500 dark:text-stone-400"}`}>
                 {type.description}
               </div>
             </button>
@@ -113,7 +113,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
 
       {/* Skin Concerns */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Any skin concerns?
         </label>
         <div className="flex flex-wrap gap-2">
@@ -124,8 +124,8 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
               onClick={() => handleArrayToggle("skinConcerns", concern)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.skinConcerns.includes(concern)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {concern}
@@ -136,7 +136,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
 
       {/* Hair Concerns */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Any hair concerns?
         </label>
         <div className="flex flex-wrap gap-2">
@@ -147,8 +147,8 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
               onClick={() => handleArrayToggle("hairConcerns", concern)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.hairConcerns.includes(concern)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {concern}
@@ -159,7 +159,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
 
       {/* Nail Concerns */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Any nail concerns?
         </label>
         <div className="flex flex-wrap gap-2">
@@ -170,8 +170,8 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
               onClick={() => handleArrayToggle("nailConcerns", concern)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.nailConcerns.includes(concern)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {concern}
@@ -182,7 +182,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
 
       {/* Recovery Issues */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Any recovery issues?
         </label>
         <div className="flex flex-wrap gap-2">
@@ -193,8 +193,8 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
               onClick={() => handleArrayToggle("recoveryIssues", issue)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.recoveryIssues.includes(issue)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {issue}
@@ -205,7 +205,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
 
       {/* Digestive Issues */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Any digestive issues?
         </label>
         <div className="flex flex-wrap gap-2">
@@ -216,8 +216,8 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
               onClick={() => handleArrayToggle("digestiveIssues", issue)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.digestiveIssues.includes(issue)
-                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {issue}

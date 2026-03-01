@@ -21,6 +21,35 @@ import {
   Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import type { Database } from "@/types/database";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+type DailyCheckin = Database["public"]["Tables"]["daily_checkins"]["Row"];
+type Message = Database["public"]["Tables"]["messages"]["Row"];
+
+interface ClientRow {
+  id: string;
+  created_at: string;
+}
+
+interface ConversationRow {
+  id: string;
+}
+
+interface ProfileRow {
+  first_name: string | null;
+}
+
+interface CheckinRow {
+  id: string;
+}
+
+interface WeekCheckinRow {
+  checkin_date: string;
+  morning_weight_kg: number | null;
+  step_count: number | null;
+  training_completed: boolean | null;
+}
 
 interface DashboardData {
   user: {
@@ -92,10 +121,6 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadDashboardData() {
       const supabase = createClient();
-      if (!supabase) {
-        setIsLoading(false);
-        return;
-      }
 
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -104,21 +129,17 @@ export default function DashboardPage() {
           return;
         }
 
-        // Get user profile
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: profile } = await (supabase as any)
+        const { data: profile } = await (supabase as SupabaseClient)
           .from("users")
           .select("first_name")
           .eq("id", user.id)
-          .single();
+          .single() as { data: ProfileRow | null };
 
-        // Get client info
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: client } = await (supabase as any)
+        const { data: client } = await (supabase as SupabaseClient)
           .from("clients")
           .select("id, created_at")
           .eq("user_id", user.id)
-          .single();
+          .single() as { data: ClientRow | null };
 
         if (!client) {
           setIsLoading(false);
@@ -130,26 +151,22 @@ export default function DashboardPage() {
         const today = new Date();
         const programDays = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
-        // Check if today's check-in exists
         const todayStr = today.toISOString().split("T")[0];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: todayCheckin } = await (supabase as any)
+        const { data: todayCheckin } = await (supabase as SupabaseClient)
           .from("daily_checkins")
           .select("id")
           .eq("client_id", client.id)
           .eq("checkin_date", todayStr)
-          .single();
+          .single() as { data: CheckinRow | null };
 
-        // Get last 7 days of check-ins for compliance
         const weekAgo = new Date(today);
         weekAgo.setDate(weekAgo.getDate() - 7);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: weekCheckins } = await (supabase as any)
+        const { data: weekCheckins } = await (supabase as SupabaseClient)
           .from("daily_checkins")
           .select("checkin_date, morning_weight_kg, step_count, training_completed")
           .eq("client_id", client.id)
           .gte("checkin_date", weekAgo.toISOString().split("T")[0])
-          .order("checkin_date", { ascending: true });
+          .order("checkin_date", { ascending: true }) as { data: WeekCheckinRow[] | null };
 
         // Calculate weekly stats
         let totalSteps = 0;
@@ -159,8 +176,7 @@ export default function DashboardPage() {
         const complianceMap = new Map<string, boolean>();
 
         if (weekCheckins) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          weekCheckins.forEach((checkin: any) => {
+          (weekCheckins as Pick<DailyCheckin, "checkin_date" | "morning_weight_kg" | "step_count" | "training_completed">[]).forEach((checkin) => {
             complianceMap.set(checkin.checkin_date, true);
             if (checkin.step_count) {
               totalSteps += checkin.step_count;
@@ -170,7 +186,7 @@ export default function DashboardPage() {
               trainingSessions++;
             }
             if (checkin.morning_weight_kg) {
-              weights.push(parseFloat(checkin.morning_weight_kg));
+              weights.push(checkin.morning_weight_kg);
             }
           });
         }
@@ -192,19 +208,16 @@ export default function DashboardPage() {
         // Calculate compliance rate
         const complianceRate = Math.round((complianceMap.size / 7) * 100);
 
-        // Get recent messages
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: conversations } = await (supabase as any)
+        const { data: conversations } = await (supabase as SupabaseClient)
           .from("conversations")
           .select("id")
           .eq("client_id", client.id)
           .limit(1)
-          .single();
+          .single() as { data: ConversationRow | null };
 
         let recentMessages: DashboardData["recentMessages"] = [];
         if (conversations) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: messages } = await (supabase as any)
+          const { data: messages } = await supabase
             .from("messages")
             .select("id, content, created_at, read_at, sender_id")
             .eq("conversation_id", conversations.id)
@@ -213,8 +226,7 @@ export default function DashboardPage() {
             .limit(2);
 
           if (messages) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            recentMessages = messages.map((msg: any) => ({
+            recentMessages = (messages as Pick<Message, "id" | "content" | "created_at" | "read_at" | "sender_id">[]).map((msg) => ({
               id: msg.id,
               from: "Coach",
               preview: msg.content.substring(0, 40) + (msg.content.length > 40 ? "..." : ""),
@@ -288,7 +300,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
@@ -298,16 +310,16 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100">
+          <h1 className="text-2xl font-bold text-foreground">
             {greeting}, {data.user.firstName}!
           </h1>
-          <p className="text-stone-600 dark:text-stone-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             Day {data.user.programDays} of your {data.user.totalDays}-day transformation
           </p>
         </div>
         <Link
           href="/check-in/daily"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
         >
           <CalendarCheck className="w-5 h-5" />
           {data.todayCheckin.completed ? "View Today's Check-in" : "Complete Check-in"}
@@ -315,38 +327,38 @@ export default function DashboardPage() {
       </div>
 
       {/* Program Progress */}
-      <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+          <h2 className="font-semibold text-foreground">
             Program Progress
           </h2>
-          <span className="text-sm text-stone-500">
+          <span className="text-sm text-muted-foreground">
             {data.user.totalDays - data.user.programDays} days remaining
           </span>
         </div>
-        <div className="relative h-4 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
+        <div className="relative h-4 bg-muted rounded-full overflow-hidden">
           <div
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-amber-500 to-amber-600 rounded-full transition-all duration-500"
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <div className="flex justify-between mt-2 text-sm text-stone-500">
+        <div className="flex justify-between mt-2 text-sm text-muted-foreground">
           <span>Started {data.user.startDate}</span>
-          <span className="font-medium text-amber-600">{progressPercent}% complete</span>
+          <span className="font-medium text-primary">{progressPercent}% complete</span>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Compliance Rate */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-stone-500 dark:text-stone-400">Compliance</p>
-              <p className="text-xl font-bold text-stone-800 dark:text-stone-100">
+              <p className="text-sm text-muted-foreground">Compliance</p>
+              <p className="text-xl font-bold text-foreground">
                 {data.weeklyStats.complianceRate}%
               </p>
             </div>
@@ -354,15 +366,15 @@ export default function DashboardPage() {
         </div>
 
         {/* Weight Change */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
               <Scale className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-stone-500 dark:text-stone-400">This Week</p>
+              <p className="text-sm text-muted-foreground">This Week</p>
               <div className="flex items-center gap-1">
-                <p className="text-xl font-bold text-stone-800 dark:text-stone-100">
+                <p className="text-xl font-bold text-foreground">
                   {data.weeklyStats.weightChange > 0 ? "+" : ""}
                   {data.weeklyStats.weightChange} kg
                 </p>
@@ -371,7 +383,7 @@ export default function DashboardPage() {
                 ) : data.weeklyStats.weightChange > 0 ? (
                   <TrendingUp className="w-4 h-4 text-red-500" />
                 ) : (
-                  <Minus className="w-4 h-4 text-stone-400" />
+                  <Minus className="w-4 h-4 text-muted-foreground" />
                 )}
               </div>
             </div>
@@ -379,14 +391,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Average Steps */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
               <Footprints className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-stone-500 dark:text-stone-400">Avg Steps</p>
-              <p className="text-xl font-bold text-stone-800 dark:text-stone-100">
+              <p className="text-sm text-muted-foreground">Avg Steps</p>
+              <p className="text-xl font-bold text-foreground">
                 {data.weeklyStats.avgSteps.toLocaleString()}
               </p>
             </div>
@@ -394,14 +406,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Training Sessions */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-              <Flame className="w-5 h-5 text-amber-600" />
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Flame className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-sm text-stone-500 dark:text-stone-400">Workouts</p>
-              <p className="text-xl font-bold text-stone-800 dark:text-stone-100">
+              <p className="text-sm text-muted-foreground">Workouts</p>
+              <p className="text-xl font-bold text-foreground">
                 {data.weeklyStats.trainingSessions}/{data.weeklyStats.targetSessions}
               </p>
             </div>
@@ -412,14 +424,14 @@ export default function DashboardPage() {
       {/* Two Column Layout */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Weekly Compliance */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+            <h2 className="font-semibold text-foreground">
               Weekly Compliance
             </h2>
             <Link
               href="/progress"
-              className="text-sm text-amber-600 hover:text-amber-700 flex items-center gap-1"
+              className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
             >
               View Details <ChevronRight className="w-4 h-4" />
             </Link>
@@ -440,39 +452,39 @@ export default function DashboardPage() {
                     <AlertCircle className="w-5 h-5 text-red-500" />
                   )}
                 </div>
-                <span className="text-xs text-stone-500">{day}</span>
+                <span className="text-xs text-muted-foreground">{day}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Upcoming Tasks */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
-          <h2 className="font-semibold text-stone-800 dark:text-stone-100 mb-4">
+        <div className="bg-card rounded-xl border border-border p-6">
+          <h2 className="font-semibold text-foreground mb-4">
             Upcoming Tasks
           </h2>
           <div className="space-y-3">
             {data.upcomingTasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-center gap-3 p-3 rounded-lg bg-stone-50 dark:bg-stone-800/50"
+                className="flex items-center gap-3 p-3 rounded-lg bg-muted"
               >
-                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   {task.type === "checkin" ? (
-                    <CalendarCheck className="w-4 h-4 text-amber-600" />
+                    <CalendarCheck className="w-4 h-4 text-primary" />
                   ) : task.type === "photos" ? (
-                    <Calendar className="w-4 h-4 text-amber-600" />
+                    <Calendar className="w-4 h-4 text-primary" />
                   ) : (
-                    <Clock className="w-4 h-4 text-amber-600" />
+                    <Clock className="w-4 h-4 text-primary" />
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-stone-800 dark:text-stone-200">
+                  <p className="text-sm font-medium text-foreground">
                     {task.title}
                   </p>
-                  <p className="text-xs text-stone-500">{task.dueTime}</p>
+                  <p className="text-xs text-muted-foreground">{task.dueTime}</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-stone-400" />
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </div>
             ))}
           </div>
@@ -482,44 +494,44 @@ export default function DashboardPage() {
       {/* Quick Actions & Messages */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Quick Actions */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
-          <h2 className="font-semibold text-stone-800 dark:text-stone-100 mb-4">
+        <div className="bg-card rounded-xl border border-border p-6">
+          <h2 className="font-semibold text-foreground mb-4">
             Quick Actions
           </h2>
           <div className="grid grid-cols-2 gap-3">
             <Link
               href="/plans/nutrition"
-              className="flex items-center gap-3 p-4 rounded-lg border border-stone-200 dark:border-stone-700 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+              className="flex items-center gap-3 p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
             >
-              <UtensilsCrossed className="w-5 h-5 text-amber-600" />
-              <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+              <UtensilsCrossed className="w-5 h-5 text-primary" />
+              <span className="text-sm font-medium text-foreground">
                 View Meal Plan
               </span>
             </Link>
             <Link
               href="/plans/training"
-              className="flex items-center gap-3 p-4 rounded-lg border border-stone-200 dark:border-stone-700 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+              className="flex items-center gap-3 p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
             >
-              <Dumbbell className="w-5 h-5 text-amber-600" />
-              <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+              <Dumbbell className="w-5 h-5 text-primary" />
+              <span className="text-sm font-medium text-foreground">
                 View Workout
               </span>
             </Link>
             <Link
               href="/progress/photos"
-              className="flex items-center gap-3 p-4 rounded-lg border border-stone-200 dark:border-stone-700 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+              className="flex items-center gap-3 p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
             >
-              <TrendingUp className="w-5 h-5 text-amber-600" />
-              <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <span className="text-sm font-medium text-foreground">
                 Progress Photos
               </span>
             </Link>
             <Link
               href="/messages"
-              className="flex items-center gap-3 p-4 rounded-lg border border-stone-200 dark:border-stone-700 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+              className="flex items-center gap-3 p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
             >
-              <MessageSquare className="w-5 h-5 text-amber-600" />
-              <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              <span className="text-sm font-medium text-foreground">
                 Message Coach
               </span>
             </Link>
@@ -527,14 +539,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Messages */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+            <h2 className="font-semibold text-foreground">
               Recent Messages
             </h2>
             <Link
               href="/messages"
-              className="text-sm text-amber-600 hover:text-amber-700 flex items-center gap-1"
+              className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
             >
               View All <ChevronRight className="w-4 h-4" />
             </Link>
@@ -544,22 +556,22 @@ export default function DashboardPage() {
               <Link
                 key={message.id}
                 href="/messages"
-                className="flex items-start gap-3 p-3 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
+                className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                  <MessageSquare className="w-4 h-4 text-amber-600" />
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <MessageSquare className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-stone-800 dark:text-stone-200">
+                    <p className="text-sm font-medium text-foreground">
                       {message.from}
                     </p>
                     {message.unread && (
-                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      <span className="w-2 h-2 rounded-full bg-primary" />
                     )}
                   </div>
-                  <p className="text-sm text-stone-500 truncate">{message.preview}</p>
-                  <p className="text-xs text-stone-400 mt-1">{message.time}</p>
+                  <p className="text-sm text-muted-foreground truncate">{message.preview}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{message.time}</p>
                 </div>
               </Link>
             ))}

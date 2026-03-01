@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Scale,
   Footprints,
@@ -74,7 +75,6 @@ export default function DailyCheckinPage() {
   useEffect(() => {
     async function fetchClientAndCheckin() {
       const supabase = createClient();
-      if (!supabase) return;
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -167,7 +167,7 @@ export default function DailyCheckinPage() {
 
     try {
       const supabase = createClient();
-      if (!supabase || !clientId || !tenantId) {
+      if (!clientId || !tenantId) {
         throw new Error("Unable to submit. Please try again.");
       }
 
@@ -284,11 +284,11 @@ export default function DailyCheckinPage() {
           <div className="space-y-6">
             {/* Weight */}
             <div>
-              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Morning Weight (kg)
               </label>
               <div className="relative">
-                <Scale className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                <Scale className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
                   type="number"
                   step="0.1"
@@ -300,21 +300,21 @@ export default function DailyCheckinPage() {
                     }))
                   }
                   placeholder="e.g., 75.5"
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
-              <p className="text-xs text-stone-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Weigh yourself first thing in the morning, after using the bathroom
               </p>
             </div>
 
             {/* Steps */}
             <div>
-              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Steps Today
               </label>
               <div className="relative">
-                <Footprints className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                <Footprints className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
                   type="number"
                   value={formData.steps || ""}
@@ -325,10 +325,10 @@ export default function DailyCheckinPage() {
                     }))
                   }
                   placeholder="e.g., 8000"
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
-              <p className="text-xs text-stone-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Check your phone or fitness tracker for today&apos;s step count
               </p>
             </div>
@@ -340,7 +340,7 @@ export default function DailyCheckinPage() {
           <div className="space-y-6">
             {/* Training Completed */}
             <div>
-              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+              <label className="block text-sm font-medium text-foreground mb-3">
                 Did you complete your training today?
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -352,21 +352,21 @@ export default function DailyCheckinPage() {
                   className={`p-4 rounded-lg border-2 transition-colors ${
                     formData.trainingCompleted
                       ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                      : "border-stone-200 dark:border-stone-700"
+                      : "border-border"
                   }`}
                 >
                   <CheckCircle2
                     className={`w-6 h-6 mx-auto mb-2 ${
                       formData.trainingCompleted
                         ? "text-green-600"
-                        : "text-stone-400"
+                        : "text-muted-foreground"
                     }`}
                   />
                   <span
                     className={`text-sm font-medium ${
                       formData.trainingCompleted
                         ? "text-green-700 dark:text-green-400"
-                        : "text-stone-600 dark:text-stone-400"
+                        : "text-muted-foreground"
                     }`}
                   >
                     Yes, completed!
@@ -379,22 +379,22 @@ export default function DailyCheckinPage() {
                   }
                   className={`p-4 rounded-lg border-2 transition-colors ${
                     !formData.trainingCompleted
-                      ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                      : "border-stone-200 dark:border-stone-700"
+                      ? "border-primary bg-primary/10"
+                      : "border-border"
                   }`}
                 >
                   <AlertCircle
                     className={`w-6 h-6 mx-auto mb-2 ${
                       !formData.trainingCompleted
-                        ? "text-amber-600"
-                        : "text-stone-400"
+                        ? "text-primary"
+                        : "text-muted-foreground"
                     }`}
                   />
                   <span
                     className={`text-sm font-medium ${
                       !formData.trainingCompleted
-                        ? "text-amber-700 dark:text-amber-400"
-                        : "text-stone-600 dark:text-stone-400"
+                        ? "text-primary"
+                        : "text-muted-foreground"
                     }`}
                   >
                     Rest day / Skipped
@@ -405,7 +405,7 @@ export default function DailyCheckinPage() {
 
             {/* Training Notes */}
             <div>
-              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 {formData.trainingCompleted
                   ? "How did your workout go?"
                   : "Any reason for skipping?"}
@@ -421,7 +421,7 @@ export default function DailyCheckinPage() {
                     ? "e.g., Felt strong today, increased weight on squats..."
                     : "e.g., Scheduled rest day, not feeling well..."
                 }
-                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
               />
             </div>
           </div>
@@ -447,7 +447,7 @@ export default function DailyCheckinPage() {
                   onChange={handlePhotoUpload}
                   className="hidden"
                 />
-                <div className="flex items-center gap-2 px-6 py-3 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors">
+                <div className="flex items-center gap-2 px-6 py-3 rounded-lg bg-brown-500 text-white hover:bg-brown-600 transition-colors">
                   <Plus className="w-5 h-5" />
                   <span className="font-medium">Add Meal Photos</span>
                 </div>
@@ -463,10 +463,11 @@ export default function DailyCheckinPage() {
                     className="flex gap-4 p-4 rounded-lg bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700"
                   >
                     <div className="relative w-20 h-20 flex-shrink-0">
-                      <img
+                      <Image
                         src={photo.preview}
                         alt="Meal"
-                        className="w-full h-full object-cover rounded-lg"
+                        fill
+                        className="object-cover rounded-lg"
                       />
                       <button
                         type="button"
@@ -529,11 +530,11 @@ export default function DailyCheckinPage() {
                     energyLevel: parseInt(e.target.value),
                   }))
                 }
-                className="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                className="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-brown-500"
               />
               <div className="flex justify-between text-sm text-stone-500 mt-1">
                 <span>Low (1)</span>
-                <span className="font-bold text-amber-600">
+                <span className="font-bold text-brown-500">
                   {formData.energyLevel}
                 </span>
                 <span>High (10)</span>
@@ -559,11 +560,11 @@ export default function DailyCheckinPage() {
                     stressLevel: parseInt(e.target.value),
                   }))
                 }
-                className="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                className="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-brown-500"
               />
               <div className="flex justify-between text-sm text-stone-500 mt-1">
                 <span>Low (1)</span>
-                <span className="font-bold text-amber-600">
+                <span className="font-bold text-brown-500">
                   {formData.stressLevel}
                 </span>
                 <span>High (10)</span>
@@ -587,7 +588,7 @@ export default function DailyCheckinPage() {
                     sleepHours: parseFloat(e.target.value) || 0,
                   }))
                 }
-                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-brown-500"
               />
             </div>
 
@@ -608,7 +609,7 @@ export default function DailyCheckinPage() {
                     waterLiters: parseFloat(e.target.value) || 0,
                   }))
                 }
-                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-brown-500"
               />
             </div>
 
@@ -624,7 +625,7 @@ export default function DailyCheckinPage() {
                 }
                 rows={3}
                 placeholder="e.g., Feeling bloated after lunch, craving sweets..."
-                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-brown-500 resize-none"
               />
             </div>
           </div>
@@ -651,7 +652,7 @@ export default function DailyCheckinPage() {
           })}
         </p>
         {isEditMode && (
-          <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm">
+          <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 text-sm">
             <CheckCircle2 className="w-4 h-4" />
             <span>You already checked in today. You can update your entries below.</span>
           </div>
@@ -686,7 +687,7 @@ export default function DailyCheckinPage() {
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                     isActive
-                      ? "bg-amber-600 text-white"
+                      ? "bg-brown-500 text-white"
                       : isCompleted
                       ? "bg-green-500 text-white"
                       : "bg-stone-200 dark:bg-stone-700 text-stone-500"
@@ -701,7 +702,7 @@ export default function DailyCheckinPage() {
                 <span
                   className={`text-xs font-medium ${
                     isActive
-                      ? "text-amber-600"
+                      ? "text-brown-500"
                       : isCompleted
                       ? "text-green-600"
                       : "text-stone-500"
@@ -748,7 +749,7 @@ export default function DailyCheckinPage() {
           <button
             type="button"
             onClick={() => setCurrentStep((prev) => prev + 1)}
-            className="px-6 py-3 rounded-lg font-medium bg-amber-600 text-white hover:bg-amber-700 transition-colors"
+            className="px-6 py-3 rounded-lg font-medium bg-brown-500 text-white hover:bg-brown-600 transition-colors"
           >
             Next
           </button>

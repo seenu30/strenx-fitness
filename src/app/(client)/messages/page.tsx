@@ -47,19 +47,15 @@ export default function MessagesPage() {
     senderId: msg.sender_id === userId ? "client" : "coach",
     content: msg.content,
     timestamp: new Date(msg.created_at),
-    status: msg.read_at ? "read" : "delivered",
-    type: msg.message_type,
-    imageUrl: msg.image_url,
+    status: msg.status === "read" ? "read" : "delivered",
+    type: (msg.message_type === "image" ? "image" : "text") as "text" | "image",
+    imageUrl: msg.attachment_url,
   }), []);
 
   // Load conversation and messages on mount
   useEffect(() => {
     async function loadConversation() {
       const supabase = createClient();
-      if (!supabase) {
-        setIsLoading(false);
-        return;
-      }
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -139,6 +135,7 @@ export default function MessagesPage() {
   useEffect(() => {
     if (realtimeMessages.length > 0 && currentUserId) {
       const transformedNew = realtimeMessages.map(msg => transformMessage(msg, currentUserId));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages(prev => {
         // Avoid duplicates
         const existingIds = new Set(prev.map(m => m.id));
@@ -245,8 +242,8 @@ export default function MessagesPage() {
       {/* Chat Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200 dark:border-stone-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-            <span className="text-amber-600 font-semibold">C</span>
+          <div className="w-10 h-10 rounded-full bg-brown-100 dark:bg-brown-900/30 flex items-center justify-center">
+            <span className="text-brown-500 font-semibold">C</span>
           </div>
           <div>
             <h2 className="font-semibold text-stone-800 dark:text-stone-100">
@@ -267,7 +264,7 @@ export default function MessagesPage() {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+            <Loader2 className="w-8 h-8 text-brown-500 animate-spin" />
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-stone-500">
@@ -296,7 +293,7 @@ export default function MessagesPage() {
                 <div
                   className={`max-w-[75%] ${
                     isOwnMessage
-                      ? "bg-amber-600 text-white rounded-2xl rounded-br-md"
+                      ? "bg-brown-500 text-white rounded-2xl rounded-br-md"
                       : "bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 rounded-2xl rounded-bl-md"
                   }`}
                 >
@@ -319,7 +316,7 @@ export default function MessagesPage() {
                     <span
                       className={`text-xs ${
                         isOwnMessage
-                          ? "text-amber-200"
+                          ? "text-brown-200"
                           : "text-stone-500"
                       }`}
                     >
@@ -370,12 +367,12 @@ export default function MessagesPage() {
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
             placeholder="Type a message..."
-            className="flex-1 px-4 py-2.5 rounded-full border border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="flex-1 px-4 py-2.5 rounded-full border border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-brown-500"
           />
           <button
             onClick={handleSend}
             disabled={!newMessage.trim()}
-            className="p-2.5 bg-amber-600 text-white rounded-full hover:bg-amber-700 disabled:bg-stone-300 disabled:cursor-not-allowed transition-colors"
+            className="p-2.5 bg-brown-500 text-white rounded-full hover:bg-brown-600 disabled:bg-stone-300 disabled:cursor-not-allowed transition-colors"
           >
             <Send className="w-5 h-5" />
           </button>

@@ -1,0 +1,128 @@
+/**
+ * Strenx Fitness Theme System
+ *
+ * This file defines all semantic color tokens for the dark/light mode system.
+ * All components must reference these CSS variables instead of raw color values.
+ *
+ * Storage key: "strenx-theme"
+ * Allowed values: dark, light, system
+ */
+
+/* ============================================
+   Light Theme (Default)
+   ============================================ */
+:root,
+.theme-light {
+  /* Background colors */
+  --color-bg: #FFFFFF;
+  --color-bg-secondary: #F8F8F8;
+  --color-surface: #FFFFFF;
+
+  /* Text colors */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6B7280;
+
+  /* Border */
+  --color-border: #E5E7EB;
+
+  /* Brand colors */
+  --color-primary: #8B4513;
+  --color-primary-hover: #A5673F;
+  --color-secondary-accent: #C49A6C;
+
+  /* Status colors */
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
+
+  /* Semantic aliases for Tailwind compatibility */
+  --background: #FFFFFF;
+  --foreground: #111827;
+  --card: #FFFFFF;
+  --card-foreground: #111827;
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
+  --primary: #8B4513;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F8F8F8;
+  --secondary-foreground: #111827;
+  --muted: #F8F8F8;
+  --muted-foreground: #6B7280;
+  --accent: #C49A6C;
+  --accent-foreground: #111827;
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #8B4513;
+}
+
+/* ============================================
+   Dark Theme
+   Both .theme-dark and .dark are supported for
+   compatibility with Tailwind's dark: variants
+   ============================================ */
+.theme-dark,
+.dark {
+  /* Background colors */
+  --color-bg: #0B0B0D;
+  --color-bg-secondary: #141418;
+  --color-surface: #1E1E26;
+
+  /* Text colors */
+  --color-text-primary: #F5F5F5;
+  --color-text-secondary: #B3B3B8;
+
+  /* Border */
+  --color-border: #2A2A33;
+
+  /* Brand colors (consistent across themes) */
+  --color-primary: #8B4513;
+  --color-primary-hover: #A5673F;
+  --color-secondary-accent: #C49A6C;
+
+  /* Status colors */
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+
+  /* Semantic aliases for Tailwind compatibility */
+  --background: #0B0B0D;
+  --foreground: #F5F5F5;
+  --card: #1E1E26;
+  --card-foreground: #F5F5F5;
+  --popover: #1E1E26;
+  --popover-foreground: #F5F5F5;
+  --primary: #8B4513;
+  --primary-foreground: #FFFFFF;
+  --secondary: #141418;
+  --secondary-foreground: #F5F5F5;
+  --muted: #141418;
+  --muted-foreground: #B3B3B8;
+  --accent: #C49A6C;
+  --accent-foreground: #F5F5F5;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #2A2A33;
+  --input: #2A2A33;
+  --ring: #A5673F;
+}
+
+/* ============================================
+   Global Transitions
+   Smooth theme switching with 200ms duration
+   Only animate color properties, NOT layout
+   ============================================ */
+*,
+*::before,
+*::after {
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+
+/* Disable transitions on page load to prevent FOUC */
+.no-transitions,
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after {
+  transition: none !important;
+}

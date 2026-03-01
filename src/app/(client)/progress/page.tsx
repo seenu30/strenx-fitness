@@ -29,6 +29,30 @@ interface ProgressData {
   };
 }
 
+interface ClientRow {
+  id: string;
+  tenant_id: string;
+  start_weight_kg: number | null;
+  target_weight_kg: number | null;
+}
+
+interface WeightCheckinRow {
+  checkin_date: string;
+  morning_weight_kg: number | null;
+}
+
+interface MeasurementRow {
+  chest_cm: number | null;
+  waist_cm: number | null;
+  hips_cm: number | null;
+  left_arm_cm: number | null;
+  left_thigh_cm: number | null;
+}
+
+interface CheckinRow {
+  id: string;
+}
+
 const DEFAULT_DATA: ProgressData = {
   startWeight: 0,
   currentWeight: 0,
@@ -50,10 +74,6 @@ export default function ProgressPage() {
   useEffect(() => {
     async function loadProgressData() {
       const supabase = createClient();
-      if (!supabase) {
-        setIsLoading(false);
-        return;
-      }
 
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -62,45 +82,38 @@ export default function ProgressPage() {
           return;
         }
 
-        // Get client info
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: client } = await (supabase as any)
+        const { data: client } = await supabase
           .from("clients")
           .select("id, tenant_id, start_weight_kg, target_weight_kg")
           .eq("user_id", user.id)
-          .single();
+          .single() as { data: ClientRow | null };
 
         if (!client) {
           setIsLoading(false);
           return;
         }
 
-        // Get weight history from daily check-ins
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: weightCheckins } = await (supabase as any)
+        const { data: weightCheckins } = await supabase
           .from("daily_checkins")
           .select("checkin_date, morning_weight_kg")
           .eq("client_id", client.id)
           .not("morning_weight_kg", "is", null)
-          .order("checkin_date", { ascending: true });
+          .order("checkin_date", { ascending: true }) as { data: WeightCheckinRow[] | null };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const weightHistory = (weightCheckins || []).map((w: any) => ({
+        const weightHistory = (weightCheckins || []).map((w: WeightCheckinRow) => ({
           date: new Date(w.checkin_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          weight: w.morning_weight_kg,
+          weight: w.morning_weight_kg ?? 0,
         }));
 
         const startWeight = client.start_weight_kg || (weightHistory.length > 0 ? weightHistory[0].weight : 0);
         const currentWeight = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].weight : startWeight;
         const targetWeight = client.target_weight_kg || startWeight - 10;
 
-        // Get measurements
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: measurementsData } = await (supabase as any)
+        const { data: measurementsData } = await supabase
           .from("measurements")
           .select("*")
           .eq("client_id", client.id)
-          .order("measurement_date", { ascending: true });
+          .order("measurement_date", { ascending: true }) as { data: MeasurementRow[] | null };
 
         let startMeasurements = { chest: 0, waist: 0, hips: 0, arm: 0, thigh: 0 };
         let currentMeasurements = { chest: 0, waist: 0, hips: 0, arm: 0, thigh: 0 };
@@ -126,9 +139,7 @@ export default function ProgressPage() {
           };
         }
 
-        // Get photo count
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { count: photoCount } = await (supabase as any)
+        const { count: photoCount } = await supabase
           .from("progress_photos")
           .select("*", { count: "exact", head: true })
           .eq("client_id", client.id);
@@ -137,12 +148,11 @@ export default function ProgressPage() {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: recentCheckins } = await (supabase as any)
+        const { data: recentCheckins } = await supabase
           .from("daily_checkins")
           .select("id")
           .eq("client_id", client.id)
-          .gte("checkin_date", sevenDaysAgo.toISOString().split('T')[0]);
+          .gte("checkin_date", sevenDaysAgo.toISOString().split('T')[0]) as { data: CheckinRow[] | null };
 
         const compliance = Math.round(((recentCheckins?.length || 0) / 7) * 100);
 
@@ -185,7 +195,7 @@ export default function ProgressPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brown-500 animate-spin" />
       </div>
     );
   }
@@ -215,7 +225,7 @@ export default function ProgressPage() {
                 onClick={() => setTimeRange(range)}
                 className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                   timeRange === range
-                    ? "bg-amber-600 text-white"
+                    ? "bg-brown-500 text-white"
                     : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
                 }`}
               >
@@ -233,9 +243,9 @@ export default function ProgressPage() {
               {data.startWeight > 0 ? `${data.startWeight} kg` : "-"}
             </p>
           </div>
-          <div className="text-center p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20">
+          <div className="text-center p-3 rounded-lg bg-brown-50 dark:bg-brown-900/20">
             <p className="text-xs text-stone-500 mb-1">Current</p>
-            <p className="text-lg font-bold text-amber-600">
+            <p className="text-lg font-bold text-brown-500">
               {data.currentWeight > 0 ? `${data.currentWeight} kg` : "-"}
             </p>
           </div>
@@ -270,7 +280,7 @@ export default function ProgressPage() {
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                className="text-amber-500"
+                className="text-brown-500"
                 points={data.weightHistory
                   .map((d, i) => {
                     const x = (i / (data.weightHistory.length - 1)) * 380 + 10;
@@ -294,7 +304,7 @@ export default function ProgressPage() {
                   cy={y}
                   r="4"
                   fill="currentColor"
-                  className="text-amber-500"
+                  className="text-brown-500"
                 />
               );
             })}
@@ -322,11 +332,11 @@ export default function ProgressPage() {
           </div>
           <div className="h-3 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-amber-500 to-green-500 rounded-full transition-all duration-500"
+              className="h-full bg-gradient-to-r from-brown-500 to-green-500 rounded-full transition-all duration-500"
               style={{ width: `${Math.min(progressPercent, 100)}%` }}
             />
           </div>
-          <p className="text-center text-sm text-amber-600 font-medium mt-2">
+          <p className="text-center text-sm text-brown-500 font-medium mt-2">
             {progressPercent}% to goal
           </p>
         </div>
@@ -369,12 +379,12 @@ export default function ProgressPage() {
         {/* Compliance */}
         <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-              <Activity className="w-5 h-5 text-amber-600" />
+            <div className="w-10 h-10 rounded-lg bg-brown-100 dark:bg-brown-900/30 flex items-center justify-center">
+              <Activity className="w-5 h-5 text-brown-500" />
             </div>
             <div>
               <p className="text-sm text-stone-500">Compliance</p>
-              <p className="text-xl font-bold text-amber-600">
+              <p className="text-xl font-bold text-brown-500">
                 {data.complianceStats.overall}%
               </p>
             </div>
@@ -405,7 +415,7 @@ export default function ProgressPage() {
           </h2>
           <Link
             href="/progress/measurements"
-            className="text-sm text-amber-600 hover:text-amber-700 flex items-center gap-1"
+            className="text-sm text-brown-500 hover:text-brown-600 flex items-center gap-1"
           >
             View All <ChevronRight className="w-4 h-4" />
           </Link>
@@ -474,7 +484,7 @@ export default function ProgressPage() {
       <div className="grid sm:grid-cols-3 gap-4">
         <Link
           href="/progress/photos"
-          className="flex items-center gap-4 p-4 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+          className="flex items-center gap-4 p-4 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-brown-300 dark:hover:border-brown-600 transition-colors"
         >
           <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
             <Camera className="w-6 h-6 text-purple-600" />
@@ -490,7 +500,7 @@ export default function ProgressPage() {
 
         <Link
           href="/progress/measurements"
-          className="flex items-center gap-4 p-4 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+          className="flex items-center gap-4 p-4 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-brown-300 dark:hover:border-brown-600 transition-colors"
         >
           <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
             <Ruler className="w-6 h-6 text-blue-600" />
@@ -506,7 +516,7 @@ export default function ProgressPage() {
 
         <Link
           href="/progress/blood-reports"
-          className="flex items-center gap-4 p-4 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+          className="flex items-center gap-4 p-4 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-brown-300 dark:hover:border-brown-600 transition-colors"
         >
           <div className="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
             <Activity className="w-6 h-6 text-red-600" />

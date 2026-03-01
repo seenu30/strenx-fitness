@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import {
@@ -31,6 +31,23 @@ interface RecentCheckin {
   weight: number | null;
 }
 
+interface DailyCheckinRecord {
+  created_at: string;
+  weight?: number;
+}
+
+interface WeeklyCheckinRecord {
+  created_at: string;
+}
+
+interface ClientRecord {
+  id: string;
+}
+
+interface CheckinIdRecord {
+  id: string;
+}
+
 export default function CheckInPage() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<CheckinStatus>({
@@ -44,80 +61,67 @@ export default function CheckInPage() {
 
   const supabase = createClient();
 
-  useEffect(() => {
-    loadCheckinData();
-  }, []);
-
-  async function loadCheckinData() {
+  const loadCheckinData = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get client info
-      const { data: client } = await (supabase as any)
+      const { data: client } = await supabase
         .from("clients")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .single() as { data: ClientRecord | null };
 
       if (!client) return;
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Check if today's daily check-in is complete
-      const { data: todayCheckin } = await (supabase as any)
+      const { data: todayCheckin } = await supabase
         .from("daily_checkins")
         .select("id")
         .eq("client_id", client.id)
         .gte("created_at", today.toISOString())
-        .limit(1);
+        .limit(1) as { data: CheckinIdRecord[] | null };
 
       const dailyComplete = (todayCheckin?.length || 0) > 0;
 
-      // Check if this week's weekly check-in is complete
-      // Get the start of the current week (Sunday)
       const startOfWeek = new Date(today);
       startOfWeek.setDate(today.getDate() - today.getDay());
       startOfWeek.setHours(0, 0, 0, 0);
 
-      const { data: weeklyCheckin } = await (supabase as any)
+      const { data: weeklyCheckin } = await supabase
         .from("weekly_checkins")
         .select("id")
         .eq("client_id", client.id)
         .gte("created_at", startOfWeek.toISOString())
-        .limit(1);
+        .limit(1) as { data: CheckinIdRecord[] | null };
 
       const weeklyComplete = (weeklyCheckin?.length || 0) > 0;
 
-      // Check if today is Sunday (weekly check-in day)
       const isSunday = today.getDay() === 0;
       const weeklyDue = isSunday && !weeklyComplete;
 
-      // Calculate streak (consecutive days with check-ins)
-      const { data: allDailyCheckins } = await (supabase as any)
+      const { data: allDailyCheckins } = await supabase
         .from("daily_checkins")
         .select("created_at")
         .eq("client_id", client.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }) as { data: DailyCheckinRecord[] | null };
 
       let currentStreak = 0;
       if (allDailyCheckins && allDailyCheckins.length > 0) {
         const checkDate = new Date(today);
 
-        // If today's check-in is not done, start checking from yesterday
         if (!dailyComplete) {
           checkDate.setDate(checkDate.getDate() - 1);
         }
 
-        // Create a set of dates that have check-ins
         const checkinDates = new Set(
-          allDailyCheckins.map((c: any) =>
+          allDailyCheckins.map((c: DailyCheckinRecord) =>
             new Date(c.created_at).toISOString().split("T")[0]
           )
         );
 
-        // Count consecutive days
         while (true) {
           const dateStr = checkDate.toISOString().split("T")[0];
           if (checkinDates.has(dateStr)) {
@@ -128,22 +132,20 @@ export default function CheckInPage() {
           }
         }
 
-        // Add today if completed
         if (dailyComplete) {
           currentStreak = Math.max(currentStreak, 1);
         }
       }
 
-      // Get total check-ins (daily + weekly)
-      const { data: totalDaily } = await (supabase as any)
+      const { data: totalDaily } = await supabase
         .from("daily_checkins")
         .select("id")
-        .eq("client_id", client.id);
+        .eq("client_id", client.id) as { data: CheckinIdRecord[] | null };
 
-      const { data: totalWeekly } = await (supabase as any)
+      const { data: totalWeekly } = await supabase
         .from("weekly_checkins")
         .select("id")
-        .eq("client_id", client.id);
+        .eq("client_id", client.id) as { data: CheckinIdRecord[] | null };
 
       const totalCheckins = (totalDaily?.length || 0) + (totalWeekly?.length || 0);
 
@@ -155,33 +157,32 @@ export default function CheckInPage() {
         weeklyDue,
       });
 
-      // Get recent check-ins (combining daily and weekly)
-      const { data: recentDaily } = await (supabase as any)
+      const { data: recentDaily } = await supabase
         .from("daily_checkins")
         .select("created_at, weight")
         .eq("client_id", client.id)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(5) as { data: DailyCheckinRecord[] | null };
 
-      const { data: recentWeekly } = await (supabase as any)
+      const { data: recentWeekly } = await supabase
         .from("weekly_checkins")
         .select("created_at")
         .eq("client_id", client.id)
         .order("created_at", { ascending: false })
-        .limit(2);
+        .limit(2) as { data: WeeklyCheckinRecord[] | null };
 
       const combined: RecentCheckin[] = [];
 
-      (recentDaily || []).forEach((c: any) => {
+      (recentDaily || []).forEach((c: DailyCheckinRecord) => {
         combined.push({
           date: c.created_at,
           type: "daily",
           status: "complete",
-          weight: c.weight,
+          weight: c.weight ?? null,
         });
       });
 
-      (recentWeekly || []).forEach((c: any) => {
+      (recentWeekly || []).forEach((c: WeeklyCheckinRecord) => {
         combined.push({
           date: c.created_at,
           type: "weekly",
@@ -190,7 +191,6 @@ export default function CheckInPage() {
         });
       });
 
-      // Sort by date descending and take first 5
       combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setRecentCheckins(combined.slice(0, 5));
 
@@ -199,7 +199,11 @@ export default function CheckInPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    loadCheckinData();
+  }, [loadCheckinData]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -212,7 +216,7 @@ export default function CheckInPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -221,10 +225,10 @@ export default function CheckInPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100">
+        <h1 className="text-2xl font-bold text-foreground">
           Check-in
         </h1>
-        <p className="text-stone-600 dark:text-stone-400 mt-1">
+        <p className="text-muted-foreground mt-1">
           Track your daily progress and weekly measurements
         </p>
       </div>
@@ -233,10 +237,10 @@ export default function CheckInPage() {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Daily Check-in */}
         <div
-          className={`bg-white dark:bg-stone-900 rounded-xl border-2 overflow-hidden ${
+          className={`bg-card rounded-xl border-2 overflow-hidden ${
             status.dailyComplete
               ? "border-green-500"
-              : "border-amber-500"
+              : "border-primary"
           }`}
         >
           <div className="p-6">
@@ -246,22 +250,22 @@ export default function CheckInPage() {
                   className={`p-3 rounded-xl ${
                     status.dailyComplete
                       ? "bg-green-100 dark:bg-green-900/30"
-                      : "bg-amber-100 dark:bg-amber-900/30"
+                      : "bg-primary/10"
                   }`}
                 >
                   <CalendarCheck
                     className={`w-6 h-6 ${
                       status.dailyComplete
                         ? "text-green-600"
-                        : "text-amber-600"
+                        : "text-primary"
                     }`}
                   />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+                  <h2 className="font-semibold text-foreground">
                     Daily Check-in
                   </h2>
-                  <p className="text-sm text-stone-500">
+                  <p className="text-sm text-muted-foreground">
                     Weight, meals, training
                   </p>
                 </div>
@@ -272,7 +276,7 @@ export default function CheckInPage() {
                   Complete
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full">
                   <Clock className="w-3 h-3" />
                   Pending
                 </span>
@@ -281,20 +285,20 @@ export default function CheckInPage() {
 
             <div className="space-y-3 mb-6">
               <div className="flex items-center gap-3 text-sm">
-                <Scale className="w-4 h-4 text-stone-400" />
-                <span className="text-stone-600 dark:text-stone-400">
+                <Scale className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
                   Log your morning weight
                 </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <Camera className="w-4 h-4 text-stone-400" />
-                <span className="text-stone-600 dark:text-stone-400">
+                <Camera className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
                   Upload meal photos
                 </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <TrendingUp className="w-4 h-4 text-stone-400" />
-                <span className="text-stone-600 dark:text-stone-400">
+                <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
                   Track steps and training
                 </span>
               </div>
@@ -304,8 +308,8 @@ export default function CheckInPage() {
               href="/check-in/daily"
               className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
                 status.dailyComplete
-                  ? "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700"
-                  : "bg-amber-600 text-white hover:bg-amber-700"
+                  ? "bg-muted text-muted-foreground hover:bg-muted/80"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
               }`}
             >
               {status.dailyComplete ? "View Today's Check-in" : "Complete Daily Check-in"}
@@ -316,12 +320,12 @@ export default function CheckInPage() {
 
         {/* Weekly Check-in */}
         <div
-          className={`bg-white dark:bg-stone-900 rounded-xl border-2 overflow-hidden ${
+          className={`bg-card rounded-xl border-2 overflow-hidden ${
             status.weeklyComplete
               ? "border-green-500"
               : status.weeklyDue
               ? "border-purple-500"
-              : "border-stone-200 dark:border-stone-800"
+              : "border-border"
           }`}
         >
           <div className="p-6">
@@ -343,10 +347,10 @@ export default function CheckInPage() {
                   />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+                  <h2 className="font-semibold text-foreground">
                     Weekly Check-in
                   </h2>
-                  <p className="text-sm text-stone-500">
+                  <p className="text-sm text-muted-foreground">
                     Photos, measurements, reflection
                   </p>
                 </div>
@@ -362,7 +366,7 @@ export default function CheckInPage() {
                   Due Today
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 rounded-full">
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-muted text-muted-foreground rounded-full">
                   <Clock className="w-3 h-3" />
                   Sunday
                 </span>
@@ -371,20 +375,20 @@ export default function CheckInPage() {
 
             <div className="space-y-3 mb-6">
               <div className="flex items-center gap-3 text-sm">
-                <Camera className="w-4 h-4 text-stone-400" />
-                <span className="text-stone-600 dark:text-stone-400">
+                <Camera className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
                   Progress photos (front, side, back)
                 </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <Scale className="w-4 h-4 text-stone-400" />
-                <span className="text-stone-600 dark:text-stone-400">
+                <Scale className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
                   Body measurements
                 </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <TrendingUp className="w-4 h-4 text-stone-400" />
-                <span className="text-stone-600 dark:text-stone-400">
+                <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
                   Weekly reflection and questions
                 </span>
               </div>
@@ -394,10 +398,10 @@ export default function CheckInPage() {
               href="/check-in/weekly"
               className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
                 status.weeklyComplete
-                  ? "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700"
+                  ? "bg-muted text-muted-foreground hover:bg-muted/80"
                   : status.weeklyDue
                   ? "bg-purple-600 text-white hover:bg-purple-700"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
               {status.weeklyComplete
@@ -413,37 +417,37 @@ export default function CheckInPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-amber-600" />
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-stone-800 dark:text-stone-100">
+              <p className="text-2xl font-bold text-foreground">
                 {status.currentStreak}
               </p>
-              <p className="text-sm text-stone-500">Day Streak</p>
+              <p className="text-sm text-muted-foreground">Day Streak</p>
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-stone-800 dark:text-stone-100">
+              <p className="text-2xl font-bold text-foreground">
                 {status.totalCheckins}
               </p>
-              <p className="text-sm text-stone-500">Total Check-ins</p>
+              <p className="text-sm text-muted-foreground">Total Check-ins</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Recent Check-ins */}
-      <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
-        <h2 className="font-semibold text-stone-800 dark:text-stone-100 mb-4">
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h2 className="font-semibold text-foreground mb-4">
           Recent Check-ins
         </h2>
         <div className="space-y-3">
@@ -451,7 +455,7 @@ export default function CheckInPage() {
             recentCheckins.map((checkin, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 rounded-lg bg-stone-50 dark:bg-stone-800"
+                className="flex items-center justify-between p-3 rounded-lg bg-muted"
               >
                 <div className="flex items-center gap-3">
                   <div
@@ -474,17 +478,17 @@ export default function CheckInPage() {
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-stone-800 dark:text-stone-200 capitalize">
+                    <p className="font-medium text-foreground capitalize">
                       {checkin.type} Check-in
                     </p>
-                    <p className="text-xs text-stone-500">
+                    <p className="text-xs text-muted-foreground">
                       {formatDate(checkin.date)}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   {checkin.weight && (
-                    <p className="font-medium text-stone-800 dark:text-stone-200">
+                    <p className="font-medium text-foreground">
                       {checkin.weight} kg
                     </p>
                   )}
@@ -493,7 +497,7 @@ export default function CheckInPage() {
               </div>
             ))
           ) : (
-            <div className="text-center text-stone-500 py-8">
+            <div className="text-center text-muted-foreground py-8">
               No check-ins yet. Complete your first check-in above!
             </div>
           )}

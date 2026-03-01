@@ -81,7 +81,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="flex items-center justify-center">
         <svg
-          className="animate-spin h-8 w-8 text-stone-400"
+          className="animate-spin h-8 w-8 text-muted-foreground"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -124,18 +124,18 @@ export default function ResetPasswordPage() {
           </svg>
         </div>
 
-        <h2 className="text-2xl font-semibold text-stone-800 dark:text-stone-100 mb-2">
+        <h2 className="text-2xl font-semibold text-foreground mb-2">
           Invalid or Expired Link
         </h2>
 
-        <p className="text-stone-600 dark:text-stone-400 mb-6">
+        <p className="text-muted-foreground mb-6">
           This password reset link is invalid or has expired. Please request a
           new one.
         </p>
 
         <a
           href="/forgot-password"
-          className="inline-block py-2.5 px-6 rounded-lg bg-stone-800 dark:bg-stone-100 text-white dark:text-stone-900 font-medium hover:bg-stone-700 dark:hover:bg-stone-200 transition-colors"
+          className="inline-block py-2.5 px-6 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
         >
           Request New Link
         </a>
@@ -145,11 +145,11 @@ export default function ResetPasswordPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold text-stone-800 dark:text-stone-100 text-center mb-2">
+      <h2 className="text-2xl font-semibold text-foreground text-center mb-2">
         Set New Password
       </h2>
 
-      <p className="text-stone-600 dark:text-stone-400 text-center mb-6">
+      <p className="text-muted-foreground text-center mb-6">
         Please enter your new password below.
       </p>
 
@@ -165,7 +165,7 @@ export default function ResetPasswordPage() {
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+            className="block text-sm font-medium text-foreground mb-1"
           >
             New Password
           </label>
@@ -177,7 +177,7 @@ export default function ResetPasswordPage() {
             required
             autoComplete="new-password"
             placeholder="Enter new password"
-            className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 placeholder-stone-400 dark:placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors"
+            className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
           />
         </div>
 
@@ -185,7 +185,7 @@ export default function ResetPasswordPage() {
         <div>
           <label
             htmlFor="confirmPassword"
-            className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+            className="block text-sm font-medium text-foreground mb-1"
           >
             Confirm New Password
           </label>
@@ -197,13 +197,13 @@ export default function ResetPasswordPage() {
             required
             autoComplete="new-password"
             placeholder="Confirm new password"
-            className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 placeholder-stone-400 dark:placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors"
+            className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
           />
         </div>
 
         {/* Password Requirements */}
-        <div className="text-xs text-stone-500 dark:text-stone-400 space-y-1">
-          <p className="font-medium text-stone-600 dark:text-stone-300">
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p className="font-medium text-foreground">
             Password must contain:
           </p>
           <ul className="list-disc list-inside space-y-0.5">
@@ -226,7 +226,7 @@ export default function ResetPasswordPage() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-2.5 px-4 rounded-lg bg-stone-800 dark:bg-stone-100 text-white dark:text-stone-900 font-medium hover:bg-stone-700 dark:hover:bg-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2 dark:focus:ring-offset-stone-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full py-2.5 px-4 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isLoading ? (
             <span className="flex items-center justify-center gap-2">

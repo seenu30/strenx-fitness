@@ -28,6 +28,18 @@ interface PhotoSet {
 
 type PhotoAngle = "front" | "side" | "back";
 
+interface ClientRow {
+  id: string;
+  start_date: string | null;
+}
+
+interface PhotoRow {
+  id: string;
+  photo_date: string;
+  photo_type: string;
+  weekly_checkin_id: string | null;
+}
+
 export default function ProgressPhotosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [photoSets, setPhotoSets] = useState<PhotoSet[]>([]);
@@ -40,10 +52,6 @@ export default function ProgressPhotosPage() {
   useEffect(() => {
     async function loadPhotos() {
       const supabase = createClient();
-      if (!supabase) {
-        setIsLoading(false);
-        return;
-      }
 
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -52,37 +60,31 @@ export default function ProgressPhotosPage() {
           return;
         }
 
-        // Get client info
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: client } = await (supabase as any)
+        const { data: client } = await supabase
           .from("clients")
           .select("id, start_date")
           .eq("user_id", user.id)
-          .single();
+          .single() as { data: ClientRow | null };
 
         if (!client) {
           setIsLoading(false);
           return;
         }
 
-        // Get all progress photos grouped by weekly_checkin_id or date
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: photosData } = await (supabase as any)
+        const { data: photosData } = await supabase
           .from("progress_photos")
           .select("id, photo_date, photo_type, weekly_checkin_id")
           .eq("client_id", client.id)
-          .order("photo_date", { ascending: true });
+          .order("photo_date", { ascending: true }) as { data: PhotoRow[] | null };
 
         if (!photosData || photosData.length === 0) {
           setIsLoading(false);
           return;
         }
 
-        // Group photos by date
         const photosByDate = new Map<string, { front: string | null; side: string | null; back: string | null }>();
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        photosData.forEach((photo: any) => {
+        photosData.forEach((photo: PhotoRow) => {
           const dateKey = photo.photo_date;
           if (!photosByDate.has(dateKey)) {
             photosByDate.set(dateKey, { front: null, side: null, back: null });
@@ -140,7 +142,7 @@ export default function ProgressPhotosPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brown-500 animate-spin" />
       </div>
     );
   }
@@ -170,7 +172,7 @@ export default function ProgressPhotosPage() {
           </p>
           <Link
             href="/check-in/weekly"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 transition-colors"
           >
             <Camera className="w-5 h-5" />
             Add Your First Photos
@@ -201,7 +203,7 @@ export default function ProgressPhotosPage() {
         </div>
         <Link
           href="/check-in/weekly"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 transition-colors"
         >
           <Camera className="w-4 h-4" />
           Add New Photos
@@ -217,7 +219,7 @@ export default function ProgressPhotosPage() {
               onClick={() => setSelectedAngle(angle)}
               className={`px-6 py-2 rounded-lg font-medium capitalize transition-colors ${
                 selectedAngle === angle
-                  ? "bg-amber-600 text-white"
+                  ? "bg-brown-500 text-white"
                   : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700"
               }`}
             >
@@ -230,7 +232,7 @@ export default function ProgressPhotosPage() {
       {/* Comparison View */}
       <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
         <div className="flex items-center justify-center gap-4 mb-6">
-          <ArrowLeftRight className="w-5 h-5 text-amber-600" />
+          <ArrowLeftRight className="w-5 h-5 text-brown-500" />
           <span className="text-sm font-medium text-stone-600 dark:text-stone-400">
             Side-by-Side Comparison
           </span>
@@ -364,7 +366,7 @@ export default function ProgressPhotosPage() {
               }}
               className={`aspect-square rounded-lg overflow-hidden relative border-2 transition-colors ${
                 index === leftWeekIndex || index === rightWeekIndex
-                  ? "border-amber-500"
+                  ? "border-brown-500"
                   : "border-transparent hover:border-stone-300 dark:hover:border-stone-600"
               }`}
             >
@@ -375,7 +377,7 @@ export default function ProgressPhotosPage() {
                 W{photo.week}
               </span>
               {(index === leftWeekIndex || index === rightWeekIndex) && (
-                <div className="absolute top-1 right-1 w-3 h-3 bg-amber-500 rounded-full" />
+                <div className="absolute top-1 right-1 w-3 h-3 bg-brown-500 rounded-full" />
               )}
             </button>
           ))}

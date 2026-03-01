@@ -107,14 +107,14 @@ export default function MedicalHistoryForm({
     <form id="form-medical_history" onSubmit={handleSubmit} className="space-y-6">
       {/* Warning for critical conditions */}
       {hasCriticalCondition && (
-        <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+        <div className="p-4 rounded-lg bg-brown-50 dark:bg-brown-900/20 border border-brown-200 dark:border-brown-700">
           <div className="flex gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-brown-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-amber-800 dark:text-amber-200">
+              <p className="font-medium text-brown-700 dark:text-brown-200">
                 Medical Clearance May Be Required
               </p>
-              <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+              <p className="text-sm text-brown-600 dark:text-brown-300 mt-1">
                 Based on your responses, your coach may request medical clearance
                 before designing your program. This is for your safety.
               </p>
@@ -131,9 +131,9 @@ export default function MedicalHistoryForm({
             id="hasHeartCondition"
             checked={formData.hasHeartCondition}
             onChange={() => handleCheckboxChange("hasHeartCondition")}
-            className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+            className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
           />
-          <label htmlFor="hasHeartCondition" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+          <label htmlFor="hasHeartCondition" className="text-sm font-medium text-foreground">
             I have a heart condition
           </label>
         </div>
@@ -143,7 +143,7 @@ export default function MedicalHistoryForm({
             value={formData.heartConditionDetails || ""}
             onChange={handleChange}
             placeholder="Please describe your heart condition"
-            className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         )}
       </div>
@@ -156,9 +156,9 @@ export default function MedicalHistoryForm({
             id="hasDiabetes"
             checked={formData.hasDiabetes}
             onChange={() => handleCheckboxChange("hasDiabetes")}
-            className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+            className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
           />
-          <label htmlFor="hasDiabetes" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+          <label htmlFor="hasDiabetes" className="text-sm font-medium text-foreground">
             I have diabetes
           </label>
         </div>
@@ -168,7 +168,7 @@ export default function MedicalHistoryForm({
               name="diabetesType"
               value={formData.diabetesType || ""}
               onChange={handleChange}
-              className="px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Select type</option>
               <option value="type1">Type 1</option>
@@ -182,9 +182,9 @@ export default function MedicalHistoryForm({
                 id="diabetesControlled"
                 checked={formData.diabetesControlled}
                 onChange={() => handleCheckboxChange("diabetesControlled")}
-                className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+                className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
               />
-              <label htmlFor="diabetesControlled" className="text-sm text-stone-600 dark:text-stone-400">
+              <label htmlFor="diabetesControlled" className="text-sm text-muted-foreground">
                 Well controlled with medication
               </label>
             </div>
@@ -200,9 +200,9 @@ export default function MedicalHistoryForm({
             id="hasHypertension"
             checked={formData.hasHypertension}
             onChange={() => handleCheckboxChange("hasHypertension")}
-            className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+            className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
           />
-          <label htmlFor="hasHypertension" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+          <label htmlFor="hasHypertension" className="text-sm font-medium text-foreground">
             I have high blood pressure (hypertension)
           </label>
         </div>
@@ -213,9 +213,9 @@ export default function MedicalHistoryForm({
               id="hypertensionControlled"
               checked={formData.hypertensionControlled}
               onChange={() => handleCheckboxChange("hypertensionControlled")}
-              className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+              className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
             />
-            <label htmlFor="hypertensionControlled" className="text-sm text-stone-600 dark:text-stone-400">
+            <label htmlFor="hypertensionControlled" className="text-sm text-muted-foreground">
               Well controlled with medication
             </label>
           </div>
@@ -230,9 +230,9 @@ export default function MedicalHistoryForm({
             id="hasThyroidCondition"
             checked={formData.hasThyroidCondition}
             onChange={() => handleCheckboxChange("hasThyroidCondition")}
-            className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+            className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
           />
-          <label htmlFor="hasThyroidCondition" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+          <label htmlFor="hasThyroidCondition" className="text-sm font-medium text-foreground">
             I have a thyroid condition
           </label>
         </div>
@@ -241,7 +241,7 @@ export default function MedicalHistoryForm({
             name="thyroidType"
             value={formData.thyroidType || ""}
             onChange={handleChange}
-            className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">Select type</option>
             <option value="hypothyroid">Hypothyroidism (underactive)</option>
@@ -259,9 +259,9 @@ export default function MedicalHistoryForm({
           id="hasPCOS"
           checked={formData.hasPCOS}
           onChange={() => handleCheckboxChange("hasPCOS")}
-          className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+          className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
         />
-        <label htmlFor="hasPCOS" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+        <label htmlFor="hasPCOS" className="text-sm font-medium text-foreground">
           I have PCOS (Polycystic Ovary Syndrome)
         </label>
       </div>
@@ -273,9 +273,9 @@ export default function MedicalHistoryForm({
           id="hasEatingDisorderHistory"
           checked={formData.hasEatingDisorderHistory}
           onChange={() => handleCheckboxChange("hasEatingDisorderHistory")}
-          className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+          className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
         />
-        <label htmlFor="hasEatingDisorderHistory" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+        <label htmlFor="hasEatingDisorderHistory" className="text-sm font-medium text-foreground">
           I have a history of eating disorders
         </label>
       </div>
@@ -288,9 +288,9 @@ export default function MedicalHistoryForm({
             id="recentSurgery"
             checked={formData.recentSurgery}
             onChange={() => handleCheckboxChange("recentSurgery")}
-            className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+            className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
           />
-          <label htmlFor="recentSurgery" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+          <label htmlFor="recentSurgery" className="text-sm font-medium text-foreground">
             I&apos;ve had surgery in the last 6 months
           </label>
         </div>
@@ -300,7 +300,7 @@ export default function MedicalHistoryForm({
             value={formData.surgeryDetails || ""}
             onChange={handleChange}
             placeholder="What surgery and when?"
-            className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         )}
       </div>
@@ -313,9 +313,9 @@ export default function MedicalHistoryForm({
             id="isPregnant"
             checked={formData.isPregnant}
             onChange={() => handleCheckboxChange("isPregnant")}
-            className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+            className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
           />
-          <label htmlFor="isPregnant" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+          <label htmlFor="isPregnant" className="text-sm font-medium text-foreground">
             I am currently pregnant
           </label>
         </div>
@@ -328,14 +328,14 @@ export default function MedicalHistoryForm({
             placeholder="How many weeks?"
             min="1"
             max="42"
-            className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         )}
       </div>
 
       {/* Current Medications */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">
+        <label className="block text-sm font-medium text-foreground">
           Current Medications
         </label>
         <div className="flex gap-2">
@@ -344,12 +344,12 @@ export default function MedicalHistoryForm({
             onChange={(e) => setMedicationInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addMedication())}
             placeholder="Enter medication name"
-            className="flex-1 px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <button
             type="button"
             onClick={addMedication}
-            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
+            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-foreground hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
           >
             Add
           </button>
@@ -377,7 +377,7 @@ export default function MedicalHistoryForm({
 
       {/* Allergies */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">
+        <label className="block text-sm font-medium text-foreground">
           Allergies (medications, foods, environmental)
         </label>
         <div className="flex gap-2">
@@ -386,12 +386,12 @@ export default function MedicalHistoryForm({
             onChange={(e) => setAllergyInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addAllergy())}
             placeholder="Enter allergy"
-            className="flex-1 px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <button
             type="button"
             onClick={addAllergy}
-            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
+            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-foreground hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
           >
             Add
           </button>
@@ -421,7 +421,7 @@ export default function MedicalHistoryForm({
       <div>
         <label
           htmlFor="otherConditions"
-          className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           Any other medical conditions we should know about?
         </label>
@@ -432,7 +432,7 @@ export default function MedicalHistoryForm({
           onChange={handleChange}
           rows={3}
           placeholder="Describe any other conditions..."
-          className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
         />
       </div>
     </form>

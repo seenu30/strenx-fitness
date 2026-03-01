@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, useCallback, use } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -102,6 +103,53 @@ interface TrainingPlan {
 
 type TabType = "overview" | "assessment" | "checkins" | "progress" | "plans" | "messages";
 
+interface ClientDataRow {
+  id: string;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  target_weight_kg: number | null;
+  users: {
+    id: string;
+    email: string;
+    full_name: string;
+  };
+}
+
+interface CheckinDataRow {
+  id: string;
+  check_in_date: string;
+  weight_kg: number | null;
+  steps: number | null;
+  did_training: boolean;
+  diet_compliance: number | null;
+  overall_compliance: number | null;
+  notes: string | null;
+  highlights: string | null;
+  type?: "daily" | "weekly";
+}
+
+interface NutritionAssignmentRow {
+  nutrition_plan_id: string;
+  nutrition_plans: {
+    id: string;
+    name: string;
+    daily_calories: number | null;
+    daily_protein_g: number | null;
+    updated_at: string;
+  };
+}
+
+interface TrainingAssignmentRow {
+  training_plan_id: string;
+  training_plans: {
+    id: string;
+    name: string;
+    description: string | null;
+    updated_at: string;
+  };
+}
+
 export default function ClientDetailPage({ params }: { params: Promise<{ clientId: string }> }) {
   const resolvedParams = use(params);
   const clientId = resolvedParams.clientId;
@@ -117,14 +165,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
 
   const supabase = createClient();
 
-  useEffect(() => {
-    loadClientData();
-  }, [clientId]);
-
-  async function loadClientData() {
+  const loadClientData = useCallback(async () => {
     try {
-      // Get client basic info
-      const { data: clientData } = await (supabase as any)
+      const { data: clientData } = await (supabase as SupabaseClient)
         .from("clients")
         .select(`
           id,
@@ -146,59 +189,53 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
         return;
       }
 
-      // Get personal assessment data
-      const { data: personalData } = await (supabase as any)
+      const typedClientData = clientData as unknown as ClientDataRow;
+
+      const { data: personalData } = await (supabase as SupabaseClient)
         .from("assess_personal")
         .select("*")
         .eq("client_id", clientId)
         .single();
 
-      // Get goals assessment
-      const { data: goalsData } = await (supabase as any)
+      const { data: goalsData } = await (supabase as SupabaseClient)
         .from("assess_goals")
         .select("*")
         .eq("client_id", clientId)
         .single();
 
-      // Get training assessment
-      const { data: trainingData } = await (supabase as any)
+      const { data: trainingData } = await (supabase as SupabaseClient)
         .from("assess_training")
         .select("*")
         .eq("client_id", clientId)
         .single();
 
-      // Get lifestyle assessment
-      const { data: lifestyleData } = await (supabase as any)
+      const { data: lifestyleData } = await (supabase as SupabaseClient)
         .from("assess_lifestyle")
         .select("*")
         .eq("client_id", clientId)
         .single();
 
-      // Get diet assessment
-      const { data: dietData } = await (supabase as any)
+      const { data: dietData } = await (supabase as SupabaseClient)
         .from("assess_diet")
         .select("*")
         .eq("client_id", clientId)
         .single();
 
-      // Get daily check-ins
-      const { data: dailyCheckins } = await (supabase as any)
+      const { data: dailyCheckins } = await (supabase as SupabaseClient)
         .from("daily_checkins")
         .select("*")
         .eq("client_id", clientId)
         .order("check_in_date", { ascending: false })
         .limit(20);
 
-      // Get weekly check-ins
-      const { data: weeklyCheckins } = await (supabase as any)
+      const { data: weeklyCheckins } = await (supabase as SupabaseClient)
         .from("weekly_checkins")
         .select("*")
         .eq("client_id", clientId)
         .order("check_in_date", { ascending: false })
         .limit(10);
 
-      // Get assigned nutrition plan
-      const { data: nutritionAssignment } = await (supabase as any)
+      const { data: nutritionAssignment } = await (supabase as SupabaseClient)
         .from("client_nutrition_plans")
         .select(`
           nutrition_plan_id,
@@ -208,8 +245,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
         .eq("is_active", true)
         .single();
 
-      // Get assigned training plan
-      const { data: trainingAssignment } = await (supabase as any)
+      const { data: trainingAssignment } = await (supabase as SupabaseClient)
         .from("client_training_plans")
         .select(`
           training_plan_id,
@@ -219,36 +255,31 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
         .eq("is_active", true)
         .single();
 
-      // Calculate client info
-      const allCheckins = [
-        ...(dailyCheckins || []).map((c: any) => ({ ...c, type: "daily" as const })),
-        ...(weeklyCheckins || []).map((c: any) => ({ ...c, type: "weekly" as const })),
-      ].sort((a, b) => new Date(b.check_in_date).getTime() - new Date(a.check_in_date).getTime());
+      const typedDailyCheckins = ((dailyCheckins || []) as unknown as CheckinDataRow[]).map((c) => ({ ...c, type: "daily" as const }));
+      const typedWeeklyCheckins = ((weeklyCheckins || []) as unknown as CheckinDataRow[]).map((c) => ({ ...c, type: "weekly" as const }));
+      const allCheckins = [...typedDailyCheckins, ...typedWeeklyCheckins]
+        .sort((a, b) => new Date(b.check_in_date).getTime() - new Date(a.check_in_date).getTime());
 
-      // Get weights from check-ins for chart
       const weights: number[] = [];
       const checkinWithWeights = allCheckins.filter(c => c.weight_kg && c.weight_kg > 0);
-      checkinWithWeights.slice(0, 10).reverse().forEach((c: any) => {
+      checkinWithWeights.slice(0, 10).reverse().forEach((c) => {
         if (c.weight_kg) weights.push(c.weight_kg);
       });
 
-      // Calculate start weight (first recorded weight)
       const startWeight = checkinWithWeights.length > 0
-        ? checkinWithWeights[checkinWithWeights.length - 1].weight_kg
-        : personalData?.weight_kg || 0;
+        ? checkinWithWeights[checkinWithWeights.length - 1].weight_kg || 0
+        : (personalData as Record<string, unknown>)?.weight_kg as number || 0;
 
-      // Current weight (most recent)
       const currentWeight = checkinWithWeights.length > 0
-        ? checkinWithWeights[0].weight_kg
-        : personalData?.weight_kg || 0;
+        ? checkinWithWeights[0].weight_kg || 0
+        : (personalData as Record<string, unknown>)?.weight_kg as number || 0;
 
-      // Target weight
-      const targetWeight = clientData.target_weight_kg || goalsData?.target_weight || currentWeight;
+      const targetWeight = typedClientData.target_weight_kg || (goalsData as Record<string, unknown>)?.target_weight as number || currentWeight;
 
-      // Calculate age from DOB
+      const typedPersonalData = personalData as Record<string, unknown> | null;
       let age = null;
-      if (personalData?.date_of_birth) {
-        const dob = new Date(personalData.date_of_birth);
+      if (typedPersonalData?.date_of_birth) {
+        const dob = new Date(typedPersonalData.date_of_birth as string);
         const today = new Date();
         age = today.getFullYear() - dob.getFullYear();
         const monthDiff = today.getMonth() - dob.getMonth();
@@ -257,73 +288,77 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
         }
       }
 
-      // Calculate compliance
-      const last7Days = (dailyCheckins || []).slice(0, 7);
+      const last7Days = typedDailyCheckins.slice(0, 7);
       const compliance = last7Days.length > 0
         ? Math.round((last7Days.length / 7) * 100)
         : 0;
 
-      // Get training days per week
+      const typedNutritionAssignment = nutritionAssignment as unknown as NutritionAssignmentRow | null;
+      const typedTrainingAssignment = trainingAssignment as unknown as TrainingAssignmentRow | null;
+
       let daysPerWeek = 0;
-      if (trainingAssignment?.training_plans) {
-        const { data: trainingDays } = await (supabase as any)
+      if (typedTrainingAssignment?.training_plans) {
+        const { data: trainingDays } = await (supabase as SupabaseClient)
           .from("training_plan_days")
           .select("id")
-          .eq("training_plan_id", trainingAssignment.training_plans.id);
+          .eq("training_plan_id", typedTrainingAssignment.training_plans.id);
         daysPerWeek = trainingDays?.length || 0;
       }
 
       setClient({
-        id: clientData.id,
-        name: clientData.users?.full_name || "Unknown",
-        email: clientData.users?.email || "",
-        phone: personalData?.phone || null,
-        city: personalData?.city || null,
+        id: typedClientData.id,
+        name: typedClientData.users?.full_name || "Unknown",
+        email: typedClientData.users?.email || "",
+        phone: typedPersonalData?.phone as string || null,
+        city: typedPersonalData?.city as string || null,
         age,
-        gender: personalData?.gender || null,
-        height: personalData?.height_cm || null,
-        status: clientData.status || "active",
-        plan: nutritionAssignment?.nutrition_plans?.name || trainingAssignment?.training_plans?.name || null,
-        startDate: clientData.start_date,
-        endDate: clientData.end_date,
+        gender: typedPersonalData?.gender as string || null,
+        height: typedPersonalData?.height_cm as number || null,
+        status: typedClientData.status || "active",
+        plan: typedNutritionAssignment?.nutrition_plans?.name || typedTrainingAssignment?.training_plans?.name || null,
+        startDate: typedClientData.start_date,
+        endDate: typedClientData.end_date,
         compliance,
         currentWeight,
         startWeight,
         targetWeight,
       });
 
-      // Format assessment data
-      if (goalsData || trainingData || lifestyleData || dietData) {
+      const typedGoalsData = goalsData as Record<string, unknown> | null;
+      const typedTrainingData = trainingData as Record<string, unknown> | null;
+      const typedLifestyleData = lifestyleData as Record<string, unknown> | null;
+      const typedDietData = dietData as Record<string, unknown> | null;
+
+      if (typedGoalsData || typedTrainingData || typedLifestyleData || typedDietData) {
         setAssessment({
           goals: {
-            primary: goalsData?.primary_goal || "Not specified",
-            secondary: goalsData?.secondary_goal || "Not specified",
-            timeline: goalsData?.timeline || "Not specified",
-            motivation: goalsData?.motivation || "Not specified",
+            primary: typedGoalsData?.primary_goal as string || "Not specified",
+            secondary: typedGoalsData?.secondary_goal as string || "Not specified",
+            timeline: typedGoalsData?.timeline as string || "Not specified",
+            motivation: typedGoalsData?.motivation as string || "Not specified",
           },
           training: {
-            experience: trainingData?.experience_level || "Not specified",
-            frequency: trainingData?.current_frequency || "Not specified",
-            style: trainingData?.preferred_style ? [trainingData.preferred_style] : [],
-            injuries: trainingData?.injuries_limitations || "None reported",
+            experience: typedTrainingData?.experience_level as string || "Not specified",
+            frequency: typedTrainingData?.current_frequency as string || "Not specified",
+            style: typedTrainingData?.preferred_style ? [typedTrainingData.preferred_style as string] : [],
+            injuries: typedTrainingData?.injuries_limitations as string || "None reported",
           },
           lifestyle: {
-            sleepHours: lifestyleData?.sleep_hours ? `${lifestyleData.sleep_hours} hours` : "Not specified",
-            stressLevel: lifestyleData?.stress_level || "Not specified",
-            activityLevel: lifestyleData?.activity_level || "Not specified",
-            occupation: lifestyleData?.occupation || "Not specified",
+            sleepHours: typedLifestyleData?.sleep_hours ? `${typedLifestyleData.sleep_hours} hours` : "Not specified",
+            stressLevel: typedLifestyleData?.stress_level as string || "Not specified",
+            activityLevel: typedLifestyleData?.activity_level as string || "Not specified",
+            occupation: typedLifestyleData?.occupation as string || "Not specified",
           },
           diet: {
-            preference: dietData?.diet_preference || "Not specified",
-            mealsPerDay: dietData?.meals_per_day || 3,
-            waterIntake: dietData?.water_intake || "Not specified",
-            alcohol: dietData?.alcohol_consumption || "Not specified",
+            preference: typedDietData?.diet_preference as string || "Not specified",
+            mealsPerDay: typedDietData?.meals_per_day as number || 3,
+            waterIntake: typedDietData?.water_intake as string || "Not specified",
+            alcohol: typedDietData?.alcohol_consumption as string || "Not specified",
           },
         });
       }
 
-      // Format check-ins
-      const formattedCheckins: CheckIn[] = allCheckins.slice(0, 10).map((c: any) => ({
+      const formattedCheckins: CheckIn[] = allCheckins.slice(0, 10).map((c) => ({
         id: c.id,
         date: c.check_in_date,
         type: c.type,
@@ -337,23 +372,23 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
       setCheckins(formattedCheckins);
       setWeightData(weights);
 
-      if (nutritionAssignment?.nutrition_plans) {
+      if (typedNutritionAssignment?.nutrition_plans) {
         setNutritionPlan({
-          id: nutritionAssignment.nutrition_plans.id,
-          name: nutritionAssignment.nutrition_plans.name,
-          calories: nutritionAssignment.nutrition_plans.daily_calories || 0,
-          protein: nutritionAssignment.nutrition_plans.daily_protein_g || 0,
-          updated_at: nutritionAssignment.nutrition_plans.updated_at,
+          id: typedNutritionAssignment.nutrition_plans.id,
+          name: typedNutritionAssignment.nutrition_plans.name,
+          calories: typedNutritionAssignment.nutrition_plans.daily_calories || 0,
+          protein: typedNutritionAssignment.nutrition_plans.daily_protein_g || 0,
+          updated_at: typedNutritionAssignment.nutrition_plans.updated_at,
         });
       }
 
-      if (trainingAssignment?.training_plans) {
+      if (typedTrainingAssignment?.training_plans) {
         setTrainingPlan({
-          id: trainingAssignment.training_plans.id,
-          name: trainingAssignment.training_plans.name,
-          description: trainingAssignment.training_plans.description,
+          id: typedTrainingAssignment.training_plans.id,
+          name: typedTrainingAssignment.training_plans.name,
+          description: typedTrainingAssignment.training_plans.description,
           days_per_week: daysPerWeek,
-          updated_at: trainingAssignment.training_plans.updated_at,
+          updated_at: typedTrainingAssignment.training_plans.updated_at,
         });
       }
 
@@ -362,7 +397,11 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase, clientId]);
+
+  useEffect(() => {
+    loadClientData();
+  }, [loadClientData]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -399,7 +438,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-brown-500" />
       </div>
     );
   }
@@ -440,8 +479,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
             Back to Clients
           </Link>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-              <span className="text-xl font-bold text-amber-700 dark:text-amber-400">
+            <div className="w-16 h-16 rounded-full bg-brown-100 dark:bg-brown-900/30 flex items-center justify-center">
+              <span className="text-xl font-bold text-brown-600 dark:text-brown-400">
                 {client.name
                   .split(" ")
                   .map((n) => n[0])
@@ -513,7 +552,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
         </div>
         <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
           <p className="text-sm text-stone-500">Goal Progress</p>
-          <p className="text-2xl font-bold text-amber-600 mt-1">
+          <p className="text-2xl font-bold text-brown-500 mt-1">
             {getProgressPercent()}%
           </p>
         </div>
@@ -536,7 +575,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                 onClick={() => setActiveTab(tab.id as TabType)}
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   activeTab === tab.id
-                    ? "border-amber-600 text-amber-600"
+                    ? "border-brown-500 text-brown-500"
                     : "border-transparent text-stone-500 hover:text-stone-700"
                 }`}
               >
@@ -637,7 +676,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                     </div>
                     <div>
                       <span className="text-stone-500">Current: </span>
-                      <span className="font-medium text-amber-600">
+                      <span className="font-medium text-brown-500">
                         {client.currentWeight} kg
                       </span>
                     </div>
@@ -698,7 +737,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                           checkin.compliance >= 90
                             ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                             : checkin.compliance >= 70
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            ? "bg-brown-100 text-brown-600 dark:bg-brown-900/30 dark:text-brown-400"
                             : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                         }`}
                       >
@@ -723,7 +762,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                 {/* Goals */}
                 <div>
                   <div className="flex items-center gap-2 mb-4">
-                    <Target className="w-5 h-5 text-amber-600" />
+                    <Target className="w-5 h-5 text-brown-500" />
                     <h3 className="font-semibold text-stone-800 dark:text-stone-100">
                       Goals
                     </h3>
@@ -759,7 +798,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                 {/* Training Background */}
                 <div>
                   <div className="flex items-center gap-2 mb-4">
-                    <Dumbbell className="w-5 h-5 text-amber-600" />
+                    <Dumbbell className="w-5 h-5 text-brown-500" />
                     <h3 className="font-semibold text-stone-800 dark:text-stone-100">
                       Training Background
                     </h3>
@@ -783,9 +822,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                         {assessment.training.style.length > 0 ? assessment.training.style.join(", ") : "Not specified"}
                       </p>
                     </div>
-                    <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                      <p className="text-sm text-amber-700 dark:text-amber-400">Injuries/Limitations</p>
-                      <p className="font-medium text-amber-800 dark:text-amber-300">
+                    <div className="p-4 rounded-lg bg-brown-50 dark:bg-brown-900/20 border border-brown-200 dark:border-brown-700">
+                      <p className="text-sm text-brown-600 dark:text-brown-400">Injuries/Limitations</p>
+                      <p className="font-medium text-brown-700 dark:text-brown-300">
                         {assessment.training.injuries}
                       </p>
                     </div>
@@ -795,7 +834,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                 {/* Lifestyle */}
                 <div>
                   <div className="flex items-center gap-2 mb-4">
-                    <Heart className="w-5 h-5 text-amber-600" />
+                    <Heart className="w-5 h-5 text-brown-500" />
                     <h3 className="font-semibold text-stone-800 dark:text-stone-100">
                       Lifestyle
                     </h3>
@@ -831,7 +870,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                 {/* Diet */}
                 <div>
                   <div className="flex items-center gap-2 mb-4">
-                    <Utensils className="w-5 h-5 text-amber-600" />
+                    <Utensils className="w-5 h-5 text-brown-500" />
                     <h3 className="font-semibold text-stone-800 dark:text-stone-100">
                       Diet Preferences
                     </h3>
@@ -918,7 +957,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                           checkin.compliance >= 90
                             ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                             : checkin.compliance >= 70
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            ? "bg-brown-100 text-brown-600 dark:bg-brown-900/30 dark:text-brown-400"
                             : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                         }`}
                       >
@@ -978,9 +1017,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                   {(client.startWeight - client.currentWeight).toFixed(1)} kg
                 </p>
               </div>
-              <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                <p className="text-sm text-amber-700 dark:text-amber-400">To Goal</p>
-                <p className="text-2xl font-bold text-amber-800 dark:text-amber-300">
+              <div className="p-4 rounded-lg bg-brown-50 dark:bg-brown-900/20 border border-brown-200 dark:border-brown-700">
+                <p className="text-sm text-brown-600 dark:text-brown-400">To Goal</p>
+                <p className="text-2xl font-bold text-brown-700 dark:text-brown-300">
                   {(client.currentWeight - client.targetWeight).toFixed(1)} kg
                 </p>
               </div>
@@ -1054,7 +1093,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                         </span>
                       </div>
                     </div>
-                    <button className="w-full mt-4 px-4 py-2 text-sm text-amber-600 border border-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                    <button className="w-full mt-4 px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20">
                       Edit Plan
                     </button>
                   </>
@@ -1101,7 +1140,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                         </span>
                       </div>
                     </div>
-                    <button className="w-full mt-4 px-4 py-2 text-sm text-amber-600 border border-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                    <button className="w-full mt-4 px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20">
                       Edit Plan
                     </button>
                   </>
@@ -1122,7 +1161,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
               <p className="text-stone-500">Message history with client</p>
               <Link
                 href={`/admin/messages?client=${client.id}`}
-                className="inline-block mt-4 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+                className="inline-block mt-4 px-4 py-2 bg-brown-500 text-white rounded-lg hover:bg-brown-600"
               >
                 Open Chat
               </Link>

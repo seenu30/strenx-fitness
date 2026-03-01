@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import {
@@ -53,6 +53,51 @@ interface NutritionPlan {
   notes: string[];
 }
 
+interface DbClient {
+  id: string;
+}
+
+interface DbNutritionPlan {
+  id: string;
+  name: string;
+  version: string;
+  daily_calories: number;
+  protein_grams: number;
+  carbs_grams: number;
+  fat_grams: number;
+  fiber_grams: number;
+  water_liters: number;
+  notes: string | string[] | null;
+  updated_at: string;
+  created_at: string;
+}
+
+interface DbNutritionAssignment {
+  id: string;
+  assigned_at: string;
+  nutrition_plans: DbNutritionPlan | null;
+}
+
+interface DbMeal {
+  id: string;
+  name: string;
+  time_range: string;
+  order_index: number;
+}
+
+interface DbMealItem {
+  id: string;
+  meal_id: string;
+  name: string;
+  quantity: string | null;
+  calories: number | null;
+  protein_grams: number | null;
+  carbs_grams: number | null;
+  fat_grams: number | null;
+  notes: string | null;
+  order_index: number;
+}
+
 export default function NutritionPlanPage() {
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState<NutritionPlan | null>(null);
@@ -61,26 +106,20 @@ export default function NutritionPlanPage() {
 
   const supabase = createClient();
 
-  useEffect(() => {
-    loadNutritionPlan();
-  }, []);
-
-  async function loadNutritionPlan() {
+  const loadNutritionPlan = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get client info
-      const { data: client } = await (supabase as any)
+      const { data: client } = await supabase
         .from("clients")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .single() as { data: DbClient | null };
 
       if (!client) return;
 
-      // Get assigned nutrition plan
-      const { data: assignment } = await (supabase as any)
+      const { data: assignment } = await supabase
         .from("client_nutrition_plans")
         .select(`
           id,
@@ -104,7 +143,7 @@ export default function NutritionPlanPage() {
         .eq("is_active", true)
         .order("assigned_at", { ascending: false })
         .limit(1)
-        .single();
+        .single() as { data: DbNutritionAssignment | null };
 
       if (!assignment?.nutrition_plans) {
         setLoading(false);
@@ -113,24 +152,21 @@ export default function NutritionPlanPage() {
 
       const nutritionPlan = assignment.nutrition_plans;
 
-      // Get meals for this plan
-      const { data: mealsData } = await (supabase as any)
+      const { data: mealsData } = await supabase
         .from("nutrition_plan_meals")
         .select("*")
         .eq("nutrition_plan_id", nutritionPlan.id)
-        .order("order_index", { ascending: true });
+        .order("order_index", { ascending: true }) as { data: DbMeal[] | null };
 
-      // Get meal items for all meals
-      const mealIds = mealsData?.map((m: any) => m.id) || [];
-      const { data: itemsData } = await (supabase as any)
+      const mealIds = mealsData?.map((m: DbMeal) => m.id) || [];
+      const { data: itemsData } = await supabase
         .from("nutrition_plan_meal_items")
         .select("*")
         .in("meal_id", mealIds.length > 0 ? mealIds : ["no-meals"])
-        .order("order_index", { ascending: true });
+        .order("order_index", { ascending: true }) as { data: DbMealItem[] | null };
 
-      // Group items by meal
       const itemsByMeal: Record<string, MealItem[]> = {};
-      (itemsData || []).forEach((item: any) => {
+      (itemsData || []).forEach((item: DbMealItem) => {
         if (!itemsByMeal[item.meal_id]) {
           itemsByMeal[item.meal_id] = [];
         }
@@ -141,19 +177,17 @@ export default function NutritionPlanPage() {
           protein: item.protein_grams || 0,
           carbs: item.carbs_grams || 0,
           fat: item.fat_grams || 0,
-          notes: item.notes,
+          notes: item.notes ?? undefined,
         });
       });
 
-      // Build meals array
-      const meals: Meal[] = (mealsData || []).map((meal: any) => ({
+      const meals: Meal[] = (mealsData || []).map((meal: DbMeal) => ({
         id: meal.id,
         name: meal.name || "Meal",
         time: meal.time_range || "",
         items: itemsByMeal[meal.id] || [],
       }));
 
-      // Parse notes from JSON or string
       let notes: string[] = [];
       if (nutritionPlan.notes) {
         try {
@@ -163,7 +197,7 @@ export default function NutritionPlanPage() {
             ? nutritionPlan.notes
             : [];
         } catch {
-          notes = [nutritionPlan.notes];
+          notes = [String(nutritionPlan.notes)];
         }
       }
 
@@ -187,7 +221,6 @@ export default function NutritionPlanPage() {
         ],
       });
 
-      // Expand all meals by default
       setExpandedMeals(meals.map(m => m.id));
 
     } catch (error) {
@@ -195,7 +228,11 @@ export default function NutritionPlanPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    loadNutritionPlan();
+  }, [loadNutritionPlan]);
 
   const toggleMeal = (id: string) => {
     setExpandedMeals((prev) =>
@@ -224,7 +261,7 @@ export default function NutritionPlanPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -235,27 +272,27 @@ export default function NutritionPlanPage() {
         <div>
           <Link
             href="/plans"
-            className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-700 mb-2"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2"
           >
             <ChevronLeft className="w-4 h-4" />
             Back to Plans
           </Link>
-          <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100">
+          <h1 className="text-2xl font-bold text-foreground">
             Nutrition Plan
           </h1>
         </div>
 
-        <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-12 text-center">
-          <UtensilsCrossed className="w-12 h-12 text-stone-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-stone-800 dark:text-stone-100 mb-2">
+        <div className="bg-card rounded-xl border border-border p-12 text-center">
+          <UtensilsCrossed className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">
             No Nutrition Plan Assigned
           </h3>
-          <p className="text-stone-500 mb-4">
+          <p className="text-muted-foreground mb-4">
             Your coach will assign a nutrition plan soon.
           </p>
           <Link
             href="/messages"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
             Contact Coach
           </Link>
@@ -271,78 +308,78 @@ export default function NutritionPlanPage() {
         <div>
           <Link
             href="/plans"
-            className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-700 mb-2"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2"
           >
             <ChevronLeft className="w-4 h-4" />
             Back to Plans
           </Link>
-          <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100">
+          <h1 className="text-2xl font-bold text-foreground">
             Nutrition Plan
           </h1>
-          <p className="text-stone-600 dark:text-stone-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             {plan.name} (v{plan.version})
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors">
+        <button className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors">
           <Download className="w-4 h-4" />
           Download PDF
         </button>
       </div>
 
       {/* Daily Targets */}
-      <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
-        <h2 className="font-semibold text-stone-800 dark:text-stone-100 mb-4">
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h2 className="font-semibold text-foreground mb-4">
           Daily Targets
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="text-center p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
             <Flame className="w-5 h-5 text-orange-500 mx-auto mb-1" />
-            <p className="text-lg font-bold text-stone-800 dark:text-stone-100">
+            <p className="text-lg font-bold text-foreground">
               {plan.dailyTargets.calories}
             </p>
-            <p className="text-xs text-stone-500">Calories</p>
+            <p className="text-xs text-muted-foreground">Calories</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-red-50 dark:bg-red-900/20">
             <Beef className="w-5 h-5 text-red-500 mx-auto mb-1" />
-            <p className="text-lg font-bold text-stone-800 dark:text-stone-100">
+            <p className="text-lg font-bold text-foreground">
               {plan.dailyTargets.protein}g
             </p>
-            <p className="text-xs text-stone-500">Protein</p>
+            <p className="text-xs text-muted-foreground">Protein</p>
           </div>
-          <div className="text-center p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20">
-            <Wheat className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-            <p className="text-lg font-bold text-stone-800 dark:text-stone-100">
+          <div className="text-center p-3 rounded-lg bg-primary/10">
+            <Wheat className="w-5 h-5 text-primary mx-auto mb-1" />
+            <p className="text-lg font-bold text-foreground">
               {plan.dailyTargets.carbs}g
             </p>
-            <p className="text-xs text-stone-500">Carbs</p>
+            <p className="text-xs text-muted-foreground">Carbs</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
             <Droplets className="w-5 h-5 text-yellow-600 mx-auto mb-1" />
-            <p className="text-lg font-bold text-stone-800 dark:text-stone-100">
+            <p className="text-lg font-bold text-foreground">
               {plan.dailyTargets.fat}g
             </p>
-            <p className="text-xs text-stone-500">Fat</p>
+            <p className="text-xs text-muted-foreground">Fat</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
             <Apple className="w-5 h-5 text-green-500 mx-auto mb-1" />
-            <p className="text-lg font-bold text-stone-800 dark:text-stone-100">
+            <p className="text-lg font-bold text-foreground">
               {plan.dailyTargets.fiber}g
             </p>
-            <p className="text-xs text-stone-500">Fiber</p>
+            <p className="text-xs text-muted-foreground">Fiber</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
             <Droplets className="w-5 h-5 text-blue-500 mx-auto mb-1" />
-            <p className="text-lg font-bold text-stone-800 dark:text-stone-100">
+            <p className="text-lg font-bold text-foreground">
               {plan.dailyTargets.water}L
             </p>
-            <p className="text-xs text-stone-500">Water</p>
+            <p className="text-xs text-muted-foreground">Water</p>
           </div>
         </div>
       </div>
 
       {/* Meals */}
       <div className="space-y-4">
-        <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+        <h2 className="font-semibold text-foreground">
           Your Meals
         </h2>
 
@@ -355,10 +392,10 @@ export default function NutritionPlanPage() {
             return (
               <div
                 key={meal.id}
-                className={`bg-white dark:bg-stone-900 rounded-xl border transition-colors ${
+                className={`bg-card rounded-xl border transition-colors ${
                   isChecked
                     ? "border-green-300 dark:border-green-700"
-                    : "border-stone-200 dark:border-stone-800"
+                    : "border-border"
                 }`}
               >
                 {/* Meal Header */}
@@ -375,17 +412,17 @@ export default function NutritionPlanPage() {
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
                         isChecked
                           ? "bg-green-500 border-green-500"
-                          : "border-stone-300 dark:border-stone-600"
+                          : "border-border"
                       }`}
                     >
                       {isChecked && <CheckCircle2 className="w-4 h-4 text-white" />}
                     </button>
                     <div>
-                      <h3 className="font-semibold text-stone-800 dark:text-stone-100">
+                      <h3 className="font-semibold text-foreground">
                         {meal.name}
                       </h3>
                       {meal.time && (
-                        <div className="flex items-center gap-2 text-sm text-stone-500">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Clock className="w-3 h-3" />
                           {meal.time}
                         </div>
@@ -397,45 +434,45 @@ export default function NutritionPlanPage() {
                       <span className="text-orange-600 font-medium">
                         {totals.calories} cal
                       </span>
-                      <span className="text-stone-400">|</span>
+                      <span className="text-muted-foreground">|</span>
                       <span className="text-red-600">{totals.protein}g P</span>
-                      <span className="text-amber-600">{totals.carbs}g C</span>
+                      <span className="text-primary">{totals.carbs}g C</span>
                       <span className="text-yellow-600">{totals.fat}g F</span>
                     </div>
                     {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-stone-400" />
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-stone-400" />
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
                     )}
                   </div>
                 </div>
 
                 {/* Meal Items */}
                 {isExpanded && meal.items.length > 0 && (
-                  <div className="px-4 pb-4 border-t border-stone-100 dark:border-stone-800">
-                    <div className="divide-y divide-stone-100 dark:divide-stone-800">
+                  <div className="px-4 pb-4 border-t border-border">
+                    <div className="divide-y divide-border">
                       {meal.items.map((item, index) => (
                         <div key={index} className="py-3">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <p className="font-medium text-stone-800 dark:text-stone-200">
+                              <p className="font-medium text-foreground">
                                 {item.name}
                               </p>
                               {item.quantity && (
-                                <p className="text-sm text-stone-500">{item.quantity}</p>
+                                <p className="text-sm text-muted-foreground">{item.quantity}</p>
                               )}
                               {item.notes && (
-                                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                                <p className="text-xs text-primary mt-1 flex items-center gap-1">
                                   <Info className="w-3 h-3" />
                                   {item.notes}
                                 </p>
                               )}
                             </div>
                             <div className="text-right text-sm">
-                              <p className="font-medium text-stone-700 dark:text-stone-300">
+                              <p className="font-medium text-foreground">
                                 {item.calories} cal
                               </p>
-                              <p className="text-stone-500">
+                              <p className="text-muted-foreground">
                                 P:{item.protein}g C:{item.carbs}g F:{item.fat}g
                               </p>
                             </div>
@@ -445,12 +482,12 @@ export default function NutritionPlanPage() {
                     </div>
 
                     {/* Mobile totals */}
-                    <div className="sm:hidden mt-3 pt-3 border-t border-stone-200 dark:border-stone-700">
+                    <div className="sm:hidden mt-3 pt-3 border-t border-border">
                       <div className="flex justify-between text-sm font-medium">
-                        <span className="text-stone-600 dark:text-stone-400">
+                        <span className="text-muted-foreground">
                           Meal Total:
                         </span>
-                        <span className="text-stone-800 dark:text-stone-200">
+                        <span className="text-foreground">
                           {totals.calories} cal | P:{totals.protein}g C:{totals.carbs}g F:
                           {totals.fat}g
                         </span>
@@ -460,8 +497,8 @@ export default function NutritionPlanPage() {
                 )}
 
                 {isExpanded && meal.items.length === 0 && (
-                  <div className="px-4 pb-4 border-t border-stone-100 dark:border-stone-800">
-                    <p className="text-center text-stone-500 py-4">
+                  <div className="px-4 pb-4 border-t border-border">
+                    <p className="text-center text-muted-foreground py-4">
                       No items added to this meal yet.
                     </p>
                   </div>
@@ -470,16 +507,16 @@ export default function NutritionPlanPage() {
             );
           })
         ) : (
-          <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-8 text-center">
-            <p className="text-stone-500">No meals configured in this plan yet.</p>
+          <div className="bg-card rounded-xl border border-border p-8 text-center">
+            <p className="text-muted-foreground">No meals configured in this plan yet.</p>
           </div>
         )}
       </div>
 
       {/* Notes */}
       {plan.notes.length > 0 && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800 p-6">
-          <h3 className="font-semibold text-amber-800 dark:text-amber-200 mb-3 flex items-center gap-2">
+        <div className="bg-primary/10 rounded-xl border border-primary/20 p-6">
+          <h3 className="font-semibold text-primary mb-3 flex items-center gap-2">
             <UtensilsCrossed className="w-5 h-5" />
             Important Notes
           </h3>
@@ -487,9 +524,9 @@ export default function NutritionPlanPage() {
             {plan.notes.map((note, index) => (
               <li
                 key={index}
-                className="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-2"
+                className="text-sm text-foreground flex items-start gap-2"
               >
-                <span className="text-amber-500 mt-1">-</span>
+                <span className="text-primary mt-1">-</span>
                 {note}
               </li>
             ))}
@@ -498,7 +535,7 @@ export default function NutritionPlanPage() {
       )}
 
       {/* Last Updated */}
-      <p className="text-center text-sm text-stone-500">
+      <p className="text-center text-sm text-muted-foreground">
         Plan last updated: {new Date(plan.updatedAt).toLocaleDateString()}
       </p>
     </div>

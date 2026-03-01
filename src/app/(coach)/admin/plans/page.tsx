@@ -1,7 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+interface NutritionPlanRow {
+  id: string;
+  name: string;
+  version: string;
+  daily_calories: number;
+  protein_grams: number;
+  carbs_grams: number;
+  fat_grams: number;
+  meals_per_day: number;
+  updated_at: string;
+  client_nutrition_plans: { id: string }[];
+}
+
+interface TrainingPlanRow {
+  id: string;
+  name: string;
+  version: string;
+  days_per_week: number;
+  focus: string;
+  updated_at: string;
+  client_training_plans: { id: string }[];
+  training_plan_exercises: { id: string }[];
+}
+
 import Link from "next/link";
 import {
   Plus,
@@ -53,17 +79,13 @@ export default function PlansPage() {
 
   const supabase = createClient();
 
-  useEffect(() => {
-    loadPlans();
-  }, []);
-
-  async function loadPlans() {
+  const loadPlans = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       // Get coach info
-      const { data: coach } = await (supabase as any)
+      const { data: coach } = await (supabase as SupabaseClient)
         .from("coaches")
         .select("id, tenant_id")
         .eq("user_id", user.id)
@@ -72,7 +94,7 @@ export default function PlansPage() {
       if (!coach) return;
 
       // Get nutrition plans
-      const { data: nutritionData } = await (supabase as any)
+      const { data: nutritionData } = await (supabase as SupabaseClient)
         .from("nutrition_plans")
         .select(`
           id,
@@ -89,7 +111,7 @@ export default function PlansPage() {
         .eq("tenant_id", coach.tenant_id)
         .order("updated_at", { ascending: false });
 
-      const formattedNutrition: NutritionPlan[] = (nutritionData || []).map((plan: any) => ({
+      const formattedNutrition: NutritionPlan[] = ((nutritionData || []) as NutritionPlanRow[]).map((plan) => ({
         id: plan.id,
         name: plan.name || "Unnamed Plan",
         calories: plan.daily_calories || 0,
@@ -105,7 +127,7 @@ export default function PlansPage() {
       setNutritionPlans(formattedNutrition);
 
       // Get training plans
-      const { data: trainingData } = await (supabase as any)
+      const { data: trainingData } = await (supabase as SupabaseClient)
         .from("training_plans")
         .select(`
           id,
@@ -120,7 +142,7 @@ export default function PlansPage() {
         .eq("tenant_id", coach.tenant_id)
         .order("updated_at", { ascending: false });
 
-      const formattedTraining: TrainingPlan[] = (trainingData || []).map((plan: any) => ({
+      const formattedTraining: TrainingPlan[] = ((trainingData || []) as TrainingPlanRow[]).map((plan) => ({
         id: plan.id,
         name: plan.name || "Unnamed Plan",
         days: plan.days_per_week || 5,
@@ -138,7 +160,11 @@ export default function PlansPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    loadPlans();
+  }, [loadPlans]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -160,7 +186,7 @@ export default function PlansPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-brown-500" />
       </div>
     );
   }
@@ -179,7 +205,7 @@ export default function PlansPage() {
         </div>
         <Link
           href="/admin/plans/create"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Create Plan
@@ -220,7 +246,7 @@ export default function PlansPage() {
           placeholder="Search plans..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-brown-500 focus:border-transparent"
         />
       </div>
 
@@ -310,7 +336,7 @@ export default function PlansPage() {
 
                   <Link
                     href={`/admin/plans/nutrition/${plan.id}`}
-                    className="block w-full mt-4 text-center px-4 py-2 text-sm text-amber-600 border border-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 font-medium"
+                    className="block w-full mt-4 text-center px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20 font-medium"
                   >
                     View Details
                   </Link>
@@ -394,7 +420,7 @@ export default function PlansPage() {
 
                   <Link
                     href={`/admin/plans/training/${plan.id}`}
-                    className="block w-full mt-4 text-center px-4 py-2 text-sm text-amber-600 border border-amber-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 font-medium"
+                    className="block w-full mt-4 text-center px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20 font-medium"
                   >
                     View Details
                   </Link>
@@ -412,7 +438,7 @@ export default function PlansPage() {
               <p className="text-stone-500 mb-4">No {activeType} plans created yet.</p>
               <Link
                 href="/admin/plans/create"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Create First Plan

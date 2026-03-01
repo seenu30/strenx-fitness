@@ -91,7 +91,7 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
 
       {/* Quick Add */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           Quick add (click to add)
         </label>
         <div className="flex flex-wrap gap-2">
@@ -104,7 +104,7 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.currentSupplements.some((s) => s.name === supp)
                   ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-amber-300"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
               }`}
             >
               {supp}
@@ -115,7 +115,7 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
 
       {/* Current Supplements */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">
+        <label className="block text-sm font-medium text-foreground">
           Current Supplements
         </label>
 
@@ -124,7 +124,7 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
             {formData.currentSupplements.map((supp, index) => (
               <div key={index} className="flex items-center gap-2 p-3 bg-stone-50 dark:bg-stone-800/50 rounded-lg">
                 <div className="flex-1">
-                  <span className="font-medium text-stone-800 dark:text-stone-200">{supp.name}</span>
+                  <span className="font-medium text-foreground">{supp.name}</span>
                   {supp.dosage && (
                     <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
                       {supp.dosage}
@@ -153,18 +153,18 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
             value={newSupplement.name}
             onChange={(e) => setNewSupplement((prev) => ({ ...prev, name: e.target.value }))}
             placeholder="Supplement name"
-            className="sm:col-span-2 px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-sm"
+            className="sm:col-span-2 px-3 py-2 rounded-lg border border-border bg-card text-sm"
           />
           <input
             value={newSupplement.dosage}
             onChange={(e) => setNewSupplement((prev) => ({ ...prev, dosage: e.target.value }))}
             placeholder="Dosage"
-            className="px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-sm"
+            className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
           />
           <button
             type="button"
             onClick={addCurrentSupplement}
-            className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-amber-600 text-white text-sm hover:bg-amber-700"
+            className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-brown-500 text-white text-sm hover:bg-brown-600"
           >
             <Plus className="w-4 h-4" /> Add
           </button>
@@ -173,7 +173,7 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
 
       {/* Past Supplements */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">
+        <label className="block text-sm font-medium text-foreground">
           Past Supplements (that you&apos;ve stopped taking)
         </label>
 
@@ -182,7 +182,7 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
             {formData.pastSupplements.map((supp, index) => (
               <div key={index} className="flex items-center gap-2 p-3 bg-stone-50 dark:bg-stone-800/50 rounded-lg">
                 <div className="flex-1">
-                  <span className="font-medium text-stone-800 dark:text-stone-200">{supp.name}</span>
+                  <span className="font-medium text-foreground">{supp.name}</span>
                   {supp.duration && (
                     <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
                       for {supp.duration}
@@ -211,24 +211,24 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
             value={newPastSupplement.name}
             onChange={(e) => setNewPastSupplement((prev) => ({ ...prev, name: e.target.value }))}
             placeholder="Supplement name"
-            className="px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-sm"
+            className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
           />
           <input
             value={newPastSupplement.duration}
             onChange={(e) => setNewPastSupplement((prev) => ({ ...prev, duration: e.target.value }))}
             placeholder="Duration (e.g., 3 months)"
-            className="px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-sm"
+            className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
           />
           <input
             value={newPastSupplement.reason_stopped}
             onChange={(e) => setNewPastSupplement((prev) => ({ ...prev, reason_stopped: e.target.value }))}
             placeholder="Why stopped?"
-            className="px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-sm"
+            className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
           />
           <button
             type="button"
             onClick={addPastSupplement}
-            className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 text-sm hover:bg-stone-300"
+            className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-stone-200 dark:bg-stone-700 text-foreground text-sm hover:bg-stone-300"
           >
             <Plus className="w-4 h-4" /> Add
           </button>
@@ -242,16 +242,16 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
           id="willingToTakeSupplements"
           checked={formData.willingToTakeSupplements}
           onChange={(e) => setFormData((prev) => ({ ...prev, willingToTakeSupplements: e.target.checked }))}
-          className="w-5 h-5 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+          className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
         />
-        <label htmlFor="willingToTakeSupplements" className="text-sm font-medium text-stone-700 dark:text-stone-300">
+        <label htmlFor="willingToTakeSupplements" className="text-sm font-medium text-foreground">
           I&apos;m open to taking supplements if recommended
         </label>
       </div>
 
       {/* Budget */}
       <div>
-        <label htmlFor="supplementBudget" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+        <label htmlFor="supplementBudget" className="block text-sm font-medium text-foreground mb-1">
           Monthly budget for supplements (optional)
         </label>
         <input
@@ -260,7 +260,7 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
           value={formData.supplementBudget || ""}
           onChange={(e) => setFormData((prev) => ({ ...prev, supplementBudget: e.target.value }))}
           placeholder="e.g., Rs. 2000-3000"
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
     </form>

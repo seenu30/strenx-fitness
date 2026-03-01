@@ -51,10 +51,6 @@ export default function RiskFlagsPage() {
 
   async function loadRiskFlags() {
     const supabase = createClient();
-    if (!supabase) {
-      setIsLoading(false);
-      return;
-    }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -238,7 +234,7 @@ export default function RiskFlagsPage() {
       case "high":
         return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800";
       case "medium":
-        return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800";
+        return "bg-brown-100 text-brown-600 dark:bg-brown-900/30 dark:text-brown-400 border-brown-200 dark:border-brown-700";
       default:
         return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800";
     }
@@ -247,7 +243,7 @@ export default function RiskFlagsPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "pending":
-        return <Clock className="w-4 h-4 text-amber-500" />;
+        return <Clock className="w-4 h-4 text-brown-500" />;
       case "acknowledged":
         return <CheckCircle2 className="w-4 h-4 text-blue-500" />;
       case "resolved":
@@ -268,7 +264,7 @@ export default function RiskFlagsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-brown-500 animate-spin" />
       </div>
     );
   }
@@ -313,7 +309,7 @@ export default function RiskFlagsPage() {
             <Clock className="w-4 h-4" />
             <span className="text-sm">Pending</span>
           </div>
-          <p className="text-2xl font-bold text-amber-600">{pendingCount}</p>
+          <p className="text-2xl font-bold text-brown-500">{pendingCount}</p>
         </div>
         <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-4">
           <div className="flex items-center gap-2 text-stone-500 mb-2">
@@ -351,7 +347,7 @@ export default function RiskFlagsPage() {
             placeholder="Search by client or flag title..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-brown-500 focus:border-transparent"
           />
         </div>
         <select
@@ -394,13 +390,13 @@ export default function RiskFlagsPage() {
                     className={`p-2 rounded-lg ${
                       flag.type === "medical"
                         ? "bg-red-100 dark:bg-red-900/30"
-                        : "bg-amber-100 dark:bg-amber-900/30"
+                        : "bg-brown-100 dark:bg-brown-900/30"
                     }`}
                   >
                     {flag.type === "medical" ? (
                       <Heart className="w-5 h-5 text-red-600" />
                     ) : (
-                      <Activity className="w-5 h-5 text-amber-600" />
+                      <Activity className="w-5 h-5 text-brown-500" />
                     )}
                   </div>
                   <div>
@@ -416,7 +412,7 @@ export default function RiskFlagsPage() {
                     </div>
                     <Link
                       href={`/admin/clients/${flag.clientId}`}
-                      className="text-sm text-amber-600 hover:text-amber-700 flex items-center gap-1"
+                      className="text-sm text-brown-500 hover:text-brown-600 flex items-center gap-1"
                     >
                       <User className="w-3 h-3" />
                       {flag.clientName}
@@ -480,13 +476,13 @@ export default function RiskFlagsPage() {
                         onChange={(e) => setAcknowledgeNotes(e.target.value)}
                         placeholder="Add notes about how you're addressing this flag..."
                         rows={3}
-                        className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
+                        className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-brown-500 focus:border-transparent resize-none"
                       />
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleAcknowledge(flag.id)}
                           disabled={isProcessing}
-                          className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50 flex items-center gap-2"
+                          className="px-4 py-2 bg-brown-500 text-white rounded-lg text-sm font-medium hover:bg-brown-600 disabled:opacity-50 flex items-center gap-2"
                         >
                           {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
                           Acknowledge Flag
@@ -507,7 +503,7 @@ export default function RiskFlagsPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setSelectedFlag(flag.id)}
-                        className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700"
+                        className="px-4 py-2 bg-brown-500 text-white rounded-lg text-sm font-medium hover:bg-brown-600"
                       >
                         Acknowledge
                       </button>
