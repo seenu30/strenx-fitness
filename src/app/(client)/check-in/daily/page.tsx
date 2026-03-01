@@ -54,6 +54,8 @@ export default function DailyCheckinPage() {
   const [clientId, setClientId] = useState<string | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [existingCheckinId, setExistingCheckinId] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState<DailyCheckinData>({
     date: new Date().toISOString().split("T")[0],
     weight: null,
@@ -68,9 +70,9 @@ export default function DailyCheckinPage() {
     notes: "",
   });
 
-  // Fetch client_id on mount
+  // Fetch client_id and check for existing check-in on mount
   useEffect(() => {
-    async function fetchClientId() {
+    async function fetchClientAndCheckin() {
       const supabase = createClient();
       if (!supabase) return;
 
@@ -87,9 +89,35 @@ export default function DailyCheckinPage() {
       if (client) {
         setClientId(client.id);
         setTenantId(client.tenant_id);
+
+        // Check for existing check-in today
+        const today = new Date().toISOString().split("T")[0];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: existingCheckin } = await (supabase as any)
+          .from("daily_checkins")
+          .select("*")
+          .eq("client_id", client.id)
+          .eq("checkin_date", today)
+          .single();
+
+        if (existingCheckin) {
+          setExistingCheckinId(existingCheckin.id);
+          setIsEditMode(true);
+          // Load existing data into form
+          setFormData(prev => ({
+            ...prev,
+            weight: existingCheckin.morning_weight_kg,
+            steps: existingCheckin.step_count,
+            trainingCompleted: existingCheckin.training_completed || false,
+            energyLevel: existingCheckin.energy_level || 5,
+            stressLevel: existingCheckin.stress_level || 5,
+            sleepHours: existingCheckin.sleep_hours || 7,
+            notes: existingCheckin.client_notes || "",
+          }));
+        }
       }
     }
-    fetchClientId();
+    fetchClientAndCheckin();
   }, []);
 
   const steps = [
@@ -143,26 +171,51 @@ export default function DailyCheckinPage() {
         throw new Error("Unable to submit. Please try again.");
       }
 
-      // 1. Insert daily check-in
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: checkin, error: checkinError } = await (supabase as any)
-        .from("daily_checkins")
-        .insert({
-          tenant_id: tenantId,
-          client_id: clientId,
-          checkin_date: formData.date,
-          morning_weight_kg: formData.weight,
-          step_count: formData.steps,
-          training_completed: formData.trainingCompleted,
-          energy_level: formData.energyLevel,
-          stress_level: formData.stressLevel,
-          sleep_hours: formData.sleepHours,
-          client_notes: formData.notes || null,
-        })
-        .select()
-        .single();
+      let checkin;
 
-      if (checkinError) throw checkinError;
+      if (isEditMode && existingCheckinId) {
+        // Update existing check-in
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error: updateError } = await (supabase as any)
+          .from("daily_checkins")
+          .update({
+            morning_weight_kg: formData.weight,
+            step_count: formData.steps,
+            training_completed: formData.trainingCompleted,
+            energy_level: formData.energyLevel,
+            stress_level: formData.stressLevel,
+            sleep_hours: formData.sleepHours,
+            client_notes: formData.notes || null,
+          })
+          .eq("id", existingCheckinId)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        checkin = data;
+      } else {
+        // Insert new daily check-in
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error: checkinError } = await (supabase as any)
+          .from("daily_checkins")
+          .insert({
+            tenant_id: tenantId,
+            client_id: clientId,
+            checkin_date: formData.date,
+            morning_weight_kg: formData.weight,
+            step_count: formData.steps,
+            training_completed: formData.trainingCompleted,
+            energy_level: formData.energyLevel,
+            stress_level: formData.stressLevel,
+            sleep_hours: formData.sleepHours,
+            client_notes: formData.notes || null,
+          })
+          .select()
+          .single();
+
+        if (checkinError) throw checkinError;
+        checkin = data;
+      }
 
       // 2. Insert training data if training was completed
       if (formData.trainingCompleted && checkin) {
@@ -587,7 +640,7 @@ export default function DailyCheckinPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100">
-          Daily Check-in
+          {isEditMode ? "Update Today's Check-in" : "Daily Check-in"}
         </h1>
         <p className="text-stone-600 dark:text-stone-400 mt-1">
           {new Date().toLocaleDateString("en-US", {
@@ -597,6 +650,12 @@ export default function DailyCheckinPage() {
             day: "numeric",
           })}
         </p>
+        {isEditMode && (
+          <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>You already checked in today. You can update your entries below.</span>
+          </div>
+        )}
       </div>
 
       {/* Error Alert */}
@@ -700,7 +759,7 @@ export default function DailyCheckinPage() {
             disabled={isSubmitting}
             className="px-6 py-3 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 transition-colors disabled:bg-stone-400"
           >
-            {isSubmitting ? "Submitting..." : "Submit Check-in"}
+            {isSubmitting ? "Saving..." : isEditMode ? "Update Check-in" : "Submit Check-in"}
           </button>
         )}
       </div>

@@ -547,6 +547,21 @@
   - `extension`: "realtime:broadcast" (realtime channel type)
 - Messages now save successfully to database
 
+#### 31. Daily Check-in Edit Mode
+**File:** `src/app/(client)/check-in/daily/page.tsx`
+
+**Issue Fixed:** Daily check-in submission failed with error 23505 (unique constraint violation) when user already checked in today. No helpful error message was shown.
+
+**Implementation:**
+- Added check on page load for existing check-in for today
+- If exists, loads existing data into form for editing
+- Added `isEditMode` and `existingCheckinId` state variables
+- Submit function uses UPDATE instead of INSERT when editing
+- Updated header to show "Update Today's Check-in" in edit mode
+- Added info banner: "You already checked in today. You can update your entries below."
+- Submit button shows "Update Check-in" instead of "Submit Check-in" in edit mode
+- Users can now seamlessly update their daily check-in multiple times
+
 ---
 
 ## Browser Testing Results (March 2026)
@@ -625,6 +640,7 @@ All major issues resolved! Remaining minor items:
 3. ~~**Root page**: Shows default Next.js template - needs custom landing page~~ ✅ Fixed
 4. **Blood report encryption**: Values show as empty until MEDICAL_ENCRYPTION_KEY env var is configured
 5. ~~**Mock data in pages**: Several pages using hardcoded MOCK_ arrays~~ ✅ All fixed (29 implementations total)
+6. ~~**Daily check-in duplicate error**: Shows unhelpful error when user already checked in today~~ ✅ Fixed (Implementation #31)
 
 ---
 
@@ -672,6 +688,7 @@ All major issues resolved! Remaining minor items:
 28. ~~Fix lint and accessibility issues~~ ✅
 29. ~~Complete end-to-end browser testing~~ ✅
 30. ~~Fix message sending - add missing required fields~~ ✅
+31. ~~Add daily check-in edit mode for duplicate submissions~~ ✅
 
 ---
 
@@ -689,4 +706,4 @@ All major issues resolved! Remaining minor items:
 
 All pages tested and working as of March 2026.
 
-**Total Implementations:** 30 - All mock and hardcoded data replaced with real Supabase queries, plus security features, code quality fixes, and comprehensive browser testing.
+**Total Implementations:** 31 - All mock and hardcoded data replaced with real Supabase queries, plus security features, code quality fixes, daily check-in edit mode, and comprehensive browser testing.
