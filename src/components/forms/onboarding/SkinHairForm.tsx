@@ -57,6 +57,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
   };
 
   const [formData, setFormData] = useState<SkinHairData>(initialData);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleArrayToggle = (field: keyof SkinHairData, value: string) => {
     setFormData((prev) => {
@@ -68,10 +69,35 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
     });
   };
 
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (formData.skinConcerns.length === 0) {
+      newErrors.skinConcerns = "Please select your skin concerns (or 'None')";
+    }
+    if (formData.hairConcerns.length === 0) {
+      newErrors.hairConcerns = "Please select your hair concerns (or 'None')";
+    }
+    if (formData.nailConcerns.length === 0) {
+      newErrors.nailConcerns = "Please select your nail concerns (or 'None')";
+    }
+    if (formData.recoveryIssues.length === 0) {
+      newErrors.recoveryIssues = "Please select your recovery issues (or 'None')";
+    }
+    if (formData.digestiveIssues.length === 0) {
+      newErrors.digestiveIssues = "Please select your digestive issues (or 'None')";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave("skinHair", formData);
-    onNext();
+    if (validate()) {
+      onSave("skinHair", formData);
+      onNext();
+    }
   };
 
   return (
@@ -86,7 +112,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
       {/* Skin Type */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What is your skin type?
+          What is your skin type? *
         </label>
         <div className="grid grid-cols-2 gap-3">
           {SKIN_TYPES.map((type) => (
@@ -114,7 +140,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
       {/* Skin Concerns */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Any skin concerns?
+          Any skin concerns? *
         </label>
         <div className="flex flex-wrap gap-2">
           {SKIN_CONCERNS.map((concern) => (
@@ -132,12 +158,15 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
             </button>
           ))}
         </div>
+        {errors.skinConcerns && (
+          <p className="mt-2 text-sm text-red-500">{errors.skinConcerns}</p>
+        )}
       </div>
 
       {/* Hair Concerns */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Any hair concerns?
+          Any hair concerns? *
         </label>
         <div className="flex flex-wrap gap-2">
           {HAIR_CONCERNS.map((concern) => (
@@ -155,12 +184,15 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
             </button>
           ))}
         </div>
+        {errors.hairConcerns && (
+          <p className="mt-2 text-sm text-red-500">{errors.hairConcerns}</p>
+        )}
       </div>
 
       {/* Nail Concerns */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Any nail concerns?
+          Any nail concerns? *
         </label>
         <div className="flex flex-wrap gap-2">
           {NAIL_CONCERNS.map((concern) => (
@@ -178,12 +210,15 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
             </button>
           ))}
         </div>
+        {errors.nailConcerns && (
+          <p className="mt-2 text-sm text-red-500">{errors.nailConcerns}</p>
+        )}
       </div>
 
       {/* Recovery Issues */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Any recovery issues?
+          Any recovery issues? *
         </label>
         <div className="flex flex-wrap gap-2">
           {RECOVERY_ISSUES.map((issue) => (
@@ -201,12 +236,15 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
             </button>
           ))}
         </div>
+        {errors.recoveryIssues && (
+          <p className="mt-2 text-sm text-red-500">{errors.recoveryIssues}</p>
+        )}
       </div>
 
       {/* Digestive Issues */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Any digestive issues?
+          Any digestive issues? *
         </label>
         <div className="flex flex-wrap gap-2">
           {DIGESTIVE_ISSUES.map((issue) => (
@@ -224,6 +262,9 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
             </button>
           ))}
         </div>
+        {errors.digestiveIssues && (
+          <p className="mt-2 text-sm text-red-500">{errors.digestiveIssues}</p>
+        )}
       </div>
     </form>
   );

@@ -59,15 +59,26 @@ export default function RiskFlagsPage() {
         return;
       }
 
-      // Get coach's tenant_id
+      // Get coach's id
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: coach } = await (supabase as any)
         .from("coaches")
-        .select("tenant_id")
+        .select("id")
         .eq("user_id", user.id)
         .single();
 
-      const tenantId = coach?.tenant_id;
+      const coachId = coach?.id;
+
+      // Get client IDs for this coach
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: clients } = await (supabase as any)
+        .from("clients")
+        .select("id")
+        .eq("coach_id", coachId);
+
+      const clientIds = clients?.length > 0
+        ? clients.map((c: { id: string }) => c.id)
+        : ['00000000-0000-0000-0000-000000000000'];
 
       // Get risk flags
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,7 +100,7 @@ export default function RiskFlagsPage() {
             users!inner(first_name, last_name)
           )
         `)
-        .eq("tenant_id", tenantId)
+        .in("client_id", clientIds)
         .order("created_at", { ascending: false });
 
       if (error) {

@@ -64,7 +64,7 @@ export default function SubscriptionPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: client } = await (supabase as any)
         .from("clients")
-        .select("id, tenant_id")
+        .select("id")
         .eq("user_id", user.id)
         .single();
 
@@ -155,12 +155,11 @@ export default function SubscriptionPage() {
         })));
       }
 
-      // Get available plans
+      // Get available plans (RLS handles tenant filtering)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: planTemplates } = await (supabase as any)
         .from("plan_templates")
         .select("id, name, price, duration_days, features")
-        .eq("tenant_id", client.tenant_id)
         .eq("is_active", true)
         .order("price", { ascending: true });
 

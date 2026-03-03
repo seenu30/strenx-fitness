@@ -23,6 +23,7 @@ export default function BloodReportsForm({
   };
 
   const [formData, setFormData] = useState<BloodReportsData>(initialData);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -34,33 +35,59 @@ export default function BloodReportsForm({
     }));
   };
 
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.hasRecentReports) {
+      newErrors.hasRecentReports = "Blood reports are required. Please check the box and provide your report details.";
+    } else {
+      if (!formData.reportDate) {
+        newErrors.reportDate = "Please enter the report date";
+      }
+      if (!formData.labName?.trim()) {
+        newErrors.labName = "Please enter the lab name";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave("bloodReports", formData);
-    onNext();
+    if (validate()) {
+      onSave("bloodReports", formData);
+      onNext();
+    }
   };
 
   return (
     <form id="form-blood_reports" onSubmit={handleSubmit} className="space-y-6">
       <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
         <p className="text-sm text-blue-700 dark:text-blue-300">
-          This section is optional but highly recommended. Blood reports help your coach
-          create a more personalized nutrition plan based on your actual health markers.
+          Blood reports are required. They help your coach create a personalized
+          nutrition plan based on your actual health markers. Please provide your
+          recent blood test results (within the last 3 months).
         </p>
       </div>
 
       {/* Has Recent Reports */}
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          id="hasRecentReports"
-          checked={formData.hasRecentReports}
-          onChange={(e) => setFormData((prev) => ({ ...prev, hasRecentReports: e.target.checked }))}
-          className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
-        />
-        <label htmlFor="hasRecentReports" className="text-sm font-medium text-foreground">
-          I have blood reports from the last 3 months
-        </label>
+      <div>
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="hasRecentReports"
+            checked={formData.hasRecentReports}
+            onChange={(e) => setFormData((prev) => ({ ...prev, hasRecentReports: e.target.checked }))}
+            className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
+          />
+          <label htmlFor="hasRecentReports" className="text-sm font-medium text-foreground">
+            I have blood reports from the last 3 months *
+          </label>
+        </div>
+        {errors.hasRecentReports && (
+          <p className="mt-2 text-sm text-red-500">{errors.hasRecentReports}</p>
+        )}
       </div>
 
       {formData.hasRecentReports && (
@@ -69,19 +96,24 @@ export default function BloodReportsForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
-                Report Date
+                Report Date *
               </label>
               <input
                 type="date"
                 name="reportDate"
                 value={formData.reportDate || ""}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className={`w-full px-4 py-2.5 rounded-lg border ${
+                  errors.reportDate ? "border-red-500" : "border-border"
+                } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
               />
+              {errors.reportDate && (
+                <p className="mt-1 text-sm text-red-500">{errors.reportDate}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
-                Lab Name
+                Lab Name *
               </label>
               <input
                 type="text"
@@ -89,8 +121,13 @@ export default function BloodReportsForm({
                 value={formData.labName || ""}
                 onChange={handleChange}
                 placeholder="e.g., Dr. Lal PathLabs"
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className={`w-full px-4 py-2.5 rounded-lg border ${
+                  errors.labName ? "border-red-500" : "border-border"
+                } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
               />
+              {errors.labName && (
+                <p className="mt-1 text-sm text-red-500">{errors.labName}</p>
+              )}
             </div>
           </div>
 
@@ -211,8 +248,8 @@ export default function BloodReportsForm({
 
       {!formData.hasRecentReports && (
         <p className="text-sm text-stone-500 dark:text-stone-400">
-          No problem! You can always add your blood report values later or upload a report
-          after you complete onboarding.
+          Please check the box above and enter your blood report details. If you don&apos;t have
+          recent reports, please get a blood test done and come back to complete your application.
         </p>
       )}
     </form>

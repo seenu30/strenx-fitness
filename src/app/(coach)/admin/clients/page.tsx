@@ -24,12 +24,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 interface ClientRow {
   id: string;
   status: string;
-  start_date: string;
-  phone: string | null;
+  created_at: string;
   users: {
     first_name: string;
     last_name: string;
     email: string;
+    phone: string | null;
   };
 }
 
@@ -93,7 +93,7 @@ export default function ClientsPage() {
 
         const { data: coach } = await (supabase as SupabaseClient)
           .from("coaches")
-          .select("id, tenant_id")
+          .select("id")
           .eq("user_id", user.id)
           .single();
 
@@ -107,11 +107,10 @@ export default function ClientsPage() {
           .select(`
             id,
             status,
-            start_date,
-            phone,
-            users!inner(first_name, last_name, email)
+            created_at,
+            users!inner(first_name, last_name, email, phone)
           `)
-          .eq("tenant_id", coach.tenant_id);
+          .eq("coach_id", coach.id);
 
         if (!clientsData || clientsData.length === 0) {
           setClients([]);
@@ -128,27 +127,23 @@ export default function ClientsPage() {
             end_date,
             subscription_plans!inner(name)
           `)
-          .eq("tenant_id", coach.tenant_id)
           .in("client_id", typedClientsData.map((c) => c.id));
 
         const { data: riskFlagsData } = await (supabase as SupabaseClient)
           .from("risk_flags")
           .select("client_id")
-          .eq("tenant_id", coach.tenant_id)
           .eq("is_active", true)
           .in("client_id", typedClientsData.map((c) => c.id));
 
         const { data: lastCheckins } = await (supabase as SupabaseClient)
           .from("daily_checkins")
           .select("client_id, created_at")
-          .eq("tenant_id", coach.tenant_id)
           .in("client_id", typedClientsData.map((c) => c.id))
           .order("created_at", { ascending: false });
 
         const { data: weights } = await (supabase as SupabaseClient)
           .from("daily_checkins")
           .select("client_id, morning_weight_kg, checkin_date")
-          .eq("tenant_id", coach.tenant_id)
           .not("morning_weight_kg", "is", null)
           .in("client_id", typedClientsData.map((c) => c.id))
           .order("checkin_date", { ascending: true });
@@ -159,7 +154,6 @@ export default function ClientsPage() {
         const { data: recentCheckins } = await (supabase as SupabaseClient)
           .from("daily_checkins")
           .select("client_id, checkin_date")
-          .eq("tenant_id", coach.tenant_id)
           .gte("checkin_date", sevenDaysAgo.toISOString().split('T')[0])
           .in("client_id", typedClientsData.map((c) => c.id));
 
@@ -197,10 +191,10 @@ export default function ClientsPage() {
             id: client.id,
             name: `${userData.first_name} ${userData.last_name}`,
             email: userData.email,
-            phone: client.phone || "",
+            phone: userData.phone || "",
             status: client.status || "active",
             plan: planData?.name || "No plan",
-            startDate: subscription?.start_date || client.start_date || new Date().toISOString().split('T')[0],
+            startDate: subscription?.start_date || client.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
             endDate: subscription?.end_date || "",
             compliance,
             weightChange,

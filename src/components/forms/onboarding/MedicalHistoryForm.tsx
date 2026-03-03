@@ -41,6 +41,7 @@ export default function MedicalHistoryForm({
   const [formData, setFormData] = useState<MedicalHistoryData>(initialData);
   const [medicationInput, setMedicationInput] = useState("");
   const [allergyInput, setAllergyInput] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleCheckboxChange = (name: keyof MedicalHistoryData) => {
     setFormData((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -90,10 +91,23 @@ export default function MedicalHistoryForm({
     }));
   };
 
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.otherConditions?.trim()) {
+      newErrors.otherConditions = "Please describe any other medical conditions (or write 'None')";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave("medicalHistory", formData);
-    onNext();
+    if (validate()) {
+      onSave("medicalHistory", formData);
+      onNext();
+    }
   };
 
   // Check for critical conditions that need medical clearance
@@ -423,7 +437,7 @@ export default function MedicalHistoryForm({
           htmlFor="otherConditions"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Any other medical conditions we should know about?
+          Any other medical conditions we should know about? *
         </label>
         <textarea
           id="otherConditions"
@@ -431,9 +445,14 @@ export default function MedicalHistoryForm({
           value={formData.otherConditions || ""}
           onChange={handleChange}
           rows={3}
-          placeholder="Describe any other conditions..."
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          placeholder="Describe any other conditions (or write 'None')..."
+          className={`w-full px-4 py-2.5 rounded-lg border ${
+            errors.otherConditions ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none`}
         />
+        {errors.otherConditions && (
+          <p className="mt-1 text-sm text-red-500">{errors.otherConditions}</p>
+        )}
       </div>
     </form>
   );

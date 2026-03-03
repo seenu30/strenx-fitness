@@ -80,14 +80,25 @@ export default function SubscriptionsPage() {
         return;
       }
 
-      // Get coach's tenant_id
+      // Get coach's id
       const { data: coach } = await (supabase as SupabaseClient)
         .from("coaches")
-        .select("tenant_id")
+        .select("id")
         .eq("user_id", user.id)
         .single();
 
-      const tenantId = (coach as { tenant_id: string } | null)?.tenant_id;
+      if (!coach) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Get all clients for this coach
+      const { data: clients } = await (supabase as SupabaseClient)
+        .from("clients")
+        .select("id")
+        .eq("coach_id", coach.id);
+
+      const clientIds = (clients || []).map((c: { id: string }) => c.id);
 
       // Get subscriptions with client info
       const { data: subs, error } = await (supabase as SupabaseClient)
@@ -104,7 +115,7 @@ export default function SubscriptionsPage() {
           ),
           plan_templates(name, price)
         `)
-        .eq("tenant_id", tenantId)
+        .in("client_id", clientIds.length > 0 ? clientIds : [""])
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -117,7 +128,7 @@ export default function SubscriptionsPage() {
       const { data: payments } = await (supabase as SupabaseClient)
         .from("payments")
         .select("subscription_id, status, payment_date, amount")
-        .eq("tenant_id", tenantId)
+        .in("client_id", clientIds.length > 0 ? clientIds : [""])
         .order("payment_date", { ascending: false });
 
       // Map subscriptions to our format
@@ -174,13 +185,6 @@ export default function SubscriptionsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get coach's tenant_id
-      const { data: coach } = await (supabase as SupabaseClient)
-        .from("coaches")
-        .select("tenant_id")
-        .eq("user_id", user.id)
-        .single();
-
       // Get subscription details
       const { data: sub } = await (supabase as SupabaseClient)
         .from("subscriptions")
@@ -188,9 +192,10 @@ export default function SubscriptionsPage() {
         .eq("id", subscriptionId)
         .single();
 
+      if (!sub) return;
+
       // Create payment record
       await (supabase as SupabaseClient).from("payments").insert({
-        tenant_id: (coach as { tenant_id: string }).tenant_id,
         client_id: (sub as { client_id: string }).client_id,
         subscription_id: subscriptionId,
         amount: (sub as unknown as { plan_templates?: { price: number } }).plan_templates?.price || 0,

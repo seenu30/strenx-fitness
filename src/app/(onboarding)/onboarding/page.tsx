@@ -106,23 +106,29 @@ export default function OnboardingPage() {
           return;
         }
 
-        // Check if onboarding is already completed
+        // Check if onboarding is already completed and get client_id
         const { data: client } = await supabase
           .from("clients")
-          .select("onboarding_completed")
+          .select("id, onboarding_completed")
           .eq("user_id", user.id)
-          .single() as { data: { onboarding_completed: boolean } | null };
+          .single() as { data: { id: string; onboarding_completed: boolean } | null };
 
         if (client?.onboarding_completed) {
           router.push("/dashboard");
           return;
         }
 
-        // Load existing assessment data
+        if (!client) {
+          console.error("Client record not found");
+          setIsLoading(false);
+          return;
+        }
+
+        // Load existing assessment data using client_id
         const { data: assessment } = await supabase
           .from("client_assessments")
           .select("*, assess_personal(*), assess_goals(*), assess_training(*), assess_medical(*), assess_blood_reports(*), assess_lifestyle(*), assess_diet(*), assess_food_preferences(*), assess_supplements(*), assess_skin_hair(*), assess_expectations(*)")
-          .eq("user_id", user.id)
+          .eq("client_id", client.id)
           .single() as { data: AssessmentRow | null };
 
         if (assessment) {

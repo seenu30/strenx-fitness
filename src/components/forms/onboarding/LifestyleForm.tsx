@@ -70,6 +70,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
   };
 
   const [formData, setFormData] = useState<LifestyleData>(initialData);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -89,10 +90,29 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
     });
   };
 
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (formData.sleepIssues.length === 0) {
+      newErrors.sleepIssues = "Please select any sleep issues (or 'None')";
+    }
+    if (formData.stressSources.length === 0) {
+      newErrors.stressSources = "Please select your stress sources (or 'None')";
+    }
+    if (!formData.dailySteps || formData.dailySteps < 0) {
+      newErrors.dailySteps = "Please enter your approximate daily steps";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave("lifestyle", formData);
-    onNext();
+    if (validate()) {
+      onSave("lifestyle", formData);
+      onNext();
+    }
   };
 
   return (
@@ -100,7 +120,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Sleep Hours */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          How many hours of sleep do you get on average?
+          How many hours of sleep do you get on average? *
         </label>
         <div className="flex items-center gap-4">
           <input
@@ -122,7 +142,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Sleep Quality */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          How would you rate your sleep quality?
+          How would you rate your sleep quality? *
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {SLEEP_QUALITY_OPTIONS.map((option) => (
@@ -150,7 +170,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Sleep Issues */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Do you have any sleep issues?
+          Do you have any sleep issues? *
         </label>
         <div className="flex flex-wrap gap-2">
           {SLEEP_ISSUES.map((issue) => (
@@ -168,12 +188,15 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
             </button>
           ))}
         </div>
+        {errors.sleepIssues && (
+          <p className="mt-2 text-sm text-red-500">{errors.sleepIssues}</p>
+        )}
       </div>
 
       {/* Stress Level */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What is your typical stress level?
+          What is your typical stress level? *
         </label>
         <div className="space-y-2">
           <input
@@ -196,7 +219,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Stress Sources */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What are your main sources of stress?
+          What are your main sources of stress? *
         </label>
         <div className="flex flex-wrap gap-2">
           {STRESS_SOURCES.map((source) => (
@@ -214,12 +237,15 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
             </button>
           ))}
         </div>
+        {errors.stressSources && (
+          <p className="mt-2 text-sm text-red-500">{errors.stressSources}</p>
+        )}
       </div>
 
       {/* Activity Level */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What is your current activity level (outside of planned workouts)?
+          What is your current activity level (outside of planned workouts)? *
         </label>
         <div className="space-y-2">
           {ACTIVITY_LEVELS.map((level) => (
@@ -247,7 +273,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Daily Steps */}
       <div>
         <label htmlFor="dailySteps" className="block text-sm font-medium text-foreground mb-1">
-          Approximate daily steps (if you track)
+          Approximate daily steps *
         </label>
         <input
           id="dailySteps"
@@ -256,14 +282,19 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
           value={formData.dailySteps || ""}
           onChange={handleChange}
           placeholder="e.g., 5000"
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          className={`w-full max-w-xs px-4 py-2.5 rounded-lg border ${
+            errors.dailySteps ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
         />
+        {errors.dailySteps && (
+          <p className="mt-1 text-sm text-red-500">{errors.dailySteps}</p>
+        )}
       </div>
 
       {/* Work Type */}
       <div>
         <label htmlFor="workType" className="block text-sm font-medium text-foreground mb-1">
-          What type of work do you do?
+          What type of work do you do? *
         </label>
         <select
           id="workType"
@@ -281,7 +312,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Screen Time */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Daily screen time (hours)
+          Daily screen time (hours) *
         </label>
         <div className="flex items-center gap-4">
           <input

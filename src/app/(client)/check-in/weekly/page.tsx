@@ -60,7 +60,6 @@ export default function WeeklyCheckinPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [clientId, setClientId] = useState<string | null>(null);
-  const [tenantId, setTenantId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<WeeklyCheckinData>({
     weekNumber: Math.ceil((Date.now() - new Date("2026-01-01").getTime()) / (7 * 24 * 60 * 60 * 1000)),
@@ -86,7 +85,7 @@ export default function WeeklyCheckinPage() {
     { id: "reflection", title: "Weekly Reflection", icon: MessageSquare },
   ];
 
-  // Load client and tenant IDs on mount
+  // Load client ID on mount
   useEffect(() => {
     async function loadClientInfo() {
       const supabase = createClient();
@@ -97,13 +96,12 @@ export default function WeeklyCheckinPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: client } = await (supabase as any)
         .from("clients")
-        .select("id, tenant_id")
+        .select("id")
         .eq("user_id", user.id)
         .single();
 
       if (client) {
         setClientId(client.id);
-        setTenantId(client.tenant_id);
       }
     }
 
@@ -158,7 +156,7 @@ export default function WeeklyCheckinPage() {
 
     try {
       const supabase = createClient();
-      if (!clientId || !tenantId) {
+      if (!clientId) {
         throw new Error("Unable to submit. Please try again.");
       }
 
@@ -170,12 +168,11 @@ export default function WeeklyCheckinPage() {
       weekStart.setDate(today.getDate() + mondayOffset);
       const weekStartDate = weekStart.toISOString().split('T')[0];
 
-      // 1. Insert weekly check-in
+      // 1. Insert weekly check-in (RLS handles tenant assignment)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: checkin, error: checkinError } = await (supabase as any)
         .from("weekly_checkins")
         .insert({
-          tenant_id: tenantId,
           client_id: clientId,
           week_start_date: weekStartDate,
           week_number: formData.weekNumber,
@@ -191,14 +188,13 @@ export default function WeeklyCheckinPage() {
         throw new Error(checkinError.message);
       }
 
-      // 2. Insert measurements if any are provided
+      // 2. Insert measurements if any are provided (RLS handles tenant assignment)
       const hasMeasurements = Object.values(formData.measurements).some(v => v !== null);
       if (hasMeasurements) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: measurementError } = await (supabase as any)
           .from("measurements")
           .insert({
-            tenant_id: tenantId,
             client_id: clientId,
             measurement_date: weekStartDate,
             chest_cm: formData.measurements.chest,
@@ -231,12 +227,11 @@ export default function WeeklyCheckinPage() {
           continue;
         }
 
-        // Save photo record (note: photo_path_encrypted is bytea, we store path as text for now)
+        // Save photo record (RLS handles tenant assignment)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: photoError } = await (supabase as any)
           .from("progress_photos")
           .insert({
-            tenant_id: tenantId,
             client_id: clientId,
             photo_date: weekStartDate,
             photo_type: photo.angle,

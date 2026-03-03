@@ -371,6 +371,80 @@ export const sendNotificationSchema = z.object({
 });
 
 // ============================================
+// Application Schemas
+// ============================================
+
+export const createApplicationSchema = z.object({
+  email: emailSchema,
+  phone: z.string().optional().nullable(),
+  assessment_data: z.record(z.string(), z.unknown()).optional(),
+  completed_steps: z.array(z.string()).optional(),
+  progress_percentage: z.number().min(0).max(100).optional(),
+  consent_data_processing: z.boolean().optional(),
+  consent_marketing: z.boolean().optional(),
+  consent_medical_sharing: z.boolean().optional(),
+  consent_terms: z.boolean().optional(),
+  payment_reference: safeString100.optional().nullable(),
+  payment_screenshot_url: z.string().url().optional().nullable(),
+  payment_screenshot_path: safeString200.optional().nullable(),
+});
+
+export const updateApplicationSchema = z.object({
+  assessment_data: z.record(z.string(), z.unknown()).optional(),
+  current_step: z.string().max(50).optional(),
+  completed_steps: z.array(z.string()).optional(),
+  progress_percentage: z.number().min(0).max(100).optional(),
+  phone: z.string().optional(),
+});
+
+export const reviewApplicationSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+  selected_plan_id: uuidSchema.optional(),
+  custom_amount: z.number().min(0).optional(),
+  review_notes: longTextSchema.optional(),
+  rejection_reason: longTextSchema.optional(),
+}).refine((data) => {
+  if (data.action === "approve") {
+    return data.selected_plan_id !== undefined;
+  }
+  if (data.action === "reject") {
+    return data.rejection_reason !== undefined && data.rejection_reason.length > 0;
+  }
+  return true;
+}, {
+  message: "Plan required for approval, reason required for rejection",
+});
+
+export const confirmPaymentSchema = z.object({
+  payment_reference: safeStringRequired100,
+  payment_method: z.enum(["upi", "bank_transfer", "cash", "card", "other"]).optional(),
+  custom_amount: z.number().min(0).optional(),
+});
+
+export const inviteUserSchema = z.object({
+  email: emailSchema,
+  firstName: nameSchema,
+  lastName: nameSchema,
+  phone: z.string().optional(),
+});
+
+export const inviteCoachSchema = z.object({
+  email: emailSchema,
+  firstName: nameSchema,
+  lastName: nameSchema,
+  specializations: z.string().max(500).optional(),
+  experienceYears: z.union([z.string(), z.number()]).optional(),
+});
+
+export const inviteClientSchema = z.object({
+  email: emailSchema,
+  firstName: nameSchema,
+  lastName: nameSchema,
+  phone: z.string().optional(),
+  planId: uuidSchema.optional(),
+});
+
+// ============================================
 // Search & Filter Schemas
 // ============================================
 

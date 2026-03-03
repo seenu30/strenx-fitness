@@ -9,6 +9,7 @@ const PUBLIC_ROUTES = [
   '/reset-password',
   '/verify-email',
   '/auth/callback',
+  '/apply', // Public client application form
 ];
 
 // Routes for coaches/admins
@@ -29,6 +30,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/webhooks') ||
+    pathname.startsWith('/api/test-') ||
+    pathname.startsWith('/api/applications') || // Public application API
+    pathname.startsWith('/api/payment-settings') || // Public payment settings for apply form
+    pathname.startsWith('/api/upload/payment-screenshot') || // Public screenshot upload
     pathname.includes('.')
   ) {
     return supabaseResponse;
@@ -50,8 +55,10 @@ export async function middleware(request: NextRequest) {
     const userRole = userProfile?.role || 'client';
     const url = request.nextUrl.clone();
 
-    // Redirect coaches and super_admins to admin dashboard
-    if (userRole === 'coach' || userRole === 'super_admin') {
+    // Redirect based on role
+    if (userRole === 'super_admin') {
+      url.pathname = '/super-admin';
+    } else if (userRole === 'coach') {
       url.pathname = '/admin';
     } else {
       url.pathname = '/dashboard';

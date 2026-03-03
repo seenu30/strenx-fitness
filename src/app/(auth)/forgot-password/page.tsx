@@ -1,14 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+
+// Email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  // Real-time validation
+  const emailError = useMemo(() => {
+    if (!email) return "Email is required";
+    if (!EMAIL_REGEX.test(email)) return "Invalid email format";
+    return null;
+  }, [email]);
+
+  const isFormValid = !emailError;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -123,17 +136,23 @@ export default function ForgotPasswordPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => setTouched(true)}
             required
             autoComplete="email"
             placeholder="you@example.com"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+            className={`w-full px-4 py-2.5 rounded-lg border bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+              touched && emailError ? "border-red-500" : "border-border"
+            }`}
           />
+          {touched && emailError && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{emailError}</p>
+          )}
         </div>
 
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={!isFormValid || isLoading}
           className="w-full py-2.5 px-4 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isLoading ? (

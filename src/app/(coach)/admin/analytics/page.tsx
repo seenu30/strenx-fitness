@@ -46,7 +46,6 @@ type TimeRange = "7d" | "30d" | "90d" | "12m";
 
 interface CoachData {
   id: string;
-  tenant_id: string;
 }
 
 interface UserData {
@@ -121,7 +120,7 @@ export default function AnalyticsPage() {
 
       const { data: coach } = await supabase
         .from("coaches")
-        .select("id, tenant_id")
+        .select("id")
         .eq("user_id", user.id)
         .single() as { data: CoachData | null };
 
@@ -157,7 +156,7 @@ export default function AnalyticsPage() {
             plan_templates(name, price)
           )
         `)
-        .eq("tenant_id", coach.tenant_id) as { data: ClientData[] | null };
+        .eq("coach_id", coach.id) as { data: ClientData[] | null };
 
       const allClients: ClientData[] = clients || [];
       const totalClients = allClients.length;
@@ -174,10 +173,11 @@ export default function AnalyticsPage() {
         : clientsInPeriod > 0 ? 100 : 0;
 
       const clientIds = allClients.map((c) => c.id);
+      const safeClientIds = clientIds.length > 0 ? clientIds : ['00000000-0000-0000-0000-000000000000'];
       const { data: checkins } = await supabase
         .from("daily_checkins")
         .select("client_id, created_at")
-        .in("client_id", clientIds.length > 0 ? clientIds : ["no-clients"])
+        .in("client_id", safeClientIds)
         .gte("created_at", startDate.toISOString()) as { data: CheckinData[] | null };
 
       // Calculate average compliance (check-ins per client / days in period)
@@ -189,7 +189,7 @@ export default function AnalyticsPage() {
       const { data: previousCheckins } = await supabase
         .from("daily_checkins")
         .select("id")
-        .in("client_id", clientIds.length > 0 ? clientIds : ["no-clients"])
+        .in("client_id", safeClientIds)
         .gte("created_at", previousStartDate.toISOString())
         .lt("created_at", startDate.toISOString()) as { data: { id: string }[] | null };
 
@@ -205,7 +205,7 @@ export default function AnalyticsPage() {
       const { data: payments } = await supabase
         .from("payments")
         .select("amount, payment_date")
-        .eq("tenant_id", coach.tenant_id)
+        .in("client_id", safeClientIds)
         .eq("status", "completed")
         .gte("payment_date", monthStart.toISOString()) as { data: PaymentData[] | null };
 
@@ -215,7 +215,7 @@ export default function AnalyticsPage() {
       const { data: prevPayments } = await supabase
         .from("payments")
         .select("amount")
-        .eq("tenant_id", coach.tenant_id)
+        .in("client_id", safeClientIds)
         .eq("status", "completed")
         .gte("payment_date", prevMonthStart.toISOString())
         .lt("payment_date", monthStart.toISOString()) as { data: PaymentData[] | null };
@@ -260,7 +260,7 @@ export default function AnalyticsPage() {
         const { data: monthPayments } = await supabase
           .from("payments")
           .select("amount")
-          .eq("tenant_id", coach.tenant_id)
+          .in("client_id", safeClientIds)
           .eq("status", "completed")
           .gte("payment_date", monthDate.toISOString())
           .lt("payment_date", nextMonthDate.toISOString()) as { data: PaymentData[] | null };
@@ -277,7 +277,7 @@ export default function AnalyticsPage() {
         const { data: monthCheckins } = await supabase
           .from("daily_checkins")
           .select("id")
-          .in("client_id", clientIds.length > 0 ? clientIds : ["no-clients"])
+          .in("client_id", safeClientIds)
           .gte("created_at", monthDate.toISOString())
           .lt("created_at", nextMonthDate.toISOString()) as { data: { id: string }[] | null };
 
@@ -343,7 +343,7 @@ export default function AnalyticsPage() {
           status,
           plan_templates(name, price)
         `)
-        .eq("tenant_id", coach.tenant_id)
+        .in("client_id", safeClientIds)
         .eq("status", "active") as { data: Subscription[] | null };
 
       const planCounts: Record<string, { count: number; revenue: number }> = {};

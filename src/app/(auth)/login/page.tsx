@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+// Email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LoginForm() {
   const router = useRouter();
@@ -12,8 +15,24 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [touched, setTouched] = useState({ email: false, password: false });
 
   const redirectTo = searchParams.get("next") || "/dashboard";
+
+  // Real-time validation
+  const emailError = useMemo(() => {
+    if (!email) return "Email is required";
+    if (!EMAIL_REGEX.test(email)) return "Invalid email format";
+    return null;
+  }, [email]);
+
+  const passwordError = useMemo(() => {
+    if (!password) return "Password is required";
+    return null;
+  }, [password]);
+
+  // Form is valid when both fields have no errors
+  const isFormValid = !emailError && !passwordError;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -23,7 +42,7 @@ function LoginForm() {
     try {
       const supabase = createClient();
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -39,7 +58,30 @@ function LoginForm() {
         return;
       }
 
-      router.push(redirectTo);
+      // Get user role to determine redirect destination
+      let finalRedirect = redirectTo;
+      if (authData.user) {
+        const { data: userProfile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', authData.user.id)
+          .single() as { data: { role: string } | null };
+
+        const role = userProfile?.role || 'client';
+
+        // Override default redirect based on role (unless specific next URL provided)
+        if (!searchParams.get("next")) {
+          if (role === 'super_admin') {
+            finalRedirect = '/super-admin'; // Super Admin dashboard
+          } else if (role === 'coach') {
+            finalRedirect = '/admin'; // Coach dashboard
+          } else {
+            finalRedirect = '/dashboard'; // Client dashboard
+          }
+        }
+      }
+
+      router.push(finalRedirect);
       router.refresh();
     } catch {
       setError("An unexpected error occurred. Please try again.");
@@ -79,11 +121,17 @@ function LoginForm() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
             required
             autoComplete="email"
             placeholder="you@example.com"
-            className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-colors"
+            className={`w-full px-4 py-2.5 rounded-lg border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-colors ${
+              touched.email && emailError ? "border-destructive" : "border-input"
+            }`}
           />
+          {touched.email && emailError && (
+            <p className="mt-1 text-sm text-destructive">{emailError}</p>
+          )}
         </div>
 
         <div>
@@ -106,16 +154,22 @@ function LoginForm() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onBlur={() => setTouched(prev => ({ ...prev, password: true }))}
             required
             autoComplete="current-password"
             placeholder="Enter your password"
-            className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-colors"
+            className={`w-full px-4 py-2.5 rounded-lg border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-colors ${
+              touched.password && passwordError ? "border-destructive" : "border-input"
+            }`}
           />
+          {touched.password && passwordError && (
+            <p className="mt-1 text-sm text-destructive">{passwordError}</p>
+          )}
         </div>
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={!isFormValid || isLoading}
           className="w-full py-2.5 px-4 rounded-lg bg-foreground text-background font-medium hover:bg-foreground/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isLoading ? (

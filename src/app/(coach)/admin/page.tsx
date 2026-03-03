@@ -116,7 +116,7 @@ export default function AdminDashboardPage() {
       const supabase = createClient();
 
       try {
-        // Get coach's tenant_id
+        // Get coach info
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           setIsLoading(false);
@@ -125,22 +125,30 @@ export default function AdminDashboardPage() {
 
         const { data: coach } = await (supabase as SupabaseClient)
           .from("coaches")
-          .select("id, tenant_id")
+          .select("id")
           .eq("user_id", user.id)
           .single();
 
-        const tenantId = coach?.tenant_id;
+        if (!coach) {
+          setIsLoading(false);
+          return;
+        }
+
+        const coachId = coach.id;
 
         const { data: clients } = await (supabase as SupabaseClient)
           .from("clients")
           .select("id, status, user_id, users!inner(first_name, last_name)")
-          .eq("tenant_id", tenantId);
+          .eq("coach_id", coachId);
 
         const totalClients = clients?.length || 0;
         const activeClients = (clients as ClientRow[] | null)?.filter((c) => c.status === "active").length || 0;
 
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
+
+        // Get client IDs for this coach
+        const clientIds = (clients as ClientRow[] | null)?.map(c => c.id) || [];
 
         const { data: dailyCheckins } = await (supabase as SupabaseClient)
           .from("daily_checkins")
@@ -150,7 +158,7 @@ export default function AdminDashboardPage() {
             coach_reviewed,
             clients!inner(user_id, users!inner(first_name, last_name))
           `)
-          .eq("tenant_id", tenantId)
+          .in("client_id", clientIds.length > 0 ? clientIds : ['00000000-0000-0000-0000-000000000000'])
           .gte("created_at", yesterday.toISOString())
           .order("created_at", { ascending: false })
           .limit(10);
@@ -163,7 +171,7 @@ export default function AdminDashboardPage() {
             coach_reviewed,
             clients!inner(user_id, users!inner(first_name, last_name))
           `)
-          .eq("tenant_id", tenantId)
+          .in("client_id", clientIds.length > 0 ? clientIds : ['00000000-0000-0000-0000-000000000000'])
           .gte("created_at", yesterday.toISOString())
           .order("created_at", { ascending: false })
           .limit(5);
@@ -208,7 +216,7 @@ export default function AdminDashboardPage() {
             created_at,
             clients!inner(user_id, users!inner(first_name, last_name))
           `)
-          .eq("tenant_id", tenantId)
+          .in("client_id", clientIds.length > 0 ? clientIds : ['00000000-0000-0000-0000-000000000000'])
           .eq("is_active", true)
           .order("created_at", { ascending: false })
           .limit(3);
@@ -231,7 +239,7 @@ export default function AdminDashboardPage() {
         const { data: complianceCheckins } = await (supabase as SupabaseClient)
           .from("daily_checkins")
           .select("checkin_date")
-          .eq("tenant_id", tenantId)
+          .in("client_id", clientIds.length > 0 ? clientIds : ['00000000-0000-0000-0000-000000000000'])
           .gte("checkin_date", fourWeeksAgo.toISOString().split('T')[0]);
 
         // Calculate compliance per day for each week
@@ -264,8 +272,8 @@ export default function AdminDashboardPage() {
 
         const { data: payments } = await (supabase as SupabaseClient)
           .from("payments")
-          .select("amount")
-          .eq("tenant_id", tenantId)
+          .select("amount, subscriptions!inner(client_id)")
+          .in("subscriptions.client_id", clientIds.length > 0 ? clientIds : ['00000000-0000-0000-0000-000000000000'])
           .eq("status", "completed")
           .gte("payment_date", startOfMonth.toISOString());
 
@@ -282,8 +290,8 @@ export default function AdminDashboardPage() {
 
         const { data: lastMonthPayments } = await (supabase as SupabaseClient)
           .from("payments")
-          .select("amount")
-          .eq("tenant_id", tenantId)
+          .select("amount, subscriptions!inner(client_id)")
+          .in("subscriptions.client_id", clientIds.length > 0 ? clientIds : ['00000000-0000-0000-0000-000000000000'])
           .eq("status", "completed")
           .gte("payment_date", startOfLastMonth.toISOString())
           .lte("payment_date", endOfLastMonth.toISOString());
@@ -293,7 +301,7 @@ export default function AdminDashboardPage() {
         const { data: subscriptions } = await (supabase as SupabaseClient)
           .from("subscriptions")
           .select("id, status, end_date")
-          .eq("tenant_id", tenantId);
+          .in("client_id", clientIds.length > 0 ? clientIds : ['00000000-0000-0000-0000-000000000000']);
 
         // Count active plans
         const activePlans = (subscriptions as SubscriptionRow[] | null)?.filter((s) => s.status === "active").length || 0;
@@ -318,8 +326,8 @@ export default function AdminDashboardPage() {
 
         const { data: pendingPaymentsList } = await (supabase as SupabaseClient)
           .from("payments")
-          .select("id")
-          .eq("tenant_id", tenantId)
+          .select("id, subscriptions!inner(client_id)")
+          .in("subscriptions.client_id", clientIds.length > 0 ? clientIds : ['00000000-0000-0000-0000-000000000000'])
           .eq("status", "pending");
 
         const pendingPayments = pendingPaymentsList?.length || 0;

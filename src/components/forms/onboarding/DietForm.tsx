@@ -48,6 +48,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
 
   const [formData, setFormData] = useState<DietData>(initialData);
   const [mealTimeInput, setMealTimeInput] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -74,10 +75,26 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
     }));
   };
 
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (formData.mealTimings.length === 0) {
+      newErrors.mealTimings = "Please add at least one meal timing";
+    }
+    if (!formData.snackingHabits?.trim()) {
+      newErrors.snackingHabits = "Please describe your snacking habits";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave("diet", formData);
-    onNext();
+    if (validate()) {
+      onSave("diet", formData);
+      onNext();
+    }
   };
 
   return (
@@ -85,7 +102,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Diet Preference */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What is your diet preference?
+          What is your diet preference? *
         </label>
         <div className="grid grid-cols-2 gap-3">
           {DIET_PREFERENCES.map((pref) => (
@@ -113,7 +130,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Meals Per Day */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          How many meals do you typically eat per day?
+          How many meals do you typically eat per day? *
         </label>
         <div className="flex items-center gap-4">
           <input
@@ -134,14 +151,16 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Meal Timings */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-foreground">
-          Typical meal timings (optional)
+          Typical meal timings *
         </label>
         <div className="flex gap-2">
           <input
             type="time"
             value={mealTimeInput}
             onChange={(e) => setMealTimeInput(e.target.value)}
-            className="px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className={`px-4 py-2.5 rounded-lg border ${
+              errors.mealTimings && formData.mealTimings.length === 0 ? "border-red-500" : "border-border"
+            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
           />
           <button
             type="button"
@@ -166,12 +185,15 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
             ))}
           </div>
         )}
+        {errors.mealTimings && (
+          <p className="mt-1 text-sm text-red-500">{errors.mealTimings}</p>
+        )}
       </div>
 
       {/* Eating Out */}
       <div>
         <label htmlFor="eatsOutFrequency" className="block text-sm font-medium text-foreground mb-1">
-          How often do you eat out or order food?
+          How often do you eat out or order food? *
         </label>
         <select
           id="eatsOutFrequency"
@@ -189,7 +211,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Cooking */}
       <div>
         <label htmlFor="cookingFrequency" className="block text-sm font-medium text-foreground mb-1">
-          How often do you cook your own meals?
+          How often do you cook your own meals? *
         </label>
         <select
           id="cookingFrequency"
@@ -207,7 +229,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Water Intake */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Daily water intake (liters)
+          Daily water intake (liters) *
         </label>
         <div className="flex items-center gap-4">
           <input
@@ -229,7 +251,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Alcohol */}
       <div>
         <label htmlFor="alcoholFrequency" className="block text-sm font-medium text-foreground mb-1">
-          Alcohol consumption
+          Alcohol consumption *
         </label>
         <select
           id="alcoholFrequency"
@@ -247,7 +269,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Smoking */}
       <div>
         <label htmlFor="smokingStatus" className="block text-sm font-medium text-foreground mb-1">
-          Smoking status
+          Smoking status *
         </label>
         <select
           id="smokingStatus"
@@ -265,7 +287,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Caffeine */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Cups of tea/coffee per day
+          Cups of tea/coffee per day *
         </label>
         <div className="flex items-center gap-4">
           <input
@@ -286,7 +308,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Snacking Habits */}
       <div>
         <label htmlFor="snackingHabits" className="block text-sm font-medium text-foreground mb-1">
-          Describe your snacking habits
+          Describe your snacking habits *
         </label>
         <textarea
           id="snackingHabits"
@@ -295,8 +317,13 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
           onChange={handleChange}
           rows={3}
           placeholder="e.g., I snack a lot in the evening, usually chips or biscuits..."
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          className={`w-full px-4 py-2.5 rounded-lg border ${
+            errors.snackingHabits ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none`}
         />
+        {errors.snackingHabits && (
+          <p className="mt-1 text-sm text-red-500">{errors.snackingHabits}</p>
+        )}
       </div>
     </form>
   );

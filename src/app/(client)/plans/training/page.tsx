@@ -56,38 +56,47 @@ interface DbClient {
 interface DbTrainingPlan {
   id: string;
   name: string;
-  version: string;
-  days_per_week: number;
-  focus: string;
+  days_per_week: number | null;
+  goal: string | null;
   updated_at: string;
   created_at: string;
 }
 
-interface DbTrainingAssignment {
+interface DbTrainingPlanVersion {
   id: string;
-  assigned_at: string;
+  version_number: number;
+  created_at: string;
   training_plans: DbTrainingPlan | null;
+}
+
+interface DbPlanAssignment {
+  id: string;
+  is_active: boolean;
+  created_at: string;
+  training_plan_versions: DbTrainingPlanVersion | null;
 }
 
 interface DbTrainingDay {
   id: string;
-  training_plan_id: string;
+  plan_version_id: string;
   day_number: number;
-  name: string;
+  day_name: string | null;
   is_rest_day: boolean;
-  notes: string | null;
+  is_cardio_day: boolean;
+  duration_minutes: number | null;
+  focus_areas: string[] | null;
+  sort_order: number;
 }
 
 interface DbExercise {
   id: string;
   training_day_id: string;
-  name: string;
+  exercise_name: string;
   sets: number | null;
-  reps: string;
+  reps: string | null;
   rest_seconds: number | null;
-  notes: string | null;
-  video_url: string | null;
-  order_index: number;
+  coach_notes: string | null;
+  sort_order: number;
 }
 
 export default function TrainingPlanPage() {
@@ -113,45 +122,52 @@ export default function TrainingPlanPage() {
       if (!client) return;
 
       const { data: assignment } = await supabase
-        .from("client_training_plans")
+        .from("client_plan_assignments")
         .select(`
           id,
-          assigned_at,
-          training_plans(
+          is_active,
+          created_at,
+          training_plan_versions(
             id,
-            name,
-            version,
-            days_per_week,
-            focus,
-            updated_at,
-            created_at
+            version_number,
+            created_at,
+            training_plans(
+              id,
+              name,
+              days_per_week,
+              goal,
+              updated_at,
+              created_at
+            )
           )
         `)
         .eq("client_id", client.id)
         .eq("is_active", true)
-        .order("assigned_at", { ascending: false })
+        .not("training_plan_version_id", "is", null)
+        .order("created_at", { ascending: false })
         .limit(1)
-        .single() as { data: DbTrainingAssignment | null };
+        .single() as { data: DbPlanAssignment | null };
 
-      if (!assignment?.training_plans) {
+      const trainingPlanVersion = assignment?.training_plan_versions;
+      const trainingPlan = trainingPlanVersion?.training_plans;
+
+      if (!trainingPlanVersion || !trainingPlan) {
         setLoading(false);
         return;
       }
 
-      const trainingPlan = assignment.training_plans;
-
       const { data: daysData } = await supabase
-        .from("training_plan_days")
+        .from("training_days")
         .select("*")
-        .eq("training_plan_id", trainingPlan.id)
-        .order("day_number", { ascending: true }) as { data: DbTrainingDay[] | null };
+        .eq("plan_version_id", trainingPlanVersion.id)
+        .order("sort_order", { ascending: true }) as { data: DbTrainingDay[] | null };
 
       const dayIds = daysData?.map((d: DbTrainingDay) => d.id) || [];
       const { data: exercisesData } = await supabase
-        .from("training_plan_exercises")
+        .from("training_exercises")
         .select("*")
         .in("training_day_id", dayIds.length > 0 ? dayIds : ["no-days"])
-        .order("order_index", { ascending: true }) as { data: DbExercise[] | null };
+        .order("sort_order", { ascending: true }) as { data: DbExercise[] | null };
 
       const exercisesByDay: Record<string, Exercise[]> = {};
       (exercisesData || []).forEach((ex: DbExercise) => {
@@ -159,12 +175,12 @@ export default function TrainingPlanPage() {
           exercisesByDay[ex.training_day_id] = [];
         }
         exercisesByDay[ex.training_day_id].push({
-          name: ex.name,
+          name: ex.exercise_name,
           sets: ex.sets?.toString() || "3",
           reps: ex.reps || "10-12",
           rest: ex.rest_seconds ? `${ex.rest_seconds} sec` : "60 sec",
-          notes: ex.notes || "",
-          videoUrl: ex.video_url ?? undefined,
+          notes: ex.coach_notes || "",
+          videoUrl: undefined,
         });
       });
 
@@ -175,16 +191,20 @@ export default function TrainingPlanPage() {
         const existingDay = existingDays.find((d: DbTrainingDay) => d.day_number === i);
         if (existingDay) {
           const exercises = exercisesByDay[existingDay.id] || [];
-          const duration = exercises.length > 0 ? `${exercises.length * 8 + 10} min` : "0 min";
+          const duration = existingDay.duration_minutes
+            ? `${existingDay.duration_minutes} min`
+            : exercises.length > 0
+              ? `${exercises.length * 8 + 10} min`
+              : "0 min";
 
           days.push({
             id: existingDay.id,
             dayNumber: i,
-            name: existingDay.name || `Day ${i}`,
+            name: existingDay.day_name || `Day ${i}`,
             duration: existingDay.is_rest_day ? "0 min" : duration,
             exercises: exercises,
             isRestDay: existingDay.is_rest_day || false,
-            notes: existingDay.notes || (existingDay.is_rest_day ? "Rest and recovery day" : ""),
+            notes: existingDay.focus_areas?.join(", ") || (existingDay.is_rest_day ? "Rest and recovery day" : ""),
           });
         } else {
           days.push({
@@ -206,7 +226,7 @@ export default function TrainingPlanPage() {
 
       setPlan({
         name: trainingPlan.name || "Training Plan",
-        version: trainingPlan.version || "1.0",
+        version: String(trainingPlanVersion.version_number) || "1.0",
         updatedAt: trainingPlan.updated_at || trainingPlan.created_at,
         weeklySchedule: {
           daysPerWeek: trainingPlan.days_per_week || (7 - restDays.length),

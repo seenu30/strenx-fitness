@@ -93,6 +93,15 @@ export default function GoalsForm({
     if (formData.commitmentHoursPerWeek < 1) {
       newErrors.commitmentHoursPerWeek = "Please specify weekly commitment";
     }
+    if (formData.secondaryGoals.length === 0) {
+      newErrors.secondaryGoals = "Please select at least one secondary goal";
+    }
+    if (!formData.targetWeightKg || formData.targetWeightKg < 30) {
+      newErrors.targetWeightKg = "Please enter your target weight";
+    }
+    if (!formData.previousAttempts?.trim()) {
+      newErrors.previousAttempts = "Please share your previous attempts";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -142,7 +151,7 @@ export default function GoalsForm({
       {/* Secondary Goals */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Any secondary goals? (Select all that apply)
+          Secondary goals *
         </label>
         <div className="flex flex-wrap gap-2">
           {SECONDARY_GOALS.map((goal) => (
@@ -160,15 +169,18 @@ export default function GoalsForm({
             </button>
           ))}
         </div>
+        {errors.secondaryGoals && (
+          <p className="mt-2 text-sm text-red-500">{errors.secondaryGoals}</p>
+        )}
       </div>
 
-      {/* Target Weight (optional) */}
+      {/* Target Weight */}
       <div>
         <label
           htmlFor="targetWeightKg"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Target Weight (kg) - Optional
+          Target Weight (kg) *
         </label>
         <input
           id="targetWeightKg"
@@ -179,9 +191,14 @@ export default function GoalsForm({
           min="30"
           max="200"
           step="0.5"
-          placeholder="Leave blank if unsure"
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          placeholder="e.g., 70"
+          className={`w-full max-w-xs px-4 py-2.5 rounded-lg border ${
+            errors.targetWeightKg ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
         />
+        {errors.targetWeightKg && (
+          <p className="mt-1 text-sm text-red-500">{errors.targetWeightKg}</p>
+        )}
       </div>
 
       {/* Timeline */}
@@ -267,7 +284,7 @@ export default function GoalsForm({
           htmlFor="previousAttempts"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Have you tried achieving this goal before? What happened?
+          Have you tried achieving this goal before? What happened? *
         </label>
         <textarea
           id="previousAttempts"
@@ -276,8 +293,13 @@ export default function GoalsForm({
           onChange={handleChange}
           rows={3}
           placeholder="Share your past experiences..."
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          className={`w-full px-4 py-2.5 rounded-lg border ${
+            errors.previousAttempts ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none`}
         />
+        {errors.previousAttempts && (
+          <p className="mt-1 text-sm text-red-500">{errors.previousAttempts}</p>
+        )}
       </div>
     </form>
   );

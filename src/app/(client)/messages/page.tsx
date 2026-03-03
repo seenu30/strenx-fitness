@@ -90,14 +90,13 @@ export default function MessagesPage() {
         .single();
 
       if (!conversation) {
-        // Create conversation
+        // Create conversation (RLS handles tenant assignment)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: newConv, error } = await (supabase as any)
           .from("conversations")
           .insert({
             client_id: client.id,
             coach_id: client.coach_id,
-            tenant_id: "00000000-0000-0000-0000-000000000001",
           })
           .select()
           .single();

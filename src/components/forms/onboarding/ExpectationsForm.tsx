@@ -54,6 +54,15 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
     if (!formData.previousChallenges.trim()) {
       newErrors.previousChallenges = "Please share your previous challenges";
     }
+    if (!formData.whatWorkedBefore?.trim()) {
+      newErrors.whatWorkedBefore = "Please share what has worked for you before";
+    }
+    if (!formData.whatDidntWork?.trim()) {
+      newErrors.whatDidntWork = "Please share what hasn't worked for you";
+    }
+    if (!formData.questionsForCoach?.trim()) {
+      newErrors.questionsForCoach = "Please share any questions for your coach";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -126,7 +135,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           htmlFor="whatWorkedBefore"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          What has worked for you in the past?
+          What has worked for you in the past? *
         </label>
         <textarea
           id="whatWorkedBefore"
@@ -135,8 +144,13 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           onChange={handleChange}
           rows={2}
           placeholder="Meal prepping on weekends, morning workouts, having accountability..."
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          className={`w-full px-4 py-2.5 rounded-lg border ${
+            errors.whatWorkedBefore ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none`}
         />
+        {errors.whatWorkedBefore && (
+          <p className="mt-1 text-sm text-red-500">{errors.whatWorkedBefore}</p>
+        )}
       </div>
 
       {/* What Didn't Work */}
@@ -145,7 +159,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           htmlFor="whatDidntWork"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          What hasn&apos;t worked for you?
+          What hasn&apos;t worked for you? *
         </label>
         <textarea
           id="whatDidntWork"
@@ -154,14 +168,19 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           onChange={handleChange}
           rows={2}
           placeholder="Strict diets, counting every calorie, exercising late at night..."
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          className={`w-full px-4 py-2.5 rounded-lg border ${
+            errors.whatDidntWork ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none`}
         />
+        {errors.whatDidntWork && (
+          <p className="mt-1 text-sm text-red-500">{errors.whatDidntWork}</p>
+        )}
       </div>
 
       {/* Willingness to Track */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          How willing are you to track your meals and workouts daily?
+          How willing are you to track your meals and workouts daily? *
         </label>
         <div className="space-y-2">
           <input
@@ -184,7 +203,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
       {/* Preferred Communication */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Preferred communication method
+          Preferred communication method *
         </label>
         <div className="grid grid-cols-2 gap-3">
           {COMMUNICATION_OPTIONS.map((option) => (
@@ -215,7 +234,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           htmlFor="questionsForCoach"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Any questions for your coach?
+          Any questions for your coach? *
         </label>
         <textarea
           id="questionsForCoach"
@@ -224,8 +243,13 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           onChange={handleChange}
           rows={3}
           placeholder="Anything you'd like to know or clarify before we begin..."
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+          className={`w-full px-4 py-2.5 rounded-lg border ${
+            errors.questionsForCoach ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none`}
         />
+        {errors.questionsForCoach && (
+          <p className="mt-1 text-sm text-red-500">{errors.questionsForCoach}</p>
+        )}
       </div>
     </form>
   );

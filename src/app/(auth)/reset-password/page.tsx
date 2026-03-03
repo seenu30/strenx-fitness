@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -11,6 +11,28 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
+  const [touched, setTouched] = useState({ password: false, confirmPassword: false });
+
+  // Real-time validation
+  const passwordErrors = useMemo(() => {
+    const errors: string[] = [];
+    if (!password) errors.push("Password is required");
+    else {
+      if (password.length < 8) errors.push("At least 8 characters");
+      if (!/[A-Z]/.test(password)) errors.push("One uppercase letter");
+      if (!/[a-z]/.test(password)) errors.push("One lowercase letter");
+      if (!/[0-9]/.test(password)) errors.push("One number");
+    }
+    return errors;
+  }, [password]);
+
+  const confirmPasswordError = useMemo(() => {
+    if (!confirmPassword) return "Confirm password is required";
+    if (password !== confirmPassword) return "Passwords do not match";
+    return null;
+  }, [password, confirmPassword]);
+
+  const isFormValid = passwordErrors.length === 0 && !confirmPasswordError;
 
   useEffect(() => {
     // Check if user has a valid session (came from reset email)
@@ -174,11 +196,17 @@ export default function ResetPasswordPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onBlur={() => setTouched(prev => ({ ...prev, password: true }))}
             required
             autoComplete="new-password"
             placeholder="Enter new password"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+            className={`w-full px-4 py-2.5 rounded-lg border bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+              touched.password && passwordErrors.length > 0 ? "border-red-500" : "border-border"
+            }`}
           />
+          {touched.password && passwordErrors.length > 0 && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{passwordErrors[0]}</p>
+          )}
         </div>
 
         {/* Confirm Password Field */}
@@ -194,11 +222,17 @@ export default function ResetPasswordPage() {
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            onBlur={() => setTouched(prev => ({ ...prev, confirmPassword: true }))}
             required
             autoComplete="new-password"
             placeholder="Confirm new password"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+            className={`w-full px-4 py-2.5 rounded-lg border bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+              touched.confirmPassword && confirmPasswordError ? "border-red-500" : "border-border"
+            }`}
           />
+          {touched.confirmPassword && confirmPasswordError && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{confirmPasswordError}</p>
+          )}
         </div>
 
         {/* Password Requirements */}
@@ -225,7 +259,7 @@ export default function ResetPasswordPage() {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={!isFormValid || isLoading}
           className="w-full py-2.5 px-4 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isLoading ? (

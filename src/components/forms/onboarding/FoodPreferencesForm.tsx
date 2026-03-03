@@ -50,6 +50,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
 
   const [formData, setFormData] = useState<FoodPreferencesData>(initialData);
   const [intoleranceInput, setIntoleranceInput] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleArrayToggle = (field: keyof FoodPreferencesData, value: string) => {
     setFormData((prev) => {
@@ -76,10 +77,32 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
     }
   };
 
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (formData.likedFoods.length === 0) {
+      newErrors.likedFoods = "Please select at least one food you enjoy";
+    }
+    if (formData.dislikedFoods.length === 0) {
+      newErrors.dislikedFoods = "Please select at least one food you dislike (or indicate none)";
+    }
+    if (formData.foodAllergies.length === 0) {
+      newErrors.foodAllergies = "Please select your food allergies (or 'None')";
+    }
+    if (formData.cuisinePreferences.length === 0) {
+      newErrors.cuisinePreferences = "Please select at least one preferred cuisine";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave("foodPreferences", formData);
-    onNext();
+    if (validate()) {
+      onSave("foodPreferences", formData);
+      onNext();
+    }
   };
 
   return (
@@ -87,7 +110,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
       {/* Liked Foods */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Foods you enjoy eating (select all that apply)
+          Foods you enjoy eating *
         </label>
         <div className="flex flex-wrap gap-2">
           {COMMON_FOODS.map((food) => (
@@ -105,12 +128,15 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
             </button>
           ))}
         </div>
+        {errors.likedFoods && (
+          <p className="mt-2 text-sm text-red-500">{errors.likedFoods}</p>
+        )}
       </div>
 
       {/* Disliked Foods */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Foods you dislike or avoid (select all that apply)
+          Foods you dislike or avoid *
         </label>
         <div className="flex flex-wrap gap-2">
           {COMMON_FOODS.map((food) => (
@@ -128,12 +154,15 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
             </button>
           ))}
         </div>
+        {errors.dislikedFoods && (
+          <p className="mt-2 text-sm text-red-500">{errors.dislikedFoods}</p>
+        )}
       </div>
 
       {/* Food Allergies */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Food allergies (severe reactions)
+          Food allergies (severe reactions) *
         </label>
         <div className="flex flex-wrap gap-2">
           {COMMON_ALLERGIES.map((allergy) => (
@@ -151,6 +180,9 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
             </button>
           ))}
         </div>
+        {errors.foodAllergies && (
+          <p className="mt-2 text-sm text-red-500">{errors.foodAllergies}</p>
+        )}
       </div>
 
       {/* Food Intolerances */}
@@ -217,7 +249,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
       {/* Cuisine Preferences */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Preferred cuisines
+          Preferred cuisines *
         </label>
         <div className="flex flex-wrap gap-2">
           {CUISINES.map((cuisine) => (
@@ -235,12 +267,15 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
             </button>
           ))}
         </div>
+        {errors.cuisinePreferences && (
+          <p className="mt-2 text-sm text-red-500">{errors.cuisinePreferences}</p>
+        )}
       </div>
 
       {/* Spice Tolerance */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Spice tolerance level
+          Spice tolerance level *
         </label>
         <div className="flex flex-wrap gap-2">
           {SPICE_LEVELS.map((level) => (

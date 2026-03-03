@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import type { AssessmentData, PersonalInfoData } from "@/types/onboarding";
 import { calculateBMI, getBMICategory } from "@/lib/utils";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 
 interface PersonalInfoFormProps {
   data: AssessmentData;
@@ -23,6 +24,27 @@ const MIN_AGE_DATE = new Date(Date.now() - 18 * 365.25 * 24 * 60 * 60 * 1000)
   .toISOString()
   .split("T")[0];
 
+// Validation helpers
+const validateName = (name: string): string | null => {
+  if (!name.trim()) return "This field is required";
+  if (name.trim().length < 2) return "Must be at least 2 characters";
+  if (!/^[a-zA-Z\s'-]+$/.test(name.trim())) return "Only letters, spaces, hyphens, and apostrophes allowed";
+  return null;
+};
+
+const validatePhone = (phone: string): string | null => {
+  if (!phone?.trim()) return "Phone number is required";
+  const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+  if (!/^\+?[0-9]{10,15}$/.test(cleaned)) return "Enter a valid phone number (10-15 digits)";
+  return null;
+};
+
+const validateEmail = (email: string): string | null => {
+  if (!email?.trim()) return "Email is required";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return "Enter a valid email address";
+  return null;
+};
+
 export default function PersonalInfoForm({
   data,
   onSave,
@@ -42,6 +64,57 @@ export default function PersonalInfoForm({
 
   const [formData, setFormData] = useState<PersonalInfoData>(initialData);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Real-time validation on blur
+  const handleBlur = useCallback((field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+
+    // Validate specific field
+    let error: string | null = null;
+
+    switch (field) {
+      case 'firstName':
+        error = validateName(formData.firstName);
+        break;
+      case 'lastName':
+        error = validateName(formData.lastName);
+        break;
+      case 'phone':
+        error = validatePhone(formData.phone || '');
+        break;
+      case 'dateOfBirth':
+        if (!formData.dateOfBirth) {
+          error = "Date of birth is required";
+        } else {
+          const dob = new Date(formData.dateOfBirth);
+          const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          if (age < 18) error = "You must be at least 18 years old";
+        }
+        break;
+      case 'heightCm':
+        if (formData.heightCm < 100 || formData.heightCm > 250) {
+          error = "Enter a valid height (100-250 cm)";
+        }
+        break;
+      case 'weightKg':
+        if (formData.weightKg < 30 || formData.weightKg > 300) {
+          error = "Enter a valid weight (30-300 kg)";
+        }
+        break;
+      case 'occupation':
+        if (!formData.occupation.trim()) error = "Occupation is required";
+        break;
+      case 'city':
+        if (!formData.city.trim()) error = "City is required";
+        break;
+    }
+
+    setErrors(prev => ({
+      ...prev,
+      [field]: error || ''
+    }));
+  }, [formData]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -51,6 +124,7 @@ export default function PersonalInfoForm({
       ...prev,
       [name]: type === "number" ? parseFloat(value) || 0 : value,
     }));
+
     // Clear error when field is modified
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
@@ -60,12 +134,12 @@ export default function PersonalInfoForm({
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required";
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required";
-    }
+    const firstNameError = validateName(formData.firstName);
+    if (firstNameError) newErrors.firstName = firstNameError;
+
+    const lastNameError = validateName(formData.lastName);
+    if (lastNameError) newErrors.lastName = lastNameError;
+
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = "Date of birth is required";
     } else {
@@ -77,6 +151,7 @@ export default function PersonalInfoForm({
         newErrors.dateOfBirth = "You must be at least 18 years old";
       }
     }
+
     if (!formData.gender) {
       newErrors.gender = "Gender is required";
     }
@@ -93,7 +168,22 @@ export default function PersonalInfoForm({
       newErrors.city = "City is required";
     }
 
+    const phoneError = validatePhone(formData.phone || '');
+    if (phoneError) newErrors.phone = phoneError;
+
     setErrors(newErrors);
+    // Mark all fields as touched on submit attempt
+    setTouched({
+      firstName: true,
+      lastName: true,
+      dateOfBirth: true,
+      gender: true,
+      heightCm: true,
+      weightKg: true,
+      occupation: true,
+      city: true,
+      phone: true,
+    });
     return Object.keys(newErrors).length === 0;
   };
 
@@ -112,8 +202,25 @@ export default function PersonalInfoForm({
       : null;
   const bmiCategory = bmi ? getBMICategory(bmi) : null;
 
+  // Helper for validation status icon
+  const getFieldStatus = (field: string) => {
+    if (!touched[field]) return null;
+    if (errors[field]) {
+      return <AlertCircle className="w-4 h-4 text-red-500" />;
+    }
+    return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+  };
+
   return (
     <form id="form-personal_info" onSubmit={handleSubmit} className="space-y-6">
+      {/* Info banner */}
+      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+        <p className="text-sm text-blue-700 dark:text-blue-300">
+          Your personal information helps us create a customized fitness and nutrition
+          plan. All data is encrypted and kept confidential.
+        </p>
+      </div>
+
       {/* Name */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -123,21 +230,31 @@ export default function PersonalInfoForm({
           >
             First Name *
           </label>
-          <input
-            id="firstName"
-            name="firstName"
-            type="text"
-            value={formData.firstName}
-            onChange={handleChange}
-            className={`w-full px-4 py-2.5 rounded-lg border ${
-              errors.firstName
-                ? "border-red-500"
-                : "border-border"
-            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
-          />
-          {errors.firstName && (
+          <div className="relative">
+            <input
+              id="firstName"
+              name="firstName"
+              type="text"
+              value={formData.firstName}
+              onChange={handleChange}
+              onBlur={() => handleBlur('firstName')}
+              placeholder="Enter your first name"
+              className={`w-full px-4 py-2.5 pr-10 rounded-lg border ${
+                touched.firstName && errors.firstName
+                  ? "border-red-500 focus:ring-red-500"
+                  : touched.firstName && !errors.firstName && formData.firstName
+                  ? "border-green-500 focus:ring-green-500"
+                  : "border-border"
+              } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {getFieldStatus('firstName')}
+            </div>
+          </div>
+          {touched.firstName && errors.firstName && (
             <p className="mt-1 text-sm text-red-500">{errors.firstName}</p>
           )}
+          <FieldHint>Your legal first name as it appears on ID</FieldHint>
         </div>
 
         <div>
@@ -147,21 +264,31 @@ export default function PersonalInfoForm({
           >
             Last Name *
           </label>
-          <input
-            id="lastName"
-            name="lastName"
-            type="text"
-            value={formData.lastName}
-            onChange={handleChange}
-            className={`w-full px-4 py-2.5 rounded-lg border ${
-              errors.lastName
-                ? "border-red-500"
-                : "border-border"
-            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
-          />
-          {errors.lastName && (
+          <div className="relative">
+            <input
+              id="lastName"
+              name="lastName"
+              type="text"
+              value={formData.lastName}
+              onChange={handleChange}
+              onBlur={() => handleBlur('lastName')}
+              placeholder="Enter your last name"
+              className={`w-full px-4 py-2.5 pr-10 rounded-lg border ${
+                touched.lastName && errors.lastName
+                  ? "border-red-500 focus:ring-red-500"
+                  : touched.lastName && !errors.lastName && formData.lastName
+                  ? "border-green-500 focus:ring-green-500"
+                  : "border-border"
+              } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {getFieldStatus('lastName')}
+            </div>
+          </div>
+          {touched.lastName && errors.lastName && (
             <p className="mt-1 text-sm text-red-500">{errors.lastName}</p>
           )}
+          <FieldHint>Your legal last name/surname</FieldHint>
         </div>
       </div>
 
@@ -174,22 +301,31 @@ export default function PersonalInfoForm({
           >
             Date of Birth *
           </label>
-          <input
-            id="dateOfBirth"
-            name="dateOfBirth"
-            type="date"
-            value={formData.dateOfBirth}
-            onChange={handleChange}
-            max={MIN_AGE_DATE}
-            className={`w-full px-4 py-2.5 rounded-lg border ${
-              errors.dateOfBirth
-                ? "border-red-500"
-                : "border-border"
-            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
-          />
-          {errors.dateOfBirth && (
+          <div className="relative">
+            <input
+              id="dateOfBirth"
+              name="dateOfBirth"
+              type="date"
+              value={formData.dateOfBirth}
+              onChange={handleChange}
+              onBlur={() => handleBlur('dateOfBirth')}
+              max={MIN_AGE_DATE}
+              className={`w-full px-4 py-2.5 pr-10 rounded-lg border ${
+                touched.dateOfBirth && errors.dateOfBirth
+                  ? "border-red-500 focus:ring-red-500"
+                  : touched.dateOfBirth && !errors.dateOfBirth && formData.dateOfBirth
+                  ? "border-green-500 focus:ring-green-500"
+                  : "border-border"
+              } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {getFieldStatus('dateOfBirth')}
+            </div>
+          </div>
+          {touched.dateOfBirth && errors.dateOfBirth && (
             <p className="mt-1 text-sm text-red-500">{errors.dateOfBirth}</p>
           )}
+          <FieldHint>You must be 18 years or older to apply</FieldHint>
         </div>
 
         <div>
@@ -219,6 +355,7 @@ export default function PersonalInfoForm({
           {errors.gender && (
             <p className="mt-1 text-sm text-red-500">{errors.gender}</p>
           )}
+          <FieldHint>Used for personalized nutrition recommendations</FieldHint>
         </div>
       </div>
 
@@ -231,24 +368,33 @@ export default function PersonalInfoForm({
           >
             Height (cm) *
           </label>
-          <input
-            id="heightCm"
-            name="heightCm"
-            type="number"
-            value={formData.heightCm || ""}
-            onChange={handleChange}
-            min="100"
-            max="250"
-            placeholder="e.g., 170"
-            className={`w-full px-4 py-2.5 rounded-lg border ${
-              errors.heightCm
-                ? "border-red-500"
-                : "border-border"
-            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
-          />
-          {errors.heightCm && (
+          <div className="relative">
+            <input
+              id="heightCm"
+              name="heightCm"
+              type="number"
+              value={formData.heightCm || ""}
+              onChange={handleChange}
+              onBlur={() => handleBlur('heightCm')}
+              min="100"
+              max="250"
+              placeholder="e.g., 170"
+              className={`w-full px-4 py-2.5 pr-10 rounded-lg border ${
+                touched.heightCm && errors.heightCm
+                  ? "border-red-500 focus:ring-red-500"
+                  : touched.heightCm && !errors.heightCm && formData.heightCm > 0
+                  ? "border-green-500 focus:ring-green-500"
+                  : "border-border"
+              } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {getFieldStatus('heightCm')}
+            </div>
+          </div>
+          {touched.heightCm && errors.heightCm && (
             <p className="mt-1 text-sm text-red-500">{errors.heightCm}</p>
           )}
+          <FieldHint>5&apos;7&quot; = 170cm, 6&apos;0&quot; = 183cm</FieldHint>
         </div>
 
         <div>
@@ -258,25 +404,34 @@ export default function PersonalInfoForm({
           >
             Weight (kg) *
           </label>
-          <input
-            id="weightKg"
-            name="weightKg"
-            type="number"
-            value={formData.weightKg || ""}
-            onChange={handleChange}
-            min="30"
-            max="300"
-            step="0.1"
-            placeholder="e.g., 70"
-            className={`w-full px-4 py-2.5 rounded-lg border ${
-              errors.weightKg
-                ? "border-red-500"
-                : "border-border"
-            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
-          />
-          {errors.weightKg && (
+          <div className="relative">
+            <input
+              id="weightKg"
+              name="weightKg"
+              type="number"
+              value={formData.weightKg || ""}
+              onChange={handleChange}
+              onBlur={() => handleBlur('weightKg')}
+              min="30"
+              max="300"
+              step="0.1"
+              placeholder="e.g., 70"
+              className={`w-full px-4 py-2.5 pr-10 rounded-lg border ${
+                touched.weightKg && errors.weightKg
+                  ? "border-red-500 focus:ring-red-500"
+                  : touched.weightKg && !errors.weightKg && formData.weightKg > 0
+                  ? "border-green-500 focus:ring-green-500"
+                  : "border-border"
+              } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {getFieldStatus('weightKg')}
+            </div>
+          </div>
+          {touched.weightKg && errors.weightKg && (
             <p className="mt-1 text-sm text-red-500">{errors.weightKg}</p>
           )}
+          <FieldHint>Your current body weight in kilograms</FieldHint>
         </div>
       </div>
 
@@ -292,9 +447,14 @@ export default function PersonalInfoForm({
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground">
-              Your BMI
-            </span>
+            <div>
+              <span className="text-sm font-medium text-foreground">
+                Your BMI
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Body Mass Index - a general health indicator
+              </p>
+            </div>
             <span
               className={`text-lg font-bold ${
                 bmiCategory === "Normal"
@@ -319,22 +479,31 @@ export default function PersonalInfoForm({
           >
             Occupation *
           </label>
-          <input
-            id="occupation"
-            name="occupation"
-            type="text"
-            value={formData.occupation}
-            onChange={handleChange}
-            placeholder="e.g., Software Engineer"
-            className={`w-full px-4 py-2.5 rounded-lg border ${
-              errors.occupation
-                ? "border-red-500"
-                : "border-border"
-            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
-          />
-          {errors.occupation && (
+          <div className="relative">
+            <input
+              id="occupation"
+              name="occupation"
+              type="text"
+              value={formData.occupation}
+              onChange={handleChange}
+              onBlur={() => handleBlur('occupation')}
+              placeholder="e.g., Software Engineer"
+              className={`w-full px-4 py-2.5 pr-10 rounded-lg border ${
+                touched.occupation && errors.occupation
+                  ? "border-red-500 focus:ring-red-500"
+                  : touched.occupation && !errors.occupation && formData.occupation
+                  ? "border-green-500 focus:ring-green-500"
+                  : "border-border"
+              } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {getFieldStatus('occupation')}
+            </div>
+          </div>
+          {touched.occupation && errors.occupation && (
             <p className="mt-1 text-sm text-red-500">{errors.occupation}</p>
           )}
+          <FieldHint>Helps us understand your daily activity level</FieldHint>
         </div>
 
         <div>
@@ -344,43 +513,79 @@ export default function PersonalInfoForm({
           >
             City *
           </label>
-          <input
-            id="city"
-            name="city"
-            type="text"
-            value={formData.city}
-            onChange={handleChange}
-            placeholder="e.g., Mumbai"
-            className={`w-full px-4 py-2.5 rounded-lg border ${
-              errors.city
-                ? "border-red-500"
-                : "border-border"
-            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
-          />
-          {errors.city && (
+          <div className="relative">
+            <input
+              id="city"
+              name="city"
+              type="text"
+              value={formData.city}
+              onChange={handleChange}
+              onBlur={() => handleBlur('city')}
+              placeholder="e.g., Mumbai"
+              className={`w-full px-4 py-2.5 pr-10 rounded-lg border ${
+                touched.city && errors.city
+                  ? "border-red-500 focus:ring-red-500"
+                  : touched.city && !errors.city && formData.city
+                  ? "border-green-500 focus:ring-green-500"
+                  : "border-border"
+              } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {getFieldStatus('city')}
+            </div>
+          </div>
+          {touched.city && errors.city && (
             <p className="mt-1 text-sm text-red-500">{errors.city}</p>
           )}
+          <FieldHint>Where you currently reside</FieldHint>
         </div>
       </div>
 
-      {/* Phone (optional) */}
+      {/* Phone */}
       <div>
         <label
           htmlFor="phone"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Phone Number (optional)
+          Phone Number *
         </label>
-        <input
-          id="phone"
-          name="phone"
-          type="tel"
-          value={formData.phone || ""}
-          onChange={handleChange}
-          placeholder="+91 XXXXX XXXXX"
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+        <div className="relative">
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            value={formData.phone || ""}
+            onChange={handleChange}
+            onBlur={() => handleBlur('phone')}
+            placeholder="+91 98765 43210"
+            className={`w-full px-4 py-2.5 pr-10 rounded-lg border ${
+              touched.phone && errors.phone
+                ? "border-red-500 focus:ring-red-500"
+                : touched.phone && !errors.phone && formData.phone
+                ? "border-green-500 focus:ring-green-500"
+                : "border-border"
+            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            {getFieldStatus('phone')}
+          </div>
+        </div>
+        {touched.phone && errors.phone && (
+          <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
+        )}
+        <FieldHint>For WhatsApp communication with your coach</FieldHint>
       </div>
     </form>
   );
 }
+
+// Helper component for field hints - defined outside component to prevent re-creation
+const FieldHint = ({ children }: { children: React.ReactNode }) => (
+  <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+    <Info className="w-3 h-3" />
+    {children}
+  </p>
+);
+
+// Export validation helpers for use in other components
+export { validateName, validatePhone, validateEmail };

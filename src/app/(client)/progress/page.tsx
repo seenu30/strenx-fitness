@@ -31,7 +31,6 @@ interface ProgressData {
 
 interface ClientRow {
   id: string;
-  tenant_id: string;
   start_weight_kg: number | null;
   target_weight_kg: number | null;
 }
@@ -84,7 +83,7 @@ export default function ProgressPage() {
 
         const { data: client } = await supabase
           .from("clients")
-          .select("id, tenant_id, start_weight_kg, target_weight_kg")
+          .select("id, start_weight_kg, target_weight_kg")
           .eq("user_id", user.id)
           .single() as { data: ClientRow | null };
 

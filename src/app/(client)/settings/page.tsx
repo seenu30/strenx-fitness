@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useTheme } from "next-themes";
@@ -9,6 +10,7 @@ interface UserRow {
   email: string | null;
   first_name: string | null;
   last_name: string | null;
+  avatar_url: string | null;
 }
 
 interface ClientIdRow {
@@ -55,6 +57,9 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "security" | "preferences">("profile");
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Theme management
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -110,9 +115,14 @@ export default function SettingsPage() {
 
       const { data: userData } = await (supabase as SupabaseClient)
         .from("users")
-        .select("email, first_name, last_name")
+        .select("email, first_name, last_name, avatar_url")
         .eq("id", user.id)
         .single() as { data: UserRow | null };
+
+      // Set avatar URL
+      if (userData?.avatar_url) {
+        setAvatarUrl(userData.avatar_url);
+      }
 
       const { data: clientData } = await (supabase as SupabaseClient)
         .from("clients")
@@ -185,6 +195,68 @@ export default function SettingsPage() {
       console.error("Error saving profile:", error);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handlePhotoUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image must be less than 2MB");
+      return;
+    }
+
+    setUploadingPhoto(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Create unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("profile-photos")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        alert("Failed to upload image. Please try again.");
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("profile-photos")
+        .getPublicUrl(fileName);
+
+      // Update user record with avatar URL
+      await (supabase as SupabaseClient)
+        .from("users")
+        .update({ avatar_url: publicUrl })
+        .eq("id", user.id);
+
+      setAvatarUrl(publicUrl);
+
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      alert("Failed to upload image");
+    } finally {
+      setUploadingPhoto(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   }
 
@@ -303,14 +375,42 @@ export default function SettingsPage() {
                 </h2>
 
                 <div className="flex items-center gap-4 pb-6 border-b border-stone-200 dark:border-stone-700">
-                  <div className="w-20 h-20 rounded-full bg-brown-100 dark:bg-brown-900/30 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-brown-600 dark:text-brown-400">
-                      {getInitials()}
-                    </span>
+                  <div className="w-20 h-20 rounded-full bg-brown-100 dark:bg-brown-900/30 flex items-center justify-center overflow-hidden">
+                    {avatarUrl ? (
+                      <Image
+                        src={avatarUrl}
+                        alt="Profile"
+                        width={80}
+                        height={80}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl font-bold text-brown-600 dark:text-brown-400">
+                        {getInitials()}
+                      </span>
+                    )}
                   </div>
                   <div>
-                    <button className="px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20">
-                      Change Photo
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                      className="px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20 disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {uploadingPhoto ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        "Change Photo"
+                      )}
                     </button>
                     <p className="text-xs text-stone-500 mt-2">
                       JPG or PNG. Max 2MB.

@@ -43,34 +43,42 @@ interface DbClient {
 interface DbNutritionPlanData {
   id: string;
   name: string;
-  version: string;
-  daily_calories: number;
-  protein_grams: number;
-  carbs_grams: number;
-  fat_grams: number;
-  meals_per_day: number;
+  target_calories: number | null;
+  target_protein_g: number | null;
+  target_carbs_g: number | null;
+  target_fat_g: number | null;
+  meal_count: number | null;
   updated_at: string;
 }
 
-interface DbNutritionAssignment {
+interface DbNutritionPlanVersion {
   id: string;
-  assigned_at: string;
+  version_number: number;
+  created_at: string;
   nutrition_plans: DbNutritionPlanData | null;
 }
 
 interface DbTrainingPlanData {
   id: string;
   name: string;
-  version: string;
-  days_per_week: number;
-  focus: string;
+  days_per_week: number | null;
+  goal: string | null;
   updated_at: string;
 }
 
-interface DbTrainingAssignment {
+interface DbTrainingPlanVersion {
   id: string;
-  assigned_at: string;
+  version_number: number;
+  created_at: string;
   training_plans: DbTrainingPlanData | null;
+}
+
+interface DbPlanAssignment {
+  id: string;
+  is_active: boolean;
+  created_at: string;
+  nutrition_plan_versions: DbNutritionPlanVersion | null;
+  training_plan_versions: DbTrainingPlanVersion | null;
 }
 
 interface DbCheckin {
@@ -78,6 +86,10 @@ interface DbCheckin {
 }
 
 interface DbTrainingSession {
+  id: string;
+}
+
+interface DbTrainingDay {
   id: string;
 }
 
@@ -105,48 +117,49 @@ export default function PlansPage() {
 
       if (!client) return;
 
-      const { data: nutritionAssignment } = await supabase
-        .from("client_nutrition_plans")
+      // Get all plan assignments for this client
+      const { data: planAssignments } = await supabase
+        .from("client_plan_assignments")
         .select(`
           id,
-          assigned_at,
-          nutrition_plans(
+          is_active,
+          created_at,
+          nutrition_plan_versions(
             id,
-            name,
-            version,
-            daily_calories,
-            protein_grams,
-            carbs_grams,
-            fat_grams,
-            meals_per_day,
-            updated_at
+            version_number,
+            created_at,
+            nutrition_plans(
+              id,
+              name,
+              target_calories,
+              target_protein_g,
+              target_carbs_g,
+              target_fat_g,
+              meal_count,
+              updated_at
+            )
+          ),
+          training_plan_versions(
+            id,
+            version_number,
+            created_at,
+            training_plans(
+              id,
+              name,
+              days_per_week,
+              goal,
+              updated_at
+            )
           )
         `)
         .eq("client_id", client.id)
         .eq("is_active", true)
-        .order("assigned_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(1)
-        .single() as { data: DbNutritionAssignment | null };
+        .single() as { data: DbPlanAssignment | null };
 
-      const { data: trainingAssignment } = await supabase
-        .from("client_training_plans")
-        .select(`
-          id,
-          assigned_at,
-          training_plans(
-            id,
-            name,
-            version,
-            days_per_week,
-            focus,
-            updated_at
-          )
-        `)
-        .eq("client_id", client.id)
-        .eq("is_active", true)
-        .order("assigned_at", { ascending: false })
-        .limit(1)
-        .single() as { data: DbTrainingAssignment | null };
+      const nutritionPlanVersion = planAssignments?.nutrition_plan_versions;
+      const trainingPlanVersion = planAssignments?.training_plan_versions;
 
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -165,41 +178,50 @@ export default function PlansPage() {
         .eq("daily_checkins.client_id", client.id)
         .gte("daily_checkins.created_at", sevenDaysAgo.toISOString()) as { data: DbTrainingSession[] | null };
 
-      const daysPerWeek = trainingAssignment?.training_plans?.days_per_week || 5;
+      const daysPerWeek = trainingPlanVersion?.training_plans?.days_per_week || 5;
       const trainingCompliance = Math.round(((trainingSessions?.length || 0) / daysPerWeek) * 100);
 
+      // Count exercises by counting through training_days → training_exercises
       let exerciseCount = 0;
-      if (trainingAssignment?.training_plans?.id) {
-        const { data: exercises } = await supabase
-          .from("training_plan_exercises")
+      if (trainingPlanVersion?.id) {
+        const { data: trainingDays } = await supabase
+          .from("training_days")
           .select("id")
-          .eq("training_plan_id", trainingAssignment.training_plans.id) as { data: DbExercise[] | null };
-        exerciseCount = exercises?.length || 0;
+          .eq("plan_version_id", trainingPlanVersion.id) as { data: DbTrainingDay[] | null };
+
+        if (trainingDays && trainingDays.length > 0) {
+          const dayIds = trainingDays.map(d => d.id);
+          const { data: exercises } = await supabase
+            .from("training_exercises")
+            .select("id")
+            .in("training_day_id", dayIds) as { data: DbExercise[] | null };
+          exerciseCount = exercises?.length || 0;
+        }
       }
 
-      if (nutritionAssignment?.nutrition_plans) {
-        const np = nutritionAssignment.nutrition_plans;
+      if (nutritionPlanVersion?.nutrition_plans) {
+        const np = nutritionPlanVersion.nutrition_plans;
         setNutritionPlan({
           name: np.name || "Custom Nutrition Plan",
-          version: np.version || "1.0",
-          lastUpdated: np.updated_at || nutritionAssignment.assigned_at,
-          calories: np.daily_calories || 2000,
-          protein: np.protein_grams || 150,
-          carbs: np.carbs_grams || 200,
-          fat: np.fat_grams || 65,
-          meals: np.meals_per_day || 4,
+          version: String(nutritionPlanVersion.version_number) || "1.0",
+          lastUpdated: np.updated_at || nutritionPlanVersion.created_at,
+          calories: np.target_calories || 2000,
+          protein: np.target_protein_g || 150,
+          carbs: np.target_carbs_g || 200,
+          fat: np.target_fat_g || 65,
+          meals: np.meal_count || 4,
           compliance: Math.min(weeklyCompliance, 100),
         });
       }
 
-      if (trainingAssignment?.training_plans) {
-        const tp = trainingAssignment.training_plans;
+      if (trainingPlanVersion?.training_plans) {
+        const tp = trainingPlanVersion.training_plans;
         setTrainingPlan({
           name: tp.name || "Custom Training Plan",
-          version: tp.version || "1.0",
-          lastUpdated: tp.updated_at || trainingAssignment.assigned_at,
+          version: String(trainingPlanVersion.version_number) || "1.0",
+          lastUpdated: tp.updated_at || trainingPlanVersion.created_at,
           daysPerWeek: tp.days_per_week || 5,
-          focus: tp.focus || "General Fitness",
+          focus: tp.goal || "General Fitness",
           exercises: exerciseCount,
           compliance: Math.min(trainingCompliance, 100),
         });

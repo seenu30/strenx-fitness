@@ -30,6 +30,7 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
   const [formData, setFormData] = useState<SupplementsData>(initialData);
   const [newSupplement, setNewSupplement] = useState({ name: "", dosage: "", frequency: "" });
   const [newPastSupplement, setNewPastSupplement] = useState({ name: "", duration: "", reason_stopped: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const addCurrentSupplement = () => {
     if (newSupplement.name.trim()) {
@@ -74,10 +75,23 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
     }
   };
 
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.supplementBudget?.trim()) {
+      newErrors.supplementBudget = "Please enter your monthly supplement budget";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave("supplements", formData);
-    onNext();
+    if (validate()) {
+      onSave("supplements", formData);
+      onNext();
+    }
   };
 
   return (
@@ -252,7 +266,7 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
       {/* Budget */}
       <div>
         <label htmlFor="supplementBudget" className="block text-sm font-medium text-foreground mb-1">
-          Monthly budget for supplements (optional)
+          Monthly budget for supplements *
         </label>
         <input
           id="supplementBudget"
@@ -260,8 +274,13 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
           value={formData.supplementBudget || ""}
           onChange={(e) => setFormData((prev) => ({ ...prev, supplementBudget: e.target.value }))}
           placeholder="e.g., Rs. 2000-3000"
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          className={`w-full max-w-xs px-4 py-2.5 rounded-lg border ${
+            errors.supplementBudget ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
         />
+        {errors.supplementBudget && (
+          <p className="mt-1 text-sm text-red-500">{errors.supplementBudget}</p>
+        )}
       </div>
     </form>
   );

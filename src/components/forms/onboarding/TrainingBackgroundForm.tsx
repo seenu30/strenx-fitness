@@ -109,6 +109,21 @@ export default function TrainingBackgroundForm({
     if (!formData.experienceLevel) {
       newErrors.experienceLevel = "Please select your experience level";
     }
+    if (formData.currentTrainingFrequency < 0 || formData.currentTrainingFrequency > 7) {
+      newErrors.currentTrainingFrequency = "Please enter training frequency (0-7 days)";
+    }
+    if (formData.currentTrainingStyle.length === 0) {
+      newErrors.currentTrainingStyle = "Please select at least one current training style";
+    }
+    if (formData.preferredTrainingStyle.length === 0) {
+      newErrors.preferredTrainingStyle = "Please select at least one preferred training style";
+    }
+    if (formData.homeEquipment.length === 0) {
+      newErrors.homeEquipment = "Please select your home equipment (or 'None')";
+    }
+    if (formData.injuries.length === 0) {
+      newErrors.injuries = "Please select any injuries (or 'None')";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -171,7 +186,7 @@ export default function TrainingBackgroundForm({
           htmlFor="currentTrainingFrequency"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          How many days per week do you currently train?
+          How many days per week do you currently train? *
         </label>
         <input
           id="currentTrainingFrequency"
@@ -182,14 +197,19 @@ export default function TrainingBackgroundForm({
           min="0"
           max="7"
           placeholder="0"
-          className="w-full max-w-xs px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          className={`w-full max-w-xs px-4 py-2.5 rounded-lg border ${
+            errors.currentTrainingFrequency ? "border-red-500" : "border-border"
+          } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
         />
+        {errors.currentTrainingFrequency && (
+          <p className="mt-1 text-sm text-red-500">{errors.currentTrainingFrequency}</p>
+        )}
       </div>
 
       {/* Current Training Style */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What type of training do you currently do?
+          What type of training do you currently do? *
         </label>
         <div className="flex flex-wrap gap-2">
           {TRAINING_STYLES.map((style) => (
@@ -207,12 +227,15 @@ export default function TrainingBackgroundForm({
             </button>
           ))}
         </div>
+        {errors.currentTrainingStyle && (
+          <p className="mt-2 text-sm text-red-500">{errors.currentTrainingStyle}</p>
+        )}
       </div>
 
       {/* Preferred Training Style */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What type of training would you prefer?
+          What type of training would you prefer? *
         </label>
         <div className="flex flex-wrap gap-2">
           {TRAINING_STYLES.map((style) => (
@@ -230,6 +253,9 @@ export default function TrainingBackgroundForm({
             </button>
           ))}
         </div>
+        {errors.preferredTrainingStyle && (
+          <p className="mt-2 text-sm text-red-500">{errors.preferredTrainingStyle}</p>
+        )}
       </div>
 
       {/* Gym Access */}
@@ -253,7 +279,7 @@ export default function TrainingBackgroundForm({
       {/* Home Equipment */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What equipment do you have at home?
+          What equipment do you have at home? *
         </label>
         <div className="flex flex-wrap gap-2">
           {HOME_EQUIPMENT.map((equipment) => (
@@ -271,12 +297,15 @@ export default function TrainingBackgroundForm({
             </button>
           ))}
         </div>
+        {errors.homeEquipment && (
+          <p className="mt-2 text-sm text-red-500">{errors.homeEquipment}</p>
+        )}
       </div>
 
       {/* Injuries */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Do you have any current injuries or pain?
+          Do you have any current injuries or pain? *
         </label>
         <div className="flex flex-wrap gap-2">
           {COMMON_INJURIES.map((injury) => (
@@ -294,6 +323,9 @@ export default function TrainingBackgroundForm({
             </button>
           ))}
         </div>
+        {errors.injuries && (
+          <p className="mt-2 text-sm text-red-500">{errors.injuries}</p>
+        )}
       </div>
 
       {/* Physical Limitations */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -10,7 +10,16 @@ import {
   Send,
   CheckCircle2,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price_amount: number;
+  duration_days: number;
+}
 
 export default function InviteClientPage() {
   const [formData, setFormData] = useState({
@@ -23,24 +32,57 @@ export default function InviteClientPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"success" | "error" | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
 
-  const plans = [
-    { id: "30-kickstart", name: "30 Day Kickstart", price: "₹9,999" },
-    { id: "60-lean", name: "60 Day Lean", price: "₹17,999" },
-    { id: "90-transform", name: "90 Day Transform", price: "₹24,999" },
-    { id: "100-elite", name: "100 Day Elite", price: "₹29,999" },
-  ];
+  useEffect(() => {
+    async function loadPlans() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("subscription_plans")
+        .select("id, name, price_amount, duration_days")
+        .eq("is_active", true)
+        .order("price_amount", { ascending: true });
+
+      setPlans((data as SubscriptionPlan[]) || []);
+      setLoadingPlans(false);
+    }
+    loadPlans();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setErrorMessage("");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch("/api/invite-client", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          planId: formData.plan || null,
+          notes: formData.notes,
+        }),
+      });
 
-    // Mock success
-    setSubmitStatus("success");
-    setIsSubmitting(false);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to invite client");
+      }
+
+      setSubmitStatus("success");
+    } catch (error) {
+      setSubmitStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to invite client");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (
@@ -200,22 +242,28 @@ export default function InviteClientPage() {
 
           <div>
             <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
-              Assign Plan *
+              Assign Plan
             </label>
-            <select
-              name="plan"
-              value={formData.plan}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-brown-500 focus:border-transparent"
-            >
-              <option value="">Select a plan...</option>
-              {plans.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.name} - {plan.price}
-                </option>
-              ))}
-            </select>
+            {loadingPlans ? (
+              <div className="flex items-center gap-2 text-stone-500 py-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading plans...
+              </div>
+            ) : (
+              <select
+                name="plan"
+                value={formData.plan}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-brown-500 focus:border-transparent"
+              >
+                <option value="">Select a plan (optional)...</option>
+                {plans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name} - ₹{plan.price_amount.toLocaleString()} ({plan.duration_days} days)
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="mt-4">
@@ -248,6 +296,18 @@ export default function InviteClientPage() {
             </div>
           </div>
         </div>
+
+        {/* Error Display */}
+        {submitStatus === "error" && (
+          <div className="bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800 p-4">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-red-700 dark:text-red-300">
+                <p className="font-medium">{errorMessage || "Failed to send invitation"}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Submit Button */}
         <button

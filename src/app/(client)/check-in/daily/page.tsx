@@ -53,7 +53,6 @@ export default function DailyCheckinPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [clientId, setClientId] = useState<string | null>(null);
-  const [tenantId, setTenantId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [existingCheckinId, setExistingCheckinId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -82,13 +81,12 @@ export default function DailyCheckinPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: client } = await (supabase as any)
         .from("clients")
-        .select("id, tenant_id")
+        .select("id")
         .eq("user_id", user.id)
         .single();
 
       if (client) {
         setClientId(client.id);
-        setTenantId(client.tenant_id);
 
         // Check for existing check-in today
         const today = new Date().toISOString().split("T")[0];
@@ -167,7 +165,7 @@ export default function DailyCheckinPage() {
 
     try {
       const supabase = createClient();
-      if (!clientId || !tenantId) {
+      if (!clientId) {
         throw new Error("Unable to submit. Please try again.");
       }
 
@@ -194,12 +192,11 @@ export default function DailyCheckinPage() {
         if (updateError) throw updateError;
         checkin = data;
       } else {
-        // Insert new daily check-in
+        // Insert new daily check-in (RLS handles tenant assignment)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data, error: checkinError } = await (supabase as any)
           .from("daily_checkins")
           .insert({
-            tenant_id: tenantId,
             client_id: clientId,
             checkin_date: formData.date,
             morning_weight_kg: formData.weight,

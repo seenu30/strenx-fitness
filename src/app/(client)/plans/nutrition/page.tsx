@@ -60,42 +60,59 @@ interface DbClient {
 interface DbNutritionPlan {
   id: string;
   name: string;
-  version: string;
-  daily_calories: number;
-  protein_grams: number;
-  carbs_grams: number;
-  fat_grams: number;
-  fiber_grams: number;
-  water_liters: number;
-  notes: string | string[] | null;
+  description: string | null;
+  target_calories: number | null;
+  target_protein_g: number | null;
+  target_carbs_g: number | null;
+  target_fat_g: number | null;
+  diet_type: string | null;
+  meal_count: number | null;
   updated_at: string;
   created_at: string;
 }
 
+interface DbNutritionPlanVersion {
+  id: string;
+  plan_id: string;
+  version_number: number;
+  plan_data: Record<string, unknown> | null;
+  is_current: boolean;
+  created_at: string;
+  nutrition_plans: DbNutritionPlan | null;
+}
+
 interface DbNutritionAssignment {
   id: string;
-  assigned_at: string;
-  nutrition_plans: DbNutritionPlan | null;
+  is_active: boolean;
+  created_at: string;
+  nutrition_plan_versions: DbNutritionPlanVersion | null;
 }
 
 interface DbMeal {
   id: string;
-  name: string;
-  time_range: string;
-  order_index: number;
+  meal_name: string;
+  meal_time: string | null;
+  meal_number: number;
+  calories: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  sort_order: number;
 }
 
 interface DbMealItem {
   id: string;
   meal_id: string;
-  name: string;
-  quantity: string | null;
+  food_name: string;
+  quantity: number | null;
+  unit: string | null;
   calories: number | null;
-  protein_grams: number | null;
-  carbs_grams: number | null;
-  fat_grams: number | null;
-  notes: string | null;
-  order_index: number;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  fiber_g: number | null;
+  preparation_notes: string | null;
+  sort_order: number;
 }
 
 export default function NutritionPlanPage() {
@@ -120,98 +137,118 @@ export default function NutritionPlanPage() {
       if (!client) return;
 
       const { data: assignment } = await supabase
-        .from("client_nutrition_plans")
+        .from("client_plan_assignments")
         .select(`
           id,
-          assigned_at,
-          nutrition_plans(
+          is_active,
+          created_at,
+          nutrition_plan_versions(
             id,
-            name,
-            version,
-            daily_calories,
-            protein_grams,
-            carbs_grams,
-            fat_grams,
-            fiber_grams,
-            water_liters,
-            notes,
-            updated_at,
-            created_at
+            plan_id,
+            version_number,
+            plan_data,
+            is_current,
+            created_at,
+            nutrition_plans(
+              id,
+              name,
+              description,
+              target_calories,
+              target_protein_g,
+              target_carbs_g,
+              target_fat_g,
+              diet_type,
+              meal_count,
+              updated_at,
+              created_at
+            )
           )
         `)
         .eq("client_id", client.id)
         .eq("is_active", true)
-        .order("assigned_at", { ascending: false })
+        .not("nutrition_plan_version_id", "is", null)
+        .order("created_at", { ascending: false })
         .limit(1)
         .single() as { data: DbNutritionAssignment | null };
 
-      if (!assignment?.nutrition_plans) {
+      const nutritionPlanVersion = assignment?.nutrition_plan_versions;
+      const nutritionPlan = nutritionPlanVersion?.nutrition_plans;
+
+      if (!nutritionPlanVersion || !nutritionPlan) {
         setLoading(false);
         return;
       }
 
-      const nutritionPlan = assignment.nutrition_plans;
-
       const { data: mealsData } = await supabase
-        .from("nutrition_plan_meals")
+        .from("nutrition_meals")
         .select("*")
-        .eq("nutrition_plan_id", nutritionPlan.id)
-        .order("order_index", { ascending: true }) as { data: DbMeal[] | null };
+        .eq("plan_version_id", nutritionPlanVersion.id)
+        .order("sort_order", { ascending: true }) as { data: DbMeal[] | null };
 
       const mealIds = mealsData?.map((m: DbMeal) => m.id) || [];
       const { data: itemsData } = await supabase
-        .from("nutrition_plan_meal_items")
+        .from("meal_items")
         .select("*")
         .in("meal_id", mealIds.length > 0 ? mealIds : ["no-meals"])
-        .order("order_index", { ascending: true }) as { data: DbMealItem[] | null };
+        .order("sort_order", { ascending: true }) as { data: DbMealItem[] | null };
 
       const itemsByMeal: Record<string, MealItem[]> = {};
       (itemsData || []).forEach((item: DbMealItem) => {
         if (!itemsByMeal[item.meal_id]) {
           itemsByMeal[item.meal_id] = [];
         }
+        const quantityStr = item.quantity && item.unit
+          ? `${item.quantity} ${item.unit}`
+          : item.quantity
+          ? String(item.quantity)
+          : "";
         itemsByMeal[item.meal_id].push({
-          name: item.name,
-          quantity: item.quantity || "",
+          name: item.food_name,
+          quantity: quantityStr,
           calories: item.calories || 0,
-          protein: item.protein_grams || 0,
-          carbs: item.carbs_grams || 0,
-          fat: item.fat_grams || 0,
-          notes: item.notes ?? undefined,
+          protein: item.protein_g || 0,
+          carbs: item.carbs_g || 0,
+          fat: item.fat_g || 0,
+          notes: item.preparation_notes ?? undefined,
         });
       });
 
       const meals: Meal[] = (mealsData || []).map((meal: DbMeal) => ({
         id: meal.id,
-        name: meal.name || "Meal",
-        time: meal.time_range || "",
+        name: meal.meal_name || "Meal",
+        time: meal.meal_time || "",
         items: itemsByMeal[meal.id] || [],
       }));
 
+      // Extract notes from plan_data if available
       let notes: string[] = [];
-      if (nutritionPlan.notes) {
-        try {
-          notes = typeof nutritionPlan.notes === "string"
-            ? JSON.parse(nutritionPlan.notes)
-            : Array.isArray(nutritionPlan.notes)
-            ? nutritionPlan.notes
-            : [];
-        } catch {
-          notes = [String(nutritionPlan.notes)];
+      const planData = nutritionPlanVersion.plan_data;
+      if (planData && typeof planData === "object" && "notes" in planData) {
+        const planNotes = planData.notes;
+        if (Array.isArray(planNotes)) {
+          notes = planNotes.map(String);
+        } else if (typeof planNotes === "string") {
+          notes = [planNotes];
         }
       }
 
+      // Calculate fiber from meal items
+      let totalFiber = 0;
+      (itemsData || []).forEach((item: DbMealItem) => {
+        totalFiber += item.fiber_g || 0;
+      });
+
       setPlan({
         name: nutritionPlan.name || "Nutrition Plan",
-        version: nutritionPlan.version || "1.0",
+        version: String(nutritionPlanVersion.version_number) || "1.0",
         updatedAt: nutritionPlan.updated_at || nutritionPlan.created_at,
         dailyTargets: {
-          calories: nutritionPlan.daily_calories || 2000,
-          protein: nutritionPlan.protein_grams || 150,
-          carbs: nutritionPlan.carbs_grams || 200,
-          fat: nutritionPlan.fat_grams || 65,
-          fiber: nutritionPlan.fiber_grams || 30,
-          water: nutritionPlan.water_liters || 3,
+          calories: nutritionPlan.target_calories || 2000,
+          protein: nutritionPlan.target_protein_g || 150,
+          carbs: nutritionPlan.target_carbs_g || 200,
+          fat: nutritionPlan.target_fat_g || 65,
+          fiber: totalFiber || 30,
+          water: 3, // Default water intake
         },
         meals: meals,
         notes: notes.length > 0 ? notes : [

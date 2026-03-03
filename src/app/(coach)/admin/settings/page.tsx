@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -26,6 +27,9 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  QrCode,
+  Copy,
+  Upload,
 } from "lucide-react";
 
 interface Profile {
@@ -49,14 +53,32 @@ interface PlanTemplate {
   active: boolean;
 }
 
+interface PaymentSettings {
+  upiId: string;
+  qrCodeUrl: string | null;
+}
+
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "profile" | "business" | "notifications" | "security" | "plans"
+    "profile" | "business" | "notifications" | "security" | "plans" | "payment"
   >("profile");
   const [showPassword, setShowPassword] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const qrCodeInputRef = useRef<HTMLInputElement>(null);
+
+  // Payment settings state
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
+    upiId: "",
+    qrCodeUrl: null,
+  });
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentSaveSuccess, setPaymentSaveSuccess] = useState(false);
+  const [uploadingQrCode, setUploadingQrCode] = useState(false);
 
   // Password update state
   const [passwords, setPasswords] = useState({
@@ -102,9 +124,14 @@ export default function AdminSettingsPage() {
       // Get user profile
       const { data: userData } = await (supabase as SupabaseClient)
         .from("users")
-        .select("email, full_name, tenant_id")
+        .select("email, full_name, avatar_url")
         .eq("id", user.id)
         .single();
+
+      // Set avatar URL
+      if ((userData as { avatar_url?: string } | null)?.avatar_url) {
+        setAvatarUrl((userData as { avatar_url: string }).avatar_url);
+      }
 
       // Parse name
       const nameParts = ((userData as { full_name?: string } | null)?.full_name || "").split(" ");
@@ -118,40 +145,13 @@ export default function AdminSettingsPage() {
         phone: "",
       });
 
-      // Get tenant/business info
-      if ((userData as { tenant_id?: string } | null)?.tenant_id) {
-        const { data: tenantData } = await (supabase as SupabaseClient)
-          .from("tenants")
-          .select("name, settings")
-          .eq("id", (userData as { tenant_id: string }).tenant_id)
-          .single();
-
-        if (tenantData) {
-          const settings = (tenantData as { settings?: Record<string, string> }).settings || {};
-          setBusiness({
-            businessName: (tenantData as { name?: string }).name || "Strenx Fitness",
-            tagline: settings.tagline || "",
-            website: settings.website || "",
-            supportEmail: settings.support_email || "",
-          });
-        }
-
-        // Get plan templates
-        const { data: planTemplates } = await (supabase as SupabaseClient)
-          .from("plan_templates")
-          .select("id, name, price, is_active")
-          .eq("tenant_id", (userData as { tenant_id: string }).tenant_id)
-          .order("price", { ascending: true });
-
-        if (planTemplates) {
-          setPlans((planTemplates as PlanTemplateRow[]).map((p) => ({
-            id: p.id,
-            name: p.name,
-            price: p.price || 0,
-            active: p.is_active !== false,
-          })));
-        }
-      }
+      // Set default business info
+      setBusiness({
+        businessName: "Strenx Fitness",
+        tagline: "",
+        website: "",
+        supportEmail: "",
+      });
 
     } catch (error) {
       console.error("Error loading settings:", error);
@@ -160,9 +160,33 @@ export default function AdminSettingsPage() {
     }
   }, [supabase]);
 
+  const loadPaymentSettings = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get coach's payment settings
+      const { data: coach } = await (supabase as SupabaseClient)
+        .from("coaches")
+        .select("upi_id, payment_qr_url")
+        .eq("user_id", user.id)
+        .single();
+
+      if (coach) {
+        setPaymentSettings({
+          upiId: (coach as { upi_id?: string }).upi_id || "",
+          qrCodeUrl: (coach as { payment_qr_url?: string }).payment_qr_url || null,
+        });
+      }
+    } catch (error) {
+      console.error("Error loading payment settings:", error);
+    }
+  }, [supabase]);
+
   useEffect(() => {
     loadSettings();
-  }, [loadSettings]);
+    loadPaymentSettings();
+  }, [loadSettings, loadPaymentSettings]);
 
   async function handleSaveProfile() {
     setSaving(true);
@@ -195,31 +219,7 @@ export default function AdminSettingsPage() {
     setSaveSuccess(false);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Get tenant ID
-      const { data: userData } = await (supabase as SupabaseClient)
-        .from("users")
-        .select("tenant_id")
-        .eq("id", user.id)
-        .single();
-
-      if ((userData as { tenant_id?: string } | null)?.tenant_id) {
-        // Update tenant info
-        await (supabase as SupabaseClient)
-          .from("tenants")
-          .update({
-            name: business.businessName,
-            settings: {
-              tagline: business.tagline,
-              website: business.website,
-              support_email: business.supportEmail,
-            },
-          })
-          .eq("id", (userData as { tenant_id: string }).tenant_id);
-      }
-
+      // Business settings are currently not persisted
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
 
@@ -227,6 +227,164 @@ export default function AdminSettingsPage() {
       console.error("Error saving business:", error);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSavePayment() {
+    setSavingPayment(true);
+    setPaymentSaveSuccess(false);
+
+    try {
+      const response = await fetch("/api/payment-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          upiId: paymentSettings.upiId,
+          qrCodeUrl: paymentSettings.qrCodeUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save payment settings");
+      }
+
+      setPaymentSaveSuccess(true);
+      setTimeout(() => setPaymentSaveSuccess(false), 3000);
+    } catch (error) {
+      console.error("Error saving payment settings:", error);
+      alert("Failed to save payment settings");
+    } finally {
+      setSavingPayment(false);
+    }
+  }
+
+  async function handleQrCodeUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image must be less than 2MB");
+      return;
+    }
+
+    setUploadingQrCode(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get coach ID
+      const { data: coach } = await (supabase as SupabaseClient)
+        .from("coaches")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!coach) {
+        alert("Coach profile not found");
+        return;
+      }
+
+      // Create unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${(coach as { id: string }).id}/payment-qr.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("payment-qr-codes")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        alert("Failed to upload QR code. Please try again.");
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("payment-qr-codes")
+        .getPublicUrl(fileName);
+
+      setPaymentSettings((prev) => ({ ...prev, qrCodeUrl: publicUrl }));
+
+    } catch (error) {
+      console.error("Error uploading QR code:", error);
+      alert("Failed to upload QR code");
+    } finally {
+      setUploadingQrCode(false);
+      // Reset file input
+      if (qrCodeInputRef.current) {
+        qrCodeInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function handlePhotoUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image must be less than 2MB");
+      return;
+    }
+
+    setUploadingPhoto(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Create unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("profile-photos")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        alert("Failed to upload image. Please try again.");
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("profile-photos")
+        .getPublicUrl(fileName);
+
+      // Update user record with avatar URL
+      await (supabase as SupabaseClient)
+        .from("users")
+        .update({ avatar_url: publicUrl })
+        .eq("id", user.id);
+
+      setAvatarUrl(publicUrl);
+
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      alert("Failed to upload image");
+    } finally {
+      setUploadingPhoto(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   }
 
@@ -278,6 +436,7 @@ export default function AdminSettingsPage() {
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "business", label: "Business", icon: Building },
+    { id: "payment", label: "Payment", icon: QrCode },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Lock },
     { id: "plans", label: "Pricing Plans", icon: CreditCard },
@@ -346,13 +505,44 @@ export default function AdminSettingsPage() {
                 </h2>
 
                 <div className="flex items-center gap-4 pb-6 border-b border-stone-200 dark:border-stone-700">
-                  <div className="w-20 h-20 rounded-full bg-brown-500 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">{getInitials()}</span>
+                  <div className="w-20 h-20 rounded-full bg-brown-500 flex items-center justify-center overflow-hidden">
+                    {avatarUrl ? (
+                      <Image
+                        src={avatarUrl}
+                        alt="Profile"
+                        width={80}
+                        height={80}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl font-bold text-white">{getInitials()}</span>
+                    )}
                   </div>
                   <div>
-                    <button className="px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20">
-                      Change Photo
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                      className="px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20 disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {uploadingPhoto ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        "Change Photo"
+                      )}
                     </button>
+                    <p className="text-xs text-stone-500 mt-2">
+                      JPG or PNG. Max 2MB.
+                    </p>
                   </div>
                 </div>
 
@@ -675,6 +865,157 @@ export default function AdminSettingsPage() {
                       Enable
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "payment" && (
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-100">
+                  Payment Settings
+                </h2>
+                <p className="text-stone-500 text-sm">
+                  Configure your UPI details for receiving payments from clients
+                </p>
+
+                {/* QR Code Upload */}
+                <div className="space-y-4">
+                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300">
+                    Payment QR Code
+                  </label>
+                  <div className="flex items-start gap-6">
+                    <div className="w-40 h-40 rounded-xl border-2 border-dashed border-stone-300 dark:border-stone-600 flex items-center justify-center overflow-hidden bg-stone-50 dark:bg-stone-800">
+                      {paymentSettings.qrCodeUrl ? (
+                        <Image
+                          src={paymentSettings.qrCodeUrl}
+                          alt="Payment QR Code"
+                          width={160}
+                          height={160}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-center p-4">
+                          <QrCode className="w-10 h-10 mx-auto text-stone-400 mb-2" />
+                          <p className="text-xs text-stone-500">No QR uploaded</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <input
+                        ref={qrCodeInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleQrCodeUpload}
+                        className="hidden"
+                      />
+                      <button
+                        onClick={() => qrCodeInputRef.current?.click()}
+                        disabled={uploadingQrCode}
+                        className="px-4 py-2 text-sm text-brown-500 border border-brown-500 rounded-lg hover:bg-brown-50 dark:hover:bg-brown-900/20 disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {uploadingQrCode ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            {paymentSettings.qrCodeUrl ? "Change QR Code" : "Upload QR Code"}
+                          </>
+                        )}
+                      </button>
+                      <p className="text-xs text-stone-500">
+                        Upload your UPI QR code image. JPG or PNG, max 2MB.
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        Clients will see this QR code when submitting their application.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* UPI ID */}
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
+                    UPI ID
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={paymentSettings.upiId}
+                      onChange={(e) =>
+                        setPaymentSettings({ ...paymentSettings, upiId: e.target.value })
+                      }
+                      placeholder="yourname@upi"
+                      className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200"
+                    />
+                  </div>
+                  <p className="text-xs text-stone-500 mt-1.5">
+                    Your UPI ID will be displayed to clients so they can pay via any UPI app.
+                  </p>
+                </div>
+
+                {/* Preview */}
+                {(paymentSettings.qrCodeUrl || paymentSettings.upiId) && (
+                  <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
+                    <p className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-3">
+                      Preview (as shown to clients)
+                    </p>
+                    <div className="flex items-center gap-4">
+                      {paymentSettings.qrCodeUrl && (
+                        <div className="w-24 h-24 rounded-lg overflow-hidden bg-white">
+                          <Image
+                            src={paymentSettings.qrCodeUrl}
+                            alt="QR Preview"
+                            width={96}
+                            height={96}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      )}
+                      {paymentSettings.upiId && (
+                        <div className="flex-1">
+                          <p className="text-xs text-stone-500 mb-1">UPI ID</p>
+                          <div className="flex items-center gap-2">
+                            <code className="px-3 py-1.5 bg-white dark:bg-stone-700 rounded-lg text-sm font-mono text-stone-800 dark:text-stone-200">
+                              {paymentSettings.upiId}
+                            </code>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(paymentSettings.upiId);
+                              }}
+                              className="p-1.5 text-stone-500 hover:text-brown-500"
+                              title="Copy UPI ID"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-4 pt-4">
+                  <button
+                    onClick={handleSavePayment}
+                    disabled={savingPayment}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 disabled:opacity-50"
+                  >
+                    {savingPayment ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    {savingPayment ? "Saving..." : "Save Payment Settings"}
+                  </button>
+                  {paymentSaveSuccess && (
+                    <span className="text-green-600 flex items-center gap-1 text-sm">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Saved successfully
+                    </span>
+                  )}
                 </div>
               </div>
             )}

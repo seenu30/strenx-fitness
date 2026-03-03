@@ -219,19 +219,19 @@ export default function DashboardPage() {
         if (conversations) {
           const { data: messages } = await supabase
             .from("messages")
-            .select("id, content, created_at, read_at, sender_id")
+            .select("id, content, created_at, status, sender_id")
             .eq("conversation_id", conversations.id)
             .neq("sender_id", user.id)
             .order("created_at", { ascending: false })
             .limit(2);
 
           if (messages) {
-            recentMessages = (messages as Pick<Message, "id" | "content" | "created_at" | "read_at" | "sender_id">[]).map((msg) => ({
+            recentMessages = (messages as Pick<Message, "id" | "content" | "created_at" | "status" | "sender_id">[]).map((msg) => ({
               id: msg.id,
               from: "Coach",
               preview: msg.content.substring(0, 40) + (msg.content.length > 40 ? "..." : ""),
-              time: formatTimeAgo(new Date(msg.created_at)),
-              unread: !msg.read_at,
+              time: formatTimeAgo(new Date(msg.created_at || "")),
+              unread: msg.status !== "read",
             }));
           }
         }
