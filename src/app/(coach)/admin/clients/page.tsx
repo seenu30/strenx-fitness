@@ -17,7 +17,9 @@ import {
   Mail,
   Calendar,
   Loader2,
+  Share2,
 } from "lucide-react";
+import ShareApplicationLinkModal from "@/components/ShareApplicationLinkModal";
 import { createClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -79,6 +81,7 @@ export default function ClientsPage() {
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     async function loadClients() {
@@ -339,13 +342,22 @@ export default function ClientsPage() {
             Manage your client roster and track their progress
           </p>
         </div>
-        <Link
-          href="/admin/clients/invite"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
-        >
-          <UserPlus className="w-4 h-4" />
-          Invite Client
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-border text-foreground rounded-lg font-medium hover:bg-muted transition-colors"
+          >
+            <Share2 className="w-4 h-4" />
+            Share Link
+          </button>
+          <Link
+            href="/admin/clients/invite"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+          >
+            <UserPlus className="w-4 h-4" />
+            Invite Client
+          </Link>
+        </div>
       </div>
 
       {/* Status Tabs */}
@@ -563,6 +575,12 @@ export default function ClientsPage() {
           </div>
         )}
       </div>
+
+      {/* Share Application Link Modal */}
+      <ShareApplicationLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+      />
     </div>
   );
 }
