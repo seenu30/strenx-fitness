@@ -384,6 +384,8 @@ export const createApplicationSchema = z.object({
   consent_marketing: z.boolean().optional(),
   consent_medical_sharing: z.boolean().optional(),
   consent_terms: z.boolean().optional(),
+  digital_signature: safeString200.optional().nullable(),
+  signature_timestamp: z.string().datetime().optional().nullable(),
   payment_reference: safeString100.optional().nullable(),
   payment_screenshot_url: z.string().url().optional().nullable(),
   payment_screenshot_path: safeString200.optional().nullable(),

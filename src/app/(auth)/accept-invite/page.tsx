@@ -37,40 +37,71 @@ function AcceptInviteForm() {
   const isFormValid = passwordErrors.length === 0 && !confirmPasswordError;
 
   useEffect(() => {
-    // Check if user has a valid session from the invite link
+    const supabase = createClient();
+    let timeoutId: NodeJS.Timeout;
+
+    // Listen for auth state changes (handles hash fragment tokens)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth event:", event, session?.user?.email);
+
+        if (session) {
+          setIsValidToken(true);
+          setUserEmail(session.user.email || null);
+        } else if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+          // Ignore these events
+        }
+      }
+    );
+
+    // Also check for existing session or token in URL
     async function checkInvite() {
-      const supabase = createClient();
       const { data } = await supabase.auth.getSession();
 
       if (data.session) {
         setIsValidToken(true);
         setUserEmail(data.session.user.email || null);
-      } else {
-        // Check for token in URL (Supabase magic link)
-        const token = searchParams.get("token");
-        const type = searchParams.get("type");
+        return;
+      }
 
-        if (token && type === "invite") {
-          // Verify the token
-          const { data: verifyData, error: verifyError } =
-            await supabase.auth.verifyOtp({
-              token_hash: token,
-              type: "invite",
-            });
+      // Check for token in URL query params (Supabase magic link)
+      const token = searchParams.get("token");
+      const type = searchParams.get("type");
 
-          if (verifyError) {
-            setIsValidToken(false);
-          } else if (verifyData.user) {
-            setIsValidToken(true);
-            setUserEmail(verifyData.user.email || null);
-          }
-        } else {
+      if (token && (type === "invite" || type === "recovery")) {
+        // Verify the token
+        const { data: verifyData, error: verifyError } =
+          await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: type as "invite" | "recovery",
+          });
+
+        if (verifyError) {
+          console.error("Token verification error:", verifyError);
+          setIsValidToken(false);
+        } else if (verifyData.user) {
+          setIsValidToken(true);
+          setUserEmail(verifyData.user.email || null);
+        }
+        return;
+      }
+
+      // If no token in query params, wait for hash fragment processing
+      // Set a timeout to show error if no session is established
+      timeoutId = setTimeout(() => {
+        if (isValidToken === null) {
           setIsValidToken(false);
         }
-      }
+      }, 3000);
     }
+
     checkInvite();
-  }, [searchParams]);
+
+    return () => {
+      subscription.unsubscribe();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [searchParams, isValidToken]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

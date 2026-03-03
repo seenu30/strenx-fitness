@@ -33,7 +33,7 @@ import FoodPreferencesForm from "@/components/forms/onboarding/FoodPreferencesFo
 import SupplementsForm from "@/components/forms/onboarding/SupplementsForm";
 import SkinHairForm from "@/components/forms/onboarding/SkinHairForm";
 import ExpectationsForm from "@/components/forms/onboarding/ExpectationsForm";
-import ConsentForm from "@/components/forms/onboarding/ConsentForm";
+import ConsentForm, { type ConsentData as ConsentFormData } from "@/components/forms/onboarding/ConsentForm";
 
 // Icons
 import {
@@ -268,7 +268,7 @@ export default function ApplyPage() {
   );
 
   // Handle form submission
-  const handleSubmit = async () => {
+  const handleSubmit = async (consentData: ConsentFormData) => {
     setState((prev) => ({ ...prev, isSubmitting: true, error: null }));
 
     try {
@@ -305,10 +305,12 @@ export default function ApplyPage() {
           assessment_data: state.assessmentData,
           completed_steps: state.completedSteps,
           progress_percentage: calculateProgress(state.completedSteps),
-          consent_data_processing: state.consent.dataProcessing,
-          consent_marketing: state.consent.marketing,
-          consent_medical_sharing: state.consent.medicalSharing,
-          consent_terms: state.consent.terms,
+          consent_data_processing: consentData.dataProcessing,
+          consent_marketing: consentData.marketing,
+          consent_medical_sharing: consentData.medicalSharing,
+          consent_terms: consentData.terms,
+          digital_signature: consentData.digitalSignature,
+          signature_timestamp: consentData.signatureTimestamp,
           payment_reference: paymentData.referenceId || null,
           payment_screenshot_url: paymentScreenshotUrl,
           payment_screenshot_path: paymentScreenshotPath,

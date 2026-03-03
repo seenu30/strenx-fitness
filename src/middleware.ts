@@ -10,6 +10,7 @@ const PUBLIC_ROUTES = [
   '/verify-email',
   '/auth/callback',
   '/apply', // Public client application form
+  '/accept-invite', // Client invite acceptance page
 ];
 
 // Routes for coaches/admins
@@ -31,6 +32,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/webhooks') ||
     pathname.startsWith('/api/test-') ||
+    pathname.startsWith('/api/test/') || // Test API routes
     pathname.startsWith('/api/applications') || // Public application API
     pathname.startsWith('/api/payment-settings') || // Public payment settings for apply form
     pathname.startsWith('/api/upload/payment-screenshot') || // Public screenshot upload

@@ -26,7 +26,9 @@ export interface ConsentData {
   marketing: boolean;
   medicalSharing: boolean;
   terms: boolean;
-  timestamp?: string;
+  photoUsage?: boolean;
+  digitalSignature?: string;
+  signatureTimestamp?: string;
 }
 
 // Full client application record from database
@@ -58,6 +60,8 @@ export interface ClientApplication {
   consent_medical_sharing: boolean;
   consent_terms: boolean;
   consent_timestamp?: string | null;
+  digital_signature?: string | null;
+  signature_timestamp?: string | null;
   converted_client_id?: string | null;
   converted_at?: string | null;
   created_at: string;
@@ -111,6 +115,8 @@ export interface SubmitApplicationRequest {
   consent_marketing: boolean;
   consent_medical_sharing: boolean;
   consent_terms: boolean;
+  digital_signature?: string;
+  signature_timestamp?: string;
 }
 
 export interface ReviewApplicationRequest {

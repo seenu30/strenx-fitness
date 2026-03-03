@@ -14,8 +14,18 @@ interface PaymentData {
   referenceId: string;
 }
 
+export interface ConsentData {
+  dataProcessing: boolean;
+  medicalSharing: boolean;
+  photoUsage: boolean;
+  terms: boolean;
+  marketing: boolean;
+  digitalSignature: string;
+  signatureTimestamp: string;
+}
+
 interface ConsentFormProps {
-  onSubmit: () => Promise<void>;
+  onSubmit: (consentData: ConsentData) => Promise<void>;
   onBack: () => void;
   isSubmitting: boolean;
   expectedSignature?: string; // Expected full name: "FirstName LastName"
@@ -223,7 +233,15 @@ export default function ConsentForm({
       return;
     }
 
-    await onSubmit();
+    await onSubmit({
+      dataProcessing: consents.data_processing,
+      medicalSharing: consents.medical_data_sharing,
+      photoUsage: consents.photo_usage,
+      terms: consents.terms_of_service,
+      marketing: consents.marketing,
+      digitalSignature: digitalSignature,
+      signatureTimestamp: new Date().toISOString(),
+    });
   };
 
   const allRequiredChecked = CONSENT_ITEMS.filter((item) => item.required).every(
