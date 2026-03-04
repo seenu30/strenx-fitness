@@ -8,6 +8,7 @@ const shareApplicationSchema = z.object({
   recipient_email: z.string().email("Invalid email address"),
   recipient_name: z.string().optional(),
   custom_message: z.string().max(500, "Message must be 500 characters or less").optional(),
+  application_id: z.string().uuid().optional(), // Optional: links to specific application
 });
 
 export async function POST(request: NextRequest) {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { recipient_email, recipient_name, custom_message } = validation.data;
+    const { recipient_email, recipient_name, custom_message, application_id } = validation.data;
 
     // Get the current authenticated user (coach)
     const supabase = await createClient();
@@ -59,7 +60,10 @@ export async function POST(request: NextRequest) {
     }
 
     const coachName = `${userData.first_name} ${userData.last_name}`;
-    const applicationUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/apply`;
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const applicationUrl = application_id
+      ? `${baseUrl}/apply?id=${application_id}`
+      : `${baseUrl}/apply`;
 
     // Generate email content
     const { html, text, subject } = generateApplicationInviteEmail({

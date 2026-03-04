@@ -93,8 +93,17 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
       scope: "/",
     });
 
-    // Wait for the service worker to be ready
-    await navigator.serviceWorker.ready;
+    // Wait for the service worker to be ready with a timeout
+    const readyPromise = navigator.serviceWorker.ready;
+    const timeoutPromise = new Promise<ServiceWorkerRegistration>((_, reject) => {
+      setTimeout(() => reject(new Error("Service worker ready timeout")), 10000);
+    });
+
+    try {
+      await Promise.race([readyPromise, timeoutPromise]);
+    } catch (timeoutError) {
+      console.warn("Service worker ready timeout, continuing anyway");
+    }
 
     console.log("Service Worker registered:", registration.scope);
     return registration;
@@ -243,30 +252,37 @@ export async function savePushSubscription(
   try {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) {
+      console.error("Push subscription: User not authenticated");
       throw new Error("User not authenticated");
     }
 
+    console.log("Saving push subscription for user:", user.user.id);
+
+    // First, try to delete any existing subscription for this user/endpoint
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
+      .from("push_subscriptions")
+      .delete()
+      .eq("user_id", user.user.id)
+      .eq("endpoint", subscriptionData.endpoint);
+
+    // Then insert the new subscription
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any)
       .from("push_subscriptions")
-      .upsert(
-        {
-          user_id: user.user.id,
-          endpoint: subscriptionData.endpoint,
-          p256dh_key: subscriptionData.keys.p256dh,
-          auth_key: subscriptionData.keys.auth,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "user_id,endpoint",
-        }
-      );
+      .insert({
+        user_id: user.user.id,
+        endpoint: subscriptionData.endpoint,
+        p256dh_key: subscriptionData.keys.p256dh,
+        auth_key: subscriptionData.keys.auth,
+      });
 
     if (error) {
       console.error("Failed to save push subscription:", error);
       return false;
     }
 
+    console.log("Push subscription saved successfully");
     return true;
   } catch (error) {
     console.error("Error saving push subscription:", error);

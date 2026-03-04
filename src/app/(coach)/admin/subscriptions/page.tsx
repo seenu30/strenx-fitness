@@ -15,6 +15,7 @@ import {
   Users,
   Loader2,
   Plus,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -29,7 +30,7 @@ interface SubscriptionRow {
     user_id: string;
     users: { first_name: string; last_name: string; email: string };
   };
-  plan_templates: { name: string; price: number } | null;
+  subscription_plans: { name: string; price_amount: number } | null;
 }
 
 interface PaymentRow {
@@ -53,8 +54,22 @@ interface Subscription {
   lastPaymentDate: string | null;
 }
 
+interface ClientOption {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface PlanOption {
+  id: string;
+  name: string;
+  price: number;
+  durationDays: number;
+}
+
 type SubStatus = "all" | "active" | "expiring" | "paused" | "pending" | "completed" | "cancelled";
 type PaymentStatus = "all" | "paid" | "pending";
+type UserRole = "coach" | "super_admin";
 
 export default function SubscriptionsPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -65,9 +80,21 @@ export default function SubscriptionsPage() {
   const [showPaymentModal, setShowPaymentModal] = useState<string | null>(null);
   const [paymentReference, setPaymentReference] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole>("coach");
+
+  // New subscription modal state
+  const [showNewSubModal, setShowNewSubModal] = useState(false);
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [plans, setPlans] = useState<PlanOption[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [customAmount, setCustomAmount] = useState("");
+  const [isPaid, setIsPaid] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     loadSubscriptions();
+    loadClientsAndPlans();
   }, []);
 
   async function loadSubscriptions() {
@@ -80,25 +107,44 @@ export default function SubscriptionsPage() {
         return;
       }
 
-      // Get coach's id
-      const { data: coach } = await (supabase as SupabaseClient)
-        .from("coaches")
-        .select("id")
-        .eq("user_id", user.id)
+      // Get user role
+      const { data: userProfile } = await (supabase as SupabaseClient)
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
         .single();
 
-      if (!coach) {
-        setIsLoading(false);
-        return;
+      const role = (userProfile?.role as UserRole) || "coach";
+      setUserRole(role);
+
+      let clientIds: string[] = [];
+
+      if (role === "super_admin") {
+        // Admin sees all clients
+        const { data: allClients } = await (supabase as SupabaseClient)
+          .from("clients")
+          .select("id");
+        clientIds = (allClients || []).map((c: { id: string }) => c.id);
+      } else {
+        // Coach sees only their clients
+        const { data: coach } = await (supabase as SupabaseClient)
+          .from("coaches")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!coach) {
+          setIsLoading(false);
+          return;
+        }
+
+        const { data: coachClients } = await (supabase as SupabaseClient)
+          .from("clients")
+          .select("id")
+          .eq("coach_id", coach.id);
+
+        clientIds = (coachClients || []).map((c: { id: string }) => c.id);
       }
-
-      // Get all clients for this coach
-      const { data: clients } = await (supabase as SupabaseClient)
-        .from("clients")
-        .select("id")
-        .eq("coach_id", coach.id);
-
-      const clientIds = (clients || []).map((c: { id: string }) => c.id);
 
       // Get subscriptions with client info
       const { data: subs, error } = await (supabase as SupabaseClient)
@@ -113,7 +159,7 @@ export default function SubscriptionsPage() {
             user_id,
             users!inner(first_name, last_name, email)
           ),
-          plan_templates(name, price)
+          subscription_plans(name, price_amount)
         `)
         .in("client_id", clientIds.length > 0 ? clientIds : [""])
         .order("created_at", { ascending: false });
@@ -135,7 +181,7 @@ export default function SubscriptionsPage() {
       const formattedSubs: Subscription[] = ((subs || []) as unknown as SubscriptionRow[]).map((sub) => {
         const client = sub.clients;
         const user = client.users;
-        const plan = sub.plan_templates;
+        const plan = sub.subscription_plans;
 
         // Find latest payment for this subscription
         const subPayments = ((payments || []) as PaymentRow[]).filter((p) => p.subscription_id === sub.id);
@@ -160,7 +206,7 @@ export default function SubscriptionsPage() {
           clientName: `${user.first_name} ${user.last_name}`,
           email: user.email,
           plan: plan?.name || "Custom Plan",
-          amount: latestPayment?.amount || plan?.price || 0,
+          amount: latestPayment?.amount || plan?.price_amount || 0,
           status,
           startDate: sub.start_date,
           endDate: sub.end_date,
@@ -188,7 +234,7 @@ export default function SubscriptionsPage() {
       // Get subscription details
       const { data: sub } = await (supabase as SupabaseClient)
         .from("subscriptions")
-        .select("client_id, plan_templates(price)")
+        .select("client_id, subscription_plans(price_amount)")
         .eq("id", subscriptionId)
         .single();
 
@@ -198,7 +244,7 @@ export default function SubscriptionsPage() {
       await (supabase as SupabaseClient).from("payments").insert({
         client_id: (sub as { client_id: string }).client_id,
         subscription_id: subscriptionId,
-        amount: (sub as unknown as { plan_templates?: { price: number } }).plan_templates?.price || 0,
+        amount: (sub as unknown as { subscription_plans?: { price_amount: number } }).subscription_plans?.price_amount || 0,
         status: "completed",
         payment_method: "manual",
         payment_date: new Date().toISOString(),
@@ -222,6 +268,99 @@ export default function SubscriptionsPage() {
       setIsProcessing(false);
     }
   }
+
+  async function loadClientsAndPlans() {
+    const supabase = createClient();
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get coach's clients
+      const { data: coach } = await (supabase as SupabaseClient)
+        .from("coaches")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (coach) {
+        const { data: clientsData } = await (supabase as SupabaseClient)
+          .from("clients")
+          .select("id, users!inner(first_name, last_name, email)")
+          .eq("coach_id", coach.id);
+
+        if (clientsData) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setClients(
+            clientsData.map((c: any) => ({
+              id: c.id,
+              name: `${c.users.first_name} ${c.users.last_name}`,
+              email: c.users.email,
+            }))
+          );
+        }
+      }
+
+      // Get active plans
+      const { data: plansData } = await (supabase as SupabaseClient)
+        .from("subscription_plans")
+        .select("id, name, price_amount, duration_days")
+        .eq("is_active", true)
+        .order("sort_order");
+
+      if (plansData) {
+        setPlans(
+          plansData.map((p: { id: string; name: string; price_amount: number; duration_days: number }) => ({
+            id: p.id,
+            name: p.name,
+            price: p.price_amount,
+            durationDays: p.duration_days,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error("Error loading clients and plans:", error);
+    }
+  }
+
+  async function handleCreateSubscription() {
+    if (!selectedClientId || !selectedPlanId) return;
+
+    setIsCreating(true);
+    try {
+      const response = await fetch("/api/subscriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: selectedClientId,
+          planId: selectedPlanId,
+          customAmount: customAmount ? parseInt(customAmount) : undefined,
+          isPaid,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create subscription");
+      }
+
+      // Reset modal and reload
+      setShowNewSubModal(false);
+      setSelectedClientId("");
+      setSelectedPlanId("");
+      setCustomAmount("");
+      setIsPaid(false);
+      await loadSubscriptions();
+    } catch (error) {
+      console.error("Error creating subscription:", error);
+      alert(error instanceof Error ? error.message : "Failed to create subscription");
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId);
 
   const filteredSubs = subscriptions.filter((sub) => {
     const matchesSearch =
@@ -348,16 +487,20 @@ export default function SubscriptionsPage() {
             Subscriptions
           </h1>
           <p className="text-stone-600 dark:text-stone-400 mt-1">
-            Manage client subscriptions and payments
+            {userRole === "super_admin"
+              ? "Overview of all client subscriptions"
+              : "Manage your client subscriptions and payments"}
           </p>
         </div>
-        <Link
-          href="/admin/clients/invite"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg hover:bg-brown-600 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New Subscription
-        </Link>
+        {userRole === "coach" && (
+          <button
+            onClick={() => setShowNewSubModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg hover:bg-brown-600 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New Subscription
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -556,11 +699,11 @@ export default function SubscriptionsPage() {
               Invite a client to create their first subscription.
             </p>
             <Link
-              href="/admin/clients/invite"
+              href="/admin/clients"
               className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-brown-500 text-white rounded-lg hover:bg-brown-600"
             >
               <Plus className="w-4 h-4" />
-              Invite Client
+              Go to Clients
             </Link>
           </div>
         )}
@@ -615,6 +758,124 @@ export default function SubscriptionsPage() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Subscription Modal */}
+      {showNewSubModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-stone-900 rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-stone-800 dark:text-stone-100">
+                Create New Subscription
+              </h3>
+              <button
+                onClick={() => setShowNewSubModal(false)}
+                className="p-1 text-stone-500 hover:text-stone-700 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Client Selection */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
+                  Client
+                </label>
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200"
+                >
+                  <option value="">Select a client...</option>
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name} ({client.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Plan Selection */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
+                  Plan
+                </label>
+                <select
+                  value={selectedPlanId}
+                  onChange={(e) => setSelectedPlanId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200"
+                >
+                  <option value="">Select a plan...</option>
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} - {formatCurrency(plan.price)} ({plan.durationDays} days)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Custom Amount */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
+                  Custom Amount (Optional)
+                </label>
+                <input
+                  type="number"
+                  placeholder={selectedPlan ? `Plan price: ${formatCurrency(selectedPlan.price)}` : "Enter custom amount"}
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200"
+                />
+              </div>
+
+              {/* Payment Status */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="isPaid"
+                  checked={isPaid}
+                  onChange={(e) => setIsPaid(e.target.checked)}
+                  className="w-4 h-4 text-brown-500 border-stone-300 rounded focus:ring-brown-500"
+                />
+                <label htmlFor="isPaid" className="text-sm text-stone-700 dark:text-stone-300">
+                  Payment already received
+                </label>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowNewSubModal(false)}
+                disabled={isCreating}
+                className="flex-1 px-4 py-2 border border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateSubscription}
+                disabled={isCreating || !selectedClientId || !selectedPlanId}
+                className="flex-1 px-4 py-2 bg-brown-500 text-white rounded-lg hover:bg-brown-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Subscription"
+                )}
+              </button>
+            </div>
+
+            <p className="text-xs text-stone-500 mt-4 text-center">
+              Need to add a new client?{" "}
+              <Link href="/admin/clients" className="text-brown-500 hover:underline">
+                Go to Clients page
+              </Link>
+            </p>
           </div>
         </div>
       )}

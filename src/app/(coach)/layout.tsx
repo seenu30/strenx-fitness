@@ -17,6 +17,7 @@ import {
   User,
   ChevronDown,
   Dumbbell,
+  FileText,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -32,10 +33,11 @@ const NAV_ITEMS = [
     label: "Clients",
     href: "/admin/clients",
     icon: Users,
-    subItems: [
-      { label: "All Clients", href: "/admin/clients" },
-      { label: "Invite Client", href: "/admin/clients/invite" },
-    ],
+  },
+  {
+    label: "Applications",
+    href: "/admin/applications",
+    icon: FileText,
   },
   {
     label: "Plans",

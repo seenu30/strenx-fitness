@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { AssessmentData } from "@/types/onboarding";
 import {
   APPLICATION_STEPS,
@@ -94,8 +94,10 @@ const STEP_ICONS: Record<string, string> = {
 
 const STORAGE_KEY = "strenx_application";
 
-export default function ApplyPage() {
+function ApplyPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("id");
   const [state, setState] = useState<ApplicationFormState>({
     applicationId: null,
     contactInfo: { email: "", phone: "" },
@@ -119,21 +121,73 @@ export default function ApplyPage() {
     referenceId: '',
   });
 
-  // Load saved progress from localStorage and fetch payment settings
+  // Load saved progress from localStorage, fetch application if ID provided, and fetch payment settings
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Load saved progress
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setState((prev) => ({
-            ...prev,
-            ...parsed,
-            isSubmitting: false,
-            isSaving: false,
-            error: null,
-          }));
+        // If we have an application ID in URL, fetch that application
+        if (applicationId) {
+          const appResponse = await fetch(`/api/applications/${applicationId}`);
+          if (appResponse.ok) {
+            const appData = await appResponse.json();
+            if (appData.success && appData.application) {
+              const app = appData.application;
+              // Pre-fill state from the fetched application
+              // Strip +91 prefix from phone for display (we show it separately)
+              const phoneWithoutPrefix = (app.phone || "").replace(/^\+91/, "");
+              const completedSteps = app.completed_steps || [];
+
+              // Determine current step based on completed steps
+              // Find the first incomplete step, or the last step if all are complete
+              let currentStep = "contact_info";
+              for (const step of APPLICATION_STEPS) {
+                if (!completedSteps.includes(step.id)) {
+                  currentStep = step.id;
+                  break;
+                }
+              }
+              // If all steps are complete, go to the last step (consent/payment)
+              if (completedSteps.length === APPLICATION_STEPS.length) {
+                currentStep = APPLICATION_STEPS[APPLICATION_STEPS.length - 1].id;
+              }
+
+              setState((prev) => ({
+                ...prev,
+                applicationId: app.id,
+                contactInfo: {
+                  email: app.email || "",
+                  phone: phoneWithoutPrefix,
+                },
+                assessmentData: app.assessment_data || {},
+                completedSteps,
+                currentStep,
+                isSubmitting: false,
+                isSaving: false,
+                error: null,
+              }));
+              // Also save to localStorage so progress persists
+              localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                applicationId: app.id,
+                contactInfo: { email: app.email || "", phone: phoneWithoutPrefix },
+                assessmentData: app.assessment_data || {},
+                completedSteps,
+                currentStep,
+              }));
+            }
+          }
+        } else {
+          // Load saved progress from localStorage
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            setState((prev) => ({
+              ...prev,
+              ...parsed,
+              isSubmitting: false,
+              isSaving: false,
+              error: null,
+            }));
+          }
         }
 
         // Fetch payment settings
@@ -152,7 +206,7 @@ export default function ApplyPage() {
     };
 
     initialize();
-  }, []);
+  }, [applicationId]);
 
   // Save progress to localStorage
   const saveToLocalStorage = useCallback((newState: ApplicationFormState) => {
@@ -203,6 +257,9 @@ export default function ApplyPage() {
   // Handle form data save
   const handleSaveStep = useCallback(
     async (stepId: string, data: unknown) => {
+      // Use a ref to capture the new state for database save
+      let newStateForDb: typeof state | null = null;
+
       setState((prev) => {
         // Normalize camelCase stepId to snake_case for APPLICATION_STEPS compatibility
         const stepIdNormalizeMap: Record<string, string> = {
@@ -261,10 +318,32 @@ export default function ApplyPage() {
         }
 
         saveToLocalStorage(newState);
+        newStateForDb = newState;
         return newState;
       });
+
+      // If we have an applicationId (draft from invitation), save progress to database
+      // Use setTimeout to ensure setState has completed
+      setTimeout(async () => {
+        if (newStateForDb?.applicationId) {
+          try {
+            await fetch(`/api/applications/${newStateForDb.applicationId}/progress`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                assessment_data: newStateForDb.assessmentData,
+                completed_steps: newStateForDb.completedSteps,
+                progress_percentage: calculateProgress(newStateForDb.completedSteps),
+                phone: newStateForDb.contactInfo.phone ? `+91${newStateForDb.contactInfo.phone}` : null,
+              }),
+            });
+          } catch (error) {
+            console.error("Error saving progress to database:", error);
+          }
+        }
+      }, 0);
     },
-    [saveToLocalStorage]
+    [saveToLocalStorage, calculateProgress]
   );
 
   // Handle form submission
@@ -300,8 +379,9 @@ export default function ApplyPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          application_id: state.applicationId || undefined, // Include if updating existing draft
           email: state.contactInfo.email,
-          phone: state.contactInfo.phone,
+          phone: state.contactInfo.phone ? `+91${state.contactInfo.phone}` : null,
           assessment_data: state.assessmentData,
           completed_steps: state.completedSteps,
           progress_percentage: calculateProgress(state.completedSteps),
@@ -345,8 +425,10 @@ export default function ApplyPage() {
 
   const validateContactPhone = (phone: string): string | null => {
     if (!phone?.trim()) return "Phone number is required";
-    const cleaned = phone.replace(/[\s\-\(\)]/g, '');
-    if (!/^\+?[0-9]{10,15}$/.test(cleaned)) return "Enter a valid phone number (10-15 digits)";
+    // Remove any non-digit characters for validation
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length !== 10) return "Enter a valid 10-digit mobile number";
+    if (!/^[6-9]/.test(cleaned)) return "Indian mobile numbers start with 6, 7, 8, or 9";
     return null;
   };
 
@@ -445,27 +527,33 @@ export default function ApplyPage() {
             >
               Phone Number
             </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <div className="relative flex">
+              <div className="flex items-center gap-1.5 px-3 py-3 bg-muted border border-r-0 border-border rounded-l-lg text-muted-foreground">
+                <Phone className="w-5 h-5" />
+                <span className="font-medium text-foreground">+91</span>
+              </div>
               <input
                 type="tel"
                 id="phone"
                 value={state.contactInfo.phone || ""}
                 onChange={(e) => {
+                  // Only allow digits, max 10
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                   setState((prev) => ({
                     ...prev,
-                    contactInfo: { ...prev.contactInfo, phone: e.target.value },
+                    contactInfo: { ...prev.contactInfo, phone: value },
                     error: null,
                   }));
                 }}
-                className={`w-full pl-10 pr-10 py-3 rounded-lg border ${
+                className={`flex-1 pl-4 pr-10 py-3 rounded-r-lg border ${
                   phoneStatus === 'valid'
                     ? "border-green-500 focus:ring-green-500"
                     : phoneStatus === 'invalid'
                     ? "border-red-500 focus:ring-red-500"
                     : "border-border"
                 } bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
-                placeholder="+91 98765 43210"
+                placeholder="98765 43210"
+                maxLength={10}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                 {phoneStatus === 'valid' && (
@@ -674,5 +762,19 @@ export default function ApplyPage() {
           )}
       </div>
     </div>
+  );
+}
+
+export default function ApplyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <ApplyPageContent />
+    </Suspense>
   );
 }

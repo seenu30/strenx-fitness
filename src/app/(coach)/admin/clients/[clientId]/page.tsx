@@ -106,13 +106,14 @@ type TabType = "overview" | "assessment" | "checkins" | "progress" | "plans" | "
 interface ClientDataRow {
   id: string;
   status: string;
-  start_date: string | null;
-  end_date: string | null;
   target_weight_kg: number | null;
+  created_at: string;
   users: {
     id: string;
     email: string;
-    full_name: string;
+    first_name: string;
+    last_name: string;
+    phone: string | null;
   };
 }
 
@@ -172,13 +173,14 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
         .select(`
           id,
           status,
-          start_date,
-          end_date,
           target_weight_kg,
+          created_at,
           users!inner(
             id,
             email,
-            full_name
+            first_name,
+            last_name,
+            phone
           )
         `)
         .eq("id", clientId)
@@ -255,6 +257,16 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
         .eq("is_active", true)
         .single();
 
+      // Fetch active subscription for start/end dates
+      const { data: subscriptionData } = await (supabase as SupabaseClient)
+        .from("subscriptions")
+        .select("start_date, end_date")
+        .eq("client_id", clientId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
       const typedDailyCheckins = ((dailyCheckins || []) as unknown as CheckinDataRow[]).map((c) => ({ ...c, type: "daily" as const }));
       const typedWeeklyCheckins = ((weeklyCheckins || []) as unknown as CheckinDataRow[]).map((c) => ({ ...c, type: "weekly" as const }));
       const allCheckins = [...typedDailyCheckins, ...typedWeeklyCheckins]
@@ -307,17 +319,17 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
 
       setClient({
         id: typedClientData.id,
-        name: typedClientData.users?.full_name || "Unknown",
+        name: `${typedClientData.users?.first_name || ""} ${typedClientData.users?.last_name || ""}`.trim() || "Unknown",
         email: typedClientData.users?.email || "",
-        phone: typedPersonalData?.phone as string || null,
+        phone: typedClientData.users?.phone || null,
         city: typedPersonalData?.city as string || null,
         age,
         gender: typedPersonalData?.gender as string || null,
         height: typedPersonalData?.height_cm as number || null,
         status: typedClientData.status || "active",
         plan: typedNutritionAssignment?.nutrition_plans?.name || typedTrainingAssignment?.training_plans?.name || null,
-        startDate: typedClientData.start_date,
-        endDate: typedClientData.end_date,
+        startDate: (subscriptionData as { start_date: string | null; end_date: string | null } | null)?.start_date || null,
+        endDate: (subscriptionData as { start_date: string | null; end_date: string | null } | null)?.end_date || null,
         compliance,
         currentWeight,
         startWeight,

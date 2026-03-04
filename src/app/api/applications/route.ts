@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const {
+      application_id,
       email,
       phone,
       assessment_data,
@@ -35,6 +36,72 @@ export async function POST(request: NextRequest) {
     // Use admin client for public access
     const adminClient = createAdminClient();
 
+    // If application_id is provided, update existing draft
+    if (application_id) {
+      // Verify the application exists and is in draft status
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: existingDraft } = await (adminClient as any)
+        .from("client_applications")
+        .select("id, status, email")
+        .eq("id", application_id)
+        .single();
+
+      if (!existingDraft) {
+        return NextResponse.json(
+          { error: "Application not found" },
+          { status: 404 }
+        );
+      }
+
+      if (existingDraft.status !== "draft") {
+        return NextResponse.json(
+          { error: "This application has already been submitted" },
+          { status: 400 }
+        );
+      }
+
+      // Update the existing draft to submitted
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: application, error: updateError } = await (adminClient as any)
+        .from("client_applications")
+        .update({
+          phone: phone || null,
+          assessment_data: assessment_data || {},
+          completed_steps: completed_steps || [],
+          progress_percentage: progress_percentage || 0,
+          status: "submitted",
+          submitted_at: new Date().toISOString(),
+          consent_data_processing: consent_data_processing || false,
+          consent_marketing: consent_marketing || false,
+          consent_medical_sharing: consent_medical_sharing || false,
+          consent_terms: consent_terms || false,
+          consent_timestamp: new Date().toISOString(),
+          digital_signature: digital_signature || null,
+          signature_timestamp: signature_timestamp || null,
+          payment_reference: payment_reference || null,
+          payment_screenshot_url: payment_screenshot_url || null,
+          payment_screenshot_path: payment_screenshot_path || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", application_id)
+        .select("id, email, status, created_at")
+        .single();
+
+      if (updateError) {
+        console.error("Error updating application:", updateError);
+        return NextResponse.json(
+          { error: "Failed to submit application" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        application,
+      });
+    }
+
+    // Otherwise, create new application (existing flow)
     // Check if email already exists with an active application
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: existingApp } = await (adminClient as any)

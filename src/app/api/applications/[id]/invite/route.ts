@@ -158,9 +158,8 @@ export async function POST(
       .from("client_assessments")
       .insert({
         client_id: clientData.id,
-        assessment_version: 1,
+        version: 1,
         is_current: true,
-        created_by: authData.user.id,
       })
       .select("id")
       .single();

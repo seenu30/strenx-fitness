@@ -76,11 +76,13 @@ export function NotificationToggle({ compact = false }: NotificationToggleProps)
         onClick={handleToggle}
         disabled={loading}
         className={`p-2 rounded-lg transition-colors ${
-          isSubscribed
+          error
+            ? "text-red-500 hover:bg-red-500/10"
+            : isSubscribed
             ? "text-primary bg-primary/10 hover:bg-primary/20"
             : "text-muted-foreground hover:text-foreground hover:bg-muted"
         }`}
-        title={isSubscribed ? "Notifications enabled" : "Enable notifications"}
+        title={error || (isSubscribed ? "Notifications enabled" : "Enable notifications")}
       >
         {loading ? (
           <Loader2 className="w-5 h-5 animate-spin" />

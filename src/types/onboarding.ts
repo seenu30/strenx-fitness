@@ -12,7 +12,6 @@ export interface PersonalInfoData {
   weightKg: number;
   occupation: string;
   city: string;
-  phone?: string;
 }
 
 // Goals (Section 2)

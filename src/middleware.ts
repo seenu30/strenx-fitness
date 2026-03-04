@@ -44,8 +44,12 @@ export async function middleware(request: NextRequest) {
   // Check if route is public
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
-  // If public route and user is logged in, redirect based on role
-  if (isPublicRoute && user) {
+  // Routes that should be accessible even when logged in (don't redirect)
+  const noRedirectRoutes = ['/apply', '/accept-invite'];
+  const shouldNotRedirect = noRedirectRoutes.some((route) => pathname.startsWith(route));
+
+  // If public route and user is logged in, redirect based on role (except for certain routes)
+  if (isPublicRoute && user && !shouldNotRedirect) {
     // Get user role to determine redirect destination
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: userProfile } = await (supabase as any)

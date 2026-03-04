@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Search,
   Filter,
-  UserPlus,
+  Send,
   MoreVertical,
   TrendingUp,
   TrendingDown,
@@ -17,10 +17,9 @@ import {
   Mail,
   Calendar,
   Loader2,
-  Share2,
 } from "lucide-react";
-import ShareApplicationLinkModal from "@/components/ShareApplicationLinkModal";
 import { createClient } from "@/lib/supabase/client";
+import SendApplicationModal from "@/components/SendApplicationModal";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 interface ClientRow {
@@ -81,7 +80,7 @@ export default function ClientsPage() {
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
+  const [showSendAppModal, setShowSendAppModal] = useState(false);
 
   useEffect(() => {
     async function loadClients() {
@@ -342,22 +341,13 @@ export default function ClientsPage() {
             Manage your client roster and track their progress
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowShareModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-border text-foreground rounded-lg font-medium hover:bg-muted transition-colors"
-          >
-            <Share2 className="w-4 h-4" />
-            Share Link
-          </button>
-          <Link
-            href="/admin/clients/invite"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
-          >
-            <UserPlus className="w-4 h-4" />
-            Invite Client
-          </Link>
-        </div>
+        <button
+          onClick={() => setShowSendAppModal(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+        >
+          <Send className="w-4 h-4" />
+          Send Application
+        </button>
       </div>
 
       {/* Status Tabs */}
@@ -436,150 +426,150 @@ export default function ClientsPage() {
 
       {/* Client List */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted">
-              <tr>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground text-sm">
-                  Client
-                </th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground text-sm">
-                  Plan
-                </th>
-                <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">
-                  Status
-                </th>
-                <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">
-                  Compliance
-                </th>
-                <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">
-                  Weight
-                </th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground text-sm">
-                  Last Check-in
-                </th>
-                <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">
-                  Flags
-                </th>
-                <th className="text-right py-3 px-4 font-medium text-muted-foreground text-sm">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredClients.map((client) => (
-                <tr
-                  key={client.id}
-                  className="hover:bg-muted/50 transition-colors"
-                >
-                  <td className="py-4 px-4">
-                    <Link
-                      href={`/admin/clients/${client.id}`}
-                      className="flex items-center gap-3 group"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-medium text-primary">
-                          {client.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground group-hover:text-primary transition-colors">
-                          {client.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{client.email}</p>
-                      </div>
-                    </Link>
-                  </td>
-                  <td className="py-4 px-4">
-                    <p className="text-sm text-foreground">
-                      {client.plan}
-                    </p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {formatDate(client.startDate)} - {formatDate(client.endDate)}
-                    </p>
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    {getStatusBadge(client.status)}
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <span
-                      className={`inline-block px-2 py-1 rounded-lg text-sm font-medium ${getComplianceColor(client.compliance)}`}
-                    >
-                      {client.compliance}%
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center justify-center gap-1">
-                      {getWeightChangeIcon(client.weightChange)}
-                      <span
-                        className={`text-sm font-medium ${
-                          client.weightChange < 0
-                            ? "text-green-600"
-                            : client.weightChange > 0
-                            ? "text-red-600"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {client.weightChange > 0 ? "+" : ""}
-                        {client.weightChange} kg
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <p className="text-sm text-muted-foreground">
-                      {client.lastCheckin}
-                    </p>
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    {client.riskFlags > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">
-                        <AlertTriangle className="w-3 h-3" />
-                        {client.riskFlags}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </td>
-                  <td className="py-4 px-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link
-                        href={`mailto:${client.email}`}
-                        className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
-                      >
-                        <Mail className="w-4 h-4" />
-                      </Link>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground text-sm">
+                    Client
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground text-sm">
+                    Plan
+                  </th>
+                  <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">
+                    Status
+                  </th>
+                  <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">
+                    Compliance
+                  </th>
+                  <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">
+                    Weight
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground text-sm">
+                    Last Check-in
+                  </th>
+                  <th className="text-center py-3 px-4 font-medium text-muted-foreground text-sm">
+                    Flags
+                  </th>
+                  <th className="text-right py-3 px-4 font-medium text-muted-foreground text-sm">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredClients.map((client) => (
+                  <tr
+                    key={client.id}
+                    className="hover:bg-muted/50 transition-colors"
+                  >
+                    <td className="py-4 px-4">
                       <Link
                         href={`/admin/clients/${client.id}`}
-                        className="px-3 py-1 text-sm text-primary hover:text-primary/80 font-medium"
+                        className="flex items-center gap-3 group"
                       >
-                        View
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-medium text-primary">
+                            {client.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                            {client.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{client.email}</p>
+                        </div>
                       </Link>
-                      <button className="p-2 rounded-lg hover:bg-muted text-muted-foreground">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredClients.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No clients found matching your criteria.</p>
+                    </td>
+                    <td className="py-4 px-4">
+                      <p className="text-sm text-foreground">
+                        {client.plan}
+                      </p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {formatDate(client.startDate)} - {formatDate(client.endDate)}
+                      </p>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {getStatusBadge(client.status)}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <span
+                        className={`inline-block px-2 py-1 rounded-lg text-sm font-medium ${getComplianceColor(client.compliance)}`}
+                      >
+                        {client.compliance}%
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-center gap-1">
+                        {getWeightChangeIcon(client.weightChange)}
+                        <span
+                          className={`text-sm font-medium ${
+                            client.weightChange < 0
+                              ? "text-green-600"
+                              : client.weightChange > 0
+                              ? "text-red-600"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {client.weightChange > 0 ? "+" : ""}
+                          {client.weightChange} kg
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <p className="text-sm text-muted-foreground">
+                        {client.lastCheckin}
+                      </p>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {client.riskFlags > 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">
+                          <AlertTriangle className="w-3 h-3" />
+                          {client.riskFlags}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`mailto:${client.email}`}
+                          className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
+                        >
+                          <Mail className="w-4 h-4" />
+                        </Link>
+                        <Link
+                          href={`/admin/clients/${client.id}`}
+                          className="px-3 py-1 text-sm text-primary hover:text-primary/80 font-medium"
+                        >
+                          View
+                        </Link>
+                        <button className="p-2 rounded-lg hover:bg-muted text-muted-foreground">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+
+          {filteredClients.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No clients found matching your criteria.</p>
+            </div>
+          )}
       </div>
 
-      {/* Share Application Link Modal */}
-      <ShareApplicationLinkModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
+      {/* Send Application Modal */}
+      <SendApplicationModal
+        isOpen={showSendAppModal}
+        onClose={() => setShowSendAppModal(false)}
       />
     </div>
   );

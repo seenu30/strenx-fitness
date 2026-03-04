@@ -711,12 +711,12 @@ export default function AdminDashboardPage() {
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Link
-            href="/admin/clients/invite"
+            href="/admin/clients"
             className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
           >
             <Users className="w-6 h-6 text-primary" />
             <span className="text-sm font-medium text-foreground">
-              Invite Client
+              View Clients
             </span>
           </Link>
           <Link

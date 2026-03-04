@@ -1,8 +1,8 @@
 "use client";
 
 import { useTheme } from "@/context/ThemeProvider";
-import { Sun, Moon, Monitor } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Sun, Moon, Monitor, Check } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 
 interface ThemeToggleProps {
   compact?: boolean;
@@ -11,14 +11,30 @@ interface ThemeToggleProps {
 export function ThemeToggle({ compact = false }: ThemeToggleProps) {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
+
   if (!mounted) {
-    // Return placeholder to prevent layout shift
     return (
       <button
         className="p-2 rounded-lg bg-secondary/50"
@@ -30,61 +46,62 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
     );
   }
 
-  const cycleTheme = () => {
-    if (theme === "system") {
-      setTheme("light");
-    } else if (theme === "light") {
-      setTheme("dark");
-    } else {
-      setTheme("system");
-    }
-  };
-
   const getLabel = () => {
     if (theme === "system") return "System theme";
     if (theme === "dark") return "Dark mode";
     return "Light mode";
   };
 
+  const handleSelectTheme = (newTheme: "light" | "dark" | "system") => {
+    setTheme(newTheme);
+    setMenuOpen(false);
+  };
+
+  const showDark = resolvedTheme === "dark";
+
   if (compact) {
     return (
-      <button
-        onClick={cycleTheme}
-        className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-        aria-label={getLabel()}
-        aria-pressed={theme === "dark"}
-        title={getLabel()}
-      >
-        <div className="relative w-5 h-5">
-          <div
-            className={`absolute inset-0 transition-all duration-200 ${
-              resolvedTheme === "dark"
-                ? "rotate-0 opacity-100"
-                : "rotate-180 opacity-0"
-            }`}
-          >
-            <Moon className="w-5 h-5" />
+      <div className="relative" ref={menuRef}>
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          aria-label={getLabel()}
+          title={getLabel()}
+        >
+          <div className="w-5 h-5">
+            {showDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </div>
-          <div
-            className={`absolute inset-0 transition-all duration-200 ${
-              resolvedTheme === "light"
-                ? "rotate-0 opacity-100"
-                : "-rotate-180 opacity-0"
-            }`}
-          >
-            <Sun className="w-5 h-5" />
+        </button>
+
+        {menuOpen && (
+          <div className="absolute right-0 mt-2 w-40 py-1 bg-card border border-border rounded-lg shadow-lg z-50">
+            <button
+              onClick={() => handleSelectTheme("light")}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <Sun className="w-4 h-4" />
+              <span className="flex-1 text-left">Light</span>
+              {theme === "light" && <Check className="w-4 h-4 text-primary" />}
+            </button>
+            <button
+              onClick={() => handleSelectTheme("dark")}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <Moon className="w-4 h-4" />
+              <span className="flex-1 text-left">Dark</span>
+              {theme === "dark" && <Check className="w-4 h-4 text-primary" />}
+            </button>
+            <button
+              onClick={() => handleSelectTheme("system")}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <Monitor className="w-4 h-4" />
+              <span className="flex-1 text-left">System</span>
+              {theme === "system" && <Check className="w-4 h-4 text-primary" />}
+            </button>
           </div>
-          <div
-            className={`absolute inset-0 transition-all duration-200 ${
-              theme === "system"
-                ? "scale-100 opacity-100"
-                : "scale-0 opacity-0"
-            }`}
-          >
-            <Monitor className="w-5 h-5" />
-          </div>
-        </div>
-      </button>
+        )}
+      </div>
     );
   }
 

@@ -109,6 +109,11 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     setIsLoading(true);
     setError(null);
 
+    // Add timeout to prevent infinite loading
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("Subscription timed out. Please try again.")), 30000);
+    });
+
     try {
       // Get VAPID public key from environment
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -116,16 +121,24 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         throw new Error("VAPID public key not configured");
       }
 
-      // Subscribe to push
-      const subscriptionData = await subscribeToPush(vapidPublicKey);
+      // Subscribe to push with timeout
+      const subscriptionData = await Promise.race([
+        subscribeToPush(vapidPublicKey),
+        timeoutPromise,
+      ]);
+
       if (!subscriptionData) {
         throw new Error("Failed to create subscription");
       }
 
-      // Save subscription to database
-      const saved = await savePushSubscription(subscriptionData);
+      // Save subscription to database with timeout
+      const saved = await Promise.race([
+        savePushSubscription(subscriptionData),
+        timeoutPromise,
+      ]);
+
       if (!saved) {
-        throw new Error("Failed to save subscription");
+        throw new Error("Failed to save subscription to server");
       }
 
       setIsSubscribed(true);
@@ -133,6 +146,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to subscribe";
+      console.error("Push subscription error:", err);
       setError(message);
       setIsSubscribed(false);
       return false;

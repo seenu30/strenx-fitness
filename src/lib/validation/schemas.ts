@@ -375,6 +375,7 @@ export const sendNotificationSchema = z.object({
 // ============================================
 
 export const createApplicationSchema = z.object({
+  application_id: uuidSchema.optional(), // If provided, updates existing draft instead of creating new
   email: emailSchema,
   phone: z.string().optional().nullable(),
   assessment_data: z.record(z.string(), z.unknown()).optional(),
@@ -389,6 +390,14 @@ export const createApplicationSchema = z.object({
   payment_reference: safeString100.optional().nullable(),
   payment_screenshot_url: z.string().url().optional().nullable(),
   payment_screenshot_path: safeString200.optional().nullable(),
+});
+
+// Schema for coach-initiated application invitation (creates draft)
+export const createInvitationSchema = z.object({
+  email: emailSchema,
+  name: safeString100.optional(),
+  message: createSafeString(500).optional(),
+  invited_by: uuidSchema,
 });
 
 export const updateApplicationSchema = z.object({

@@ -32,13 +32,6 @@ const validateName = (name: string): string | null => {
   return null;
 };
 
-const validatePhone = (phone: string): string | null => {
-  if (!phone?.trim()) return "Phone number is required";
-  const cleaned = phone.replace(/[\s\-\(\)]/g, '');
-  if (!/^\+?[0-9]{10,15}$/.test(cleaned)) return "Enter a valid phone number (10-15 digits)";
-  return null;
-};
-
 const validateEmail = (email: string): string | null => {
   if (!email?.trim()) return "Email is required";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return "Enter a valid email address";
@@ -59,7 +52,6 @@ export default function PersonalInfoForm({
     weightKg: 0,
     occupation: "",
     city: "",
-    phone: "",
   };
 
   const [formData, setFormData] = useState<PersonalInfoData>(initialData);
@@ -79,9 +71,6 @@ export default function PersonalInfoForm({
         break;
       case 'lastName':
         error = validateName(formData.lastName);
-        break;
-      case 'phone':
-        error = validatePhone(formData.phone || '');
         break;
       case 'dateOfBirth':
         if (!formData.dateOfBirth) {
@@ -168,9 +157,6 @@ export default function PersonalInfoForm({
       newErrors.city = "City is required";
     }
 
-    const phoneError = validatePhone(formData.phone || '');
-    if (phoneError) newErrors.phone = phoneError;
-
     setErrors(newErrors);
     // Mark all fields as touched on submit attempt
     setTouched({
@@ -182,7 +168,6 @@ export default function PersonalInfoForm({
       weightKg: true,
       occupation: true,
       city: true,
-      phone: true,
     });
     return Object.keys(newErrors).length === 0;
   };
@@ -541,40 +526,6 @@ export default function PersonalInfoForm({
         </div>
       </div>
 
-      {/* Phone */}
-      <div>
-        <label
-          htmlFor="phone"
-          className="block text-sm font-medium text-foreground mb-1"
-        >
-          Phone Number *
-        </label>
-        <div className="relative">
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            value={formData.phone || ""}
-            onChange={handleChange}
-            onBlur={() => handleBlur('phone')}
-            placeholder="+91 98765 43210"
-            className={`w-full px-4 py-2.5 pr-10 rounded-lg border ${
-              touched.phone && errors.phone
-                ? "border-red-500 focus:ring-red-500"
-                : touched.phone && !errors.phone && formData.phone
-                ? "border-green-500 focus:ring-green-500"
-                : "border-border"
-            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            {getFieldStatus('phone')}
-          </div>
-        </div>
-        {touched.phone && errors.phone && (
-          <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
-        )}
-        <FieldHint>For WhatsApp communication with your coach</FieldHint>
-      </div>
     </form>
   );
 }
@@ -588,4 +539,4 @@ const FieldHint = ({ children }: { children: React.ReactNode }) => (
 );
 
 // Export validation helpers for use in other components
-export { validateName, validatePhone, validateEmail };
+export { validateName, validateEmail };

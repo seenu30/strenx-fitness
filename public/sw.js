@@ -3,15 +3,16 @@
  * Handles push events and notification clicks
  */
 
-const CACHE_NAME = "strenx-v1";
+const CACHE_NAME = "strenx-v2";
 
 // Install event - cache essential assets
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        "/",
-        "/offline.html",
+      // Cache files individually to prevent one failure from blocking installation
+      return Promise.allSettled([
+        cache.add("/").catch(() => console.log("Failed to cache /")),
+        cache.add("/offline.html").catch(() => console.log("Failed to cache /offline.html")),
       ]);
     })
   );
