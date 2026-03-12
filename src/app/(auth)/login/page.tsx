@@ -81,8 +81,7 @@ function LoginForm() {
         }
       }
 
-      router.push(finalRedirect);
-      router.refresh();
+      window.location.href = finalRedirect;
     } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
