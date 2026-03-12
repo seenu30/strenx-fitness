@@ -31,6 +31,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/webhooks') ||
+    pathname.startsWith('/api/cron') || // Vercel cron jobs
     pathname.startsWith('/api/test-') ||
     pathname.startsWith('/api/test/') || // Test API routes
     pathname.startsWith('/api/applications') || // Public application API
