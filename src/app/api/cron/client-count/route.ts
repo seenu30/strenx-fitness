@@ -1,21 +1,17 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  // Vercel cron sends Authorization header on Pro, or check custom header
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
   if (!cronSecret) {
-    console.error("[CRON] CRON_SECRET env variable is not set");
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json({ error: "CRON_SECRET not set" }, { status: 500 });
   }
 
   if (authHeader !== `Bearer ${cronSecret}`) {
-    console.error("[CRON] Unauthorized - received:", authHeader?.substring(0, 20));
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -23,57 +19,54 @@ export async function GET(request: Request) {
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    console.error("[CRON] Missing Supabase env vars", {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!supabaseKey,
-    });
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json({ error: "Missing Supabase env vars" }, { status: 500 });
   }
 
   try {
-    console.log("[CRON] Supabase URL:", supabaseUrl);
-    console.log("[CRON] Service key prefix:", supabaseKey.substring(0, 20));
+    // Direct REST API call - total clients
+    const totalRes = await fetch(
+      `${supabaseUrl}/rest/v1/clients?select=id`,
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          Prefer: "count=exact,head=true",
+        },
+      }
+    );
 
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    // Simple query first to test connection
-    const { data: testData, error: testError, status, statusText } = await supabase
-      .from("clients")
-      .select("id")
-      .limit(1);
-
-    console.log("[CRON] Test query result:", { data: testData, error: testError, status, statusText });
-
-    if (testError) {
-      console.error("[CRON] Test query failed:", JSON.stringify(testError));
-      return NextResponse.json({ error: testError.message || "Query failed", details: testError }, { status: 500 });
+    if (!totalRes.ok) {
+      const body = await totalRes.text();
+      console.error("[CRON] Total query failed:", totalRes.status, body);
+      return NextResponse.json({ error: body }, { status: 500 });
     }
 
-    const { count: totalClients, error: totalError } = await supabase
-      .from("clients")
-      .select("*", { count: "exact", head: true });
+    const totalClients = parseInt(totalRes.headers.get("content-range")?.split("/")[1] || "0");
 
-    if (totalError) {
-      console.error("[CRON] Total clients query error:", JSON.stringify(totalError));
-      return NextResponse.json({ error: totalError.message }, { status: 500 });
+    // Direct REST API call - active clients
+    const activeRes = await fetch(
+      `${supabaseUrl}/rest/v1/clients?select=id&status=eq.active`,
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          Prefer: "count=exact,head=true",
+        },
+      }
+    );
+
+    if (!activeRes.ok) {
+      const body = await activeRes.text();
+      console.error("[CRON] Active query failed:", activeRes.status, body);
+      return NextResponse.json({ error: body }, { status: 500 });
     }
 
-    const { count: activeClients, error: activeError } = await supabase
-      .from("clients")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "active");
-
-    if (activeError) {
-      console.error("[CRON] Active clients query error:", JSON.stringify(activeError));
-      return NextResponse.json({ error: activeError.message }, { status: 500 });
-    }
+    const activeClients = parseInt(activeRes.headers.get("content-range")?.split("/")[1] || "0");
 
     const result = {
       timestamp: new Date().toISOString(),
-      totalClients: totalClients ?? 0,
-      activeClients: activeClients ?? 0,
+      totalClients,
+      activeClients,
     };
 
     console.log("[CRON] Daily client count:", JSON.stringify(result));
