@@ -31,16 +31,32 @@ export async function GET(request: Request) {
   }
 
   try {
+    console.log("[CRON] Supabase URL:", supabaseUrl);
+    console.log("[CRON] Service key prefix:", supabaseKey.substring(0, 20));
+
     const supabase = createClient(supabaseUrl, supabaseKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    // Simple query first to test connection
+    const { data: testData, error: testError, status, statusText } = await supabase
+      .from("clients")
+      .select("id")
+      .limit(1);
+
+    console.log("[CRON] Test query result:", { data: testData, error: testError, status, statusText });
+
+    if (testError) {
+      console.error("[CRON] Test query failed:", JSON.stringify(testError));
+      return NextResponse.json({ error: testError.message || "Query failed", details: testError }, { status: 500 });
+    }
 
     const { count: totalClients, error: totalError } = await supabase
       .from("clients")
       .select("*", { count: "exact", head: true });
 
     if (totalError) {
-      console.error("[CRON] Total clients query error:", totalError);
+      console.error("[CRON] Total clients query error:", JSON.stringify(totalError));
       return NextResponse.json({ error: totalError.message }, { status: 500 });
     }
 
@@ -50,7 +66,7 @@ export async function GET(request: Request) {
       .eq("status", "active");
 
     if (activeError) {
-      console.error("[CRON] Active clients query error:", activeError);
+      console.error("[CRON] Active clients query error:", JSON.stringify(activeError));
       return NextResponse.json({ error: activeError.message }, { status: 500 });
     }
 
