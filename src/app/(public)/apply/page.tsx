@@ -696,7 +696,9 @@ function ApplyPageContent() {
             const Icon = ICON_MAP[STEP_ICONS[step.id]] || User;
             const isCompleted = state.completedSteps.includes(step.id);
             const isCurrent = state.currentStep === step.id;
+            const devMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
             const isAccessible =
+              devMode ||
               index === 0 ||
               state.completedSteps.includes(APPLICATION_STEPS[index - 1].id);
 
