@@ -84,7 +84,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           htmlFor="expectations"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          What do you expect from this program? *
+          What do you expect from this program?
         </label>
         <p className="text-xs text-stone-500 dark:text-stone-400 mb-2">
           Be specific about what results you&apos;re hoping for and what support you need.
@@ -111,7 +111,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           htmlFor="previousChallenges"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          What challenges have you faced in achieving your fitness goals before? *
+          What challenges have you faced in achieving your fitness goals before?
         </label>
         <textarea
           id="previousChallenges"
@@ -135,7 +135,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           htmlFor="whatWorkedBefore"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          What has worked for you in the past? *
+          What has worked for you in the past?
         </label>
         <textarea
           id="whatWorkedBefore"
@@ -159,7 +159,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           htmlFor="whatDidntWork"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          What hasn&apos;t worked for you? *
+          What hasn&apos;t worked for you?
         </label>
         <textarea
           id="whatDidntWork"
@@ -180,7 +180,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
       {/* Willingness to Track */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          How willing are you to track your meals and workouts daily? *
+          How willing are you to track your meals and workouts daily?
         </label>
         <div className="space-y-2">
           <input
@@ -203,7 +203,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
       {/* Preferred Communication */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Preferred communication method *
+          Preferred communication method
         </label>
         <div className="grid grid-cols-2 gap-3">
           {COMMUNICATION_OPTIONS.map((option) => (
@@ -234,7 +234,7 @@ export default function ExpectationsForm({ data, onSave, onNext }: ExpectationsF
           htmlFor="questionsForCoach"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Any questions for your coach? *
+          Any questions for your coach?
         </label>
         <textarea
           id="questionsForCoach"

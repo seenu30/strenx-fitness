@@ -18,6 +18,11 @@ const COMMON_FOODS = [
   "Milk", "Curd/Yogurt", "Cheese", "Whey Protein",
 ];
 
+const DISLIKED_FOODS_OPTIONS = [
+  ...COMMON_FOODS,
+  "None",
+];
+
 const COMMON_ALLERGIES = [
   "Nuts", "Peanuts", "Dairy", "Eggs", "Shellfish",
   "Gluten", "Soy", "Sesame", "None",
@@ -26,7 +31,7 @@ const COMMON_ALLERGIES = [
 const CUISINES = [
   "North Indian", "South Indian", "Chinese", "Italian",
   "Mediterranean", "Mexican", "Thai", "Japanese",
-  "Continental", "American",
+  "Continental", "American", "Other",
 ];
 
 const SPICE_LEVELS = [
@@ -52,12 +57,27 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
   const [intoleranceInput, setIntoleranceInput] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const [otherCuisine, setOtherCuisine] = useState("");
+
   const handleArrayToggle = (field: keyof FoodPreferencesData, value: string) => {
     setFormData((prev) => {
       const arr = prev[field] as string[];
+
+      // If selecting "None", clear all other selections
+      if (value === "None") {
+        return {
+          ...prev,
+          [field]: arr.includes("None") ? [] : ["None"],
+        };
+      }
+
+      // If selecting any other option, remove "None" if present
+      const filteredArr = arr.filter((v) => v !== "None");
       return {
         ...prev,
-        [field]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value],
+        [field]: filteredArr.includes(value)
+          ? filteredArr.filter((v) => v !== value)
+          : [...filteredArr, value],
       };
     });
   };
@@ -84,13 +104,16 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
       newErrors.likedFoods = "Please select at least one food you enjoy";
     }
     if (formData.dislikedFoods.length === 0) {
-      newErrors.dislikedFoods = "Please select at least one food you dislike (or indicate none)";
+      newErrors.dislikedFoods = "Please select foods you dislike (or 'None')";
     }
     if (formData.foodAllergies.length === 0) {
       newErrors.foodAllergies = "Please select your food allergies (or 'None')";
     }
     if (formData.cuisinePreferences.length === 0) {
       newErrors.cuisinePreferences = "Please select at least one preferred cuisine";
+    }
+    if (formData.cuisinePreferences.includes("Other") && !otherCuisine.trim()) {
+      newErrors.cuisinePreferences = "Please specify the other cuisine";
     }
 
     setErrors(newErrors);
@@ -100,7 +123,14 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onSave("foodPreferences", formData);
+      // Include the custom cuisine if "Other" is selected
+      const finalData = {
+        ...formData,
+        cuisinePreferences: formData.cuisinePreferences.includes("Other") && otherCuisine.trim()
+          ? [...formData.cuisinePreferences.filter(c => c !== "Other"), `Other: ${otherCuisine.trim()}`]
+          : formData.cuisinePreferences,
+      };
+      onSave("foodPreferences", finalData);
       onNext();
     }
   };
@@ -110,7 +140,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
       {/* Liked Foods */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Foods you enjoy eating *
+          Foods you enjoy eating
         </label>
         <div className="flex flex-wrap gap-2">
           {COMMON_FOODS.map((food) => (
@@ -136,17 +166,19 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
       {/* Disliked Foods */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Foods you dislike or avoid *
+          Foods you dislike or avoid
         </label>
         <div className="flex flex-wrap gap-2">
-          {COMMON_FOODS.map((food) => (
+          {DISLIKED_FOODS_OPTIONS.map((food) => (
             <button
               key={food}
               type="button"
               onClick={() => handleArrayToggle("dislikedFoods", food)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 formData.dislikedFoods.includes(food)
-                  ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700"
+                  ? food === "None"
+                    ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                    : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700"
                   : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-red-300"
               }`}
             >
@@ -162,7 +194,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
       {/* Food Allergies */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Food allergies (severe reactions) *
+          Food allergies (severe reactions)
         </label>
         <div className="flex flex-wrap gap-2">
           {COMMON_ALLERGIES.map((allergy) => (
@@ -249,7 +281,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
       {/* Cuisine Preferences */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Preferred cuisines *
+          Preferred cuisines
         </label>
         <div className="flex flex-wrap gap-2">
           {CUISINES.map((cuisine) => (
@@ -267,6 +299,15 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
             </button>
           ))}
         </div>
+        {formData.cuisinePreferences.includes("Other") && (
+          <input
+            type="text"
+            value={otherCuisine}
+            onChange={(e) => setOtherCuisine(e.target.value)}
+            placeholder="Please specify other cuisine..."
+            className="mt-3 w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        )}
         {errors.cuisinePreferences && (
           <p className="mt-2 text-sm text-red-500">{errors.cuisinePreferences}</p>
         )}
@@ -275,7 +316,7 @@ export default function FoodPreferencesForm({ data, onSave, onNext }: FoodPrefer
       {/* Spice Tolerance */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Spice tolerance level *
+          Spice tolerance level
         </label>
         <div className="flex flex-wrap gap-2">
           {SPICE_LEVELS.map((level) => (

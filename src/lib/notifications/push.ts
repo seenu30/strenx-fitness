@@ -423,7 +423,7 @@ export function getNotificationTemplate(
       title: "Action Required",
       body: data.message || "A risk flag has been raised that requires attention",
       type: "risk_flag",
-      url: "/admin/risk-flags",
+      url: "/coach/risk-flags",
       tag: `risk-flag-${data.flagId}`,
       requireInteraction: true,
     }),

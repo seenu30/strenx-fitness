@@ -16,6 +16,7 @@ const DIET_PREFERENCES = [
   { value: "eggetarian", label: "Eggetarian", description: "Vegetarian + eggs" },
   { value: "non_vegetarian", label: "Non-Vegetarian", description: "All foods including meat" },
   { value: "vegan", label: "Vegan", description: "No animal products" },
+  { value: "other", label: "Other", description: "Different dietary pattern" },
 ] as const;
 
 const FREQUENCY_OPTIONS = [
@@ -48,6 +49,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
 
   const [formData, setFormData] = useState<DietData>(initialData);
   const [mealTimeInput, setMealTimeInput] = useState("");
+  const [otherDiet, setOtherDiet] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -78,6 +80,9 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    if (formData.dietPreference === "other" && !otherDiet.trim()) {
+      newErrors.dietPreference = "Please specify your diet preference";
+    }
     if (formData.mealTimings.length === 0) {
       newErrors.mealTimings = "Please add at least one meal timing";
     }
@@ -92,7 +97,13 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onSave("diet", formData);
+      const finalData = {
+        ...formData,
+        dietPreference: formData.dietPreference === "other" && otherDiet.trim()
+          ? `other: ${otherDiet.trim()}`
+          : formData.dietPreference,
+      };
+      onSave("diet", finalData);
       onNext();
     }
   };
@@ -102,7 +113,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Diet Preference */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What is your diet preference? *
+          What is your diet preference?
         </label>
         <div className="grid grid-cols-2 gap-3">
           {DIET_PREFERENCES.map((pref) => (
@@ -125,12 +136,26 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
             </button>
           ))}
         </div>
+        {formData.dietPreference === "other" && (
+          <input
+            type="text"
+            value={otherDiet}
+            onChange={(e) => setOtherDiet(e.target.value)}
+            placeholder="Please specify your diet preference..."
+            className={`mt-3 w-full px-4 py-2.5 rounded-lg border ${
+              errors.dietPreference ? "border-red-500" : "border-border"
+            } bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary`}
+          />
+        )}
+        {errors.dietPreference && (
+          <p className="mt-2 text-sm text-red-500">{errors.dietPreference}</p>
+        )}
       </div>
 
       {/* Meals Per Day */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          How many meals do you typically eat per day? *
+          How many meals do you typically eat per day?
         </label>
         <div className="flex items-center gap-4">
           <input
@@ -151,7 +176,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Meal Timings */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-foreground">
-          Typical meal timings *
+          Typical meal timings
         </label>
         <div className="flex gap-2">
           <input
@@ -193,7 +218,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Eating Out */}
       <div>
         <label htmlFor="eatsOutFrequency" className="block text-sm font-medium text-foreground mb-1">
-          How often do you eat out or order food? *
+          How often do you eat out or order food?
         </label>
         <select
           id="eatsOutFrequency"
@@ -211,7 +236,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Cooking */}
       <div>
         <label htmlFor="cookingFrequency" className="block text-sm font-medium text-foreground mb-1">
-          How often do you cook your own meals? *
+          How often do you cook your own meals?
         </label>
         <select
           id="cookingFrequency"
@@ -229,7 +254,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Water Intake */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Daily water intake (liters) *
+          Daily water intake (liters)
         </label>
         <div className="flex items-center gap-4">
           <input
@@ -251,7 +276,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Alcohol */}
       <div>
         <label htmlFor="alcoholFrequency" className="block text-sm font-medium text-foreground mb-1">
-          Alcohol consumption *
+          Alcohol consumption
         </label>
         <select
           id="alcoholFrequency"
@@ -269,7 +294,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Smoking */}
       <div>
         <label htmlFor="smokingStatus" className="block text-sm font-medium text-foreground mb-1">
-          Smoking status *
+          Smoking status
         </label>
         <select
           id="smokingStatus"
@@ -287,7 +312,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Caffeine */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Cups of tea/coffee per day *
+          Cups of tea/coffee per day
         </label>
         <div className="flex items-center gap-4">
           <input
@@ -308,7 +333,7 @@ export default function DietForm({ data, onSave, onNext }: DietFormProps) {
       {/* Snacking Habits */}
       <div>
         <label htmlFor="snackingHabits" className="block text-sm font-medium text-foreground mb-1">
-          Describe your snacking habits *
+          Describe your snacking habits
         </label>
         <textarea
           id="snackingHabits"

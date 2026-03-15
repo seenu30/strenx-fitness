@@ -2997,7 +2997,7 @@ export type Database = {
         Args: { p_client_id: string; p_days?: number }
         Returns: boolean
       }
-      is_super_admin: { Args: never; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
@@ -3045,7 +3045,7 @@ export type Database = {
         | "cancelled"
         | "unpaid"
         | "paused"
-      user_role: "super_admin" | "coach" | "client"
+      user_role: "admin" | "coach" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3222,7 +3222,7 @@ export const Constants = {
         "unpaid",
         "paused",
       ],
-      user_role: ["super_admin", "coach", "client"],
+      user_role: ["admin", "coach", "client"],
     },
   },
 } as const

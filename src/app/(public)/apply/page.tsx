@@ -115,6 +115,7 @@ function ApplyPageContent() {
     error: null,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentData>({
     screenshot: null,
@@ -125,13 +126,39 @@ function ApplyPageContent() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        // If we have an application ID in URL, fetch that application
-        if (applicationId) {
-          const appResponse = await fetch(`/api/applications/${applicationId}`);
-          if (appResponse.ok) {
-            const appData = await appResponse.json();
-            if (appData.success && appData.application) {
-              const app = appData.application;
+        // Application ID is required - no public access without a coach-shared link
+        if (!applicationId) {
+          setValidationError("This application link is invalid. Please contact your coach for a valid application link.");
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch the application to validate it exists
+        const appResponse = await fetch(`/api/applications/${applicationId}`);
+        if (!appResponse.ok) {
+          setValidationError("Application not found. Please contact your coach for a valid application link.");
+          setIsLoading(false);
+          return;
+        }
+
+        const appData = await appResponse.json();
+        if (!appData.success || !appData.application) {
+          setValidationError("Application not found. Please contact your coach for a valid application link.");
+          setIsLoading(false);
+          return;
+        }
+
+        const app = appData.application;
+
+        // Check if application has already been submitted
+        if (app.status === "submitted" || app.status === "approved" || app.status === "payment_received" || app.status === "invited") {
+          setValidationError("This application has already been submitted. Please contact your coach for assistance.");
+          setIsLoading(false);
+          return;
+        }
+
+        // Application is valid - proceed with loading
+        if (true) { // Scope for existing code
               // Pre-fill state from the fetched application
               // Strip +91 prefix from phone for display (we show it separately)
               const phoneWithoutPrefix = (app.phone || "").replace(/^\+91/, "");
@@ -173,21 +200,6 @@ function ApplyPageContent() {
                 completedSteps,
                 currentStep,
               }));
-            }
-          }
-        } else {
-          // Load saved progress from localStorage
-          const saved = localStorage.getItem(STORAGE_KEY);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            setState((prev) => ({
-              ...prev,
-              ...parsed,
-              isSubmitting: false,
-              isSaving: false,
-              error: null,
-            }));
-          }
         }
 
         // Fetch payment settings
@@ -233,6 +245,8 @@ function ApplyPageContent() {
   // Handle step navigation
   const goToStep = useCallback(
     (stepId: string) => {
+      // Scroll to top when navigating between steps
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       setState((prev) => {
         const newState = { ...prev, currentStep: stepId };
         saveToLocalStorage(newState);
@@ -626,7 +640,7 @@ function ApplyPageContent() {
       case "medical_history":
         return <MedicalHistoryForm {...formProps} />;
       case "blood_reports":
-        return <BloodReportsForm {...formProps} />;
+        return <BloodReportsForm {...formProps} applicationId={applicationId || undefined} />;
       case "lifestyle":
         return <LifestyleForm {...formProps} />;
       case "diet":
@@ -665,6 +679,37 @@ function ApplyPageContent() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Show error page if validation failed
+  if (validationError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-6">
+          <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-foreground mb-3">
+          Invalid Application Link
+        </h2>
+        <p className="text-muted-foreground max-w-md mb-6">
+          {validationError}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <a
+            href="mailto:support@strenxfitness.com"
+            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+          >
+            Contact Support
+          </a>
+          <a
+            href="/"
+            className="px-6 py-3 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors"
+          >
+            Go to Homepage
+          </a>
+        </div>
       </div>
     );
   }

@@ -67,7 +67,7 @@ export async function PUT(request: NextRequest) {
 
     if (
       !userProfile ||
-      (userProfile.role !== "coach" && userProfile.role !== "super_admin")
+      (userProfile.role !== "coach" && userProfile.role !== "admin")
     ) {
       return NextResponse.json(
         { error: "Only coaches can update payment settings" },

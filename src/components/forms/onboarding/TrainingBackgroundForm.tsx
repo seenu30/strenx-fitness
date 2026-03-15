@@ -31,6 +31,7 @@ const TRAINING_STYLES = [
   "Running",
   "Martial Arts",
   "Dance",
+  "Other",
 ];
 
 const HOME_EQUIPMENT = [
@@ -91,14 +92,27 @@ export default function TrainingBackgroundForm({
     }
   };
 
+  const [otherTrainingStyle, setOtherTrainingStyle] = useState("");
+
   const handleArrayToggle = (field: keyof TrainingBackgroundData, value: string) => {
     setFormData((prev) => {
       const arr = prev[field] as string[];
+
+      // If selecting "None", clear all other selections
+      if (value === "None") {
+        return {
+          ...prev,
+          [field]: arr.includes("None") ? [] : ["None"],
+        };
+      }
+
+      // If selecting any other option, remove "None" if present
+      const filteredArr = arr.filter((v) => v !== "None");
       return {
         ...prev,
-        [field]: arr.includes(value)
-          ? arr.filter((v) => v !== value)
-          : [...arr, value],
+        [field]: filteredArr.includes(value)
+          ? filteredArr.filter((v) => v !== value)
+          : [...filteredArr, value],
       };
     });
   };
@@ -115,8 +129,14 @@ export default function TrainingBackgroundForm({
     if (formData.currentTrainingStyle.length === 0) {
       newErrors.currentTrainingStyle = "Please select at least one current training style";
     }
+    if (formData.currentTrainingStyle.includes("Other") && !otherTrainingStyle.trim()) {
+      newErrors.currentTrainingStyle = "Please specify the other training style";
+    }
     if (formData.preferredTrainingStyle.length === 0) {
       newErrors.preferredTrainingStyle = "Please select at least one preferred training style";
+    }
+    if (formData.preferredTrainingStyle.includes("Other") && !otherTrainingStyle.trim()) {
+      newErrors.preferredTrainingStyle = "Please specify the other training style";
     }
     if (formData.homeEquipment.length === 0) {
       newErrors.homeEquipment = "Please select your home equipment (or 'None')";
@@ -132,7 +152,16 @@ export default function TrainingBackgroundForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onSave("trainingBackground", formData);
+      const finalData = {
+        ...formData,
+        currentTrainingStyle: formData.currentTrainingStyle.includes("Other") && otherTrainingStyle.trim()
+          ? [...formData.currentTrainingStyle.filter(s => s !== "Other"), `Other: ${otherTrainingStyle.trim()}`]
+          : formData.currentTrainingStyle,
+        preferredTrainingStyle: formData.preferredTrainingStyle.includes("Other") && otherTrainingStyle.trim()
+          ? [...formData.preferredTrainingStyle.filter(s => s !== "Other"), `Other: ${otherTrainingStyle.trim()}`]
+          : formData.preferredTrainingStyle,
+      };
+      onSave("trainingBackground", finalData);
       onNext();
     }
   };
@@ -142,7 +171,7 @@ export default function TrainingBackgroundForm({
       {/* Experience Level */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What is your training experience level? *
+          What is your training experience level?
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {EXPERIENCE_LEVELS.map((level) => (
@@ -186,7 +215,7 @@ export default function TrainingBackgroundForm({
           htmlFor="currentTrainingFrequency"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          How many days per week do you currently train? *
+          How many days per week do you currently train?
         </label>
         <input
           id="currentTrainingFrequency"
@@ -209,7 +238,7 @@ export default function TrainingBackgroundForm({
       {/* Current Training Style */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What type of training do you currently do? *
+          What type of training do you currently do?
         </label>
         <div className="flex flex-wrap gap-2">
           {TRAINING_STYLES.map((style) => (
@@ -227,6 +256,15 @@ export default function TrainingBackgroundForm({
             </button>
           ))}
         </div>
+        {formData.currentTrainingStyle.includes("Other") && (
+          <input
+            type="text"
+            value={otherTrainingStyle}
+            onChange={(e) => setOtherTrainingStyle(e.target.value)}
+            placeholder="Please specify your training style..."
+            className="mt-3 w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        )}
         {errors.currentTrainingStyle && (
           <p className="mt-2 text-sm text-red-500">{errors.currentTrainingStyle}</p>
         )}
@@ -235,7 +273,7 @@ export default function TrainingBackgroundForm({
       {/* Preferred Training Style */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What type of training would you prefer? *
+          What type of training would you prefer?
         </label>
         <div className="flex flex-wrap gap-2">
           {TRAINING_STYLES.map((style) => (
@@ -253,6 +291,15 @@ export default function TrainingBackgroundForm({
             </button>
           ))}
         </div>
+        {formData.preferredTrainingStyle.includes("Other") && !formData.currentTrainingStyle.includes("Other") && (
+          <input
+            type="text"
+            value={otherTrainingStyle}
+            onChange={(e) => setOtherTrainingStyle(e.target.value)}
+            placeholder="Please specify your training style..."
+            className="mt-3 w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        )}
         {errors.preferredTrainingStyle && (
           <p className="mt-2 text-sm text-red-500">{errors.preferredTrainingStyle}</p>
         )}
@@ -279,7 +326,7 @@ export default function TrainingBackgroundForm({
       {/* Home Equipment */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What equipment do you have at home? *
+          What equipment do you have at home?
         </label>
         <div className="flex flex-wrap gap-2">
           {HOME_EQUIPMENT.map((equipment) => (
@@ -305,7 +352,7 @@ export default function TrainingBackgroundForm({
       {/* Injuries */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Do you have any current injuries or pain? *
+          Do you have any current injuries or pain?
         </label>
         <div className="flex flex-wrap gap-2">
           {COMMON_INJURIES.map((injury) => (

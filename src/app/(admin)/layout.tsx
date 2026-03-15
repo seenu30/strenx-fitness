@@ -6,18 +6,15 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
-  ClipboardList,
-  AlertTriangle,
   BarChart3,
-  CreditCard,
   Settings,
   Menu,
   X,
   LogOut,
-  User,
+  Shield,
   ChevronDown,
   Dumbbell,
-  FileText,
+  CreditCard,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -26,53 +23,36 @@ import { NotificationToggle } from "@/components/NotificationToggle";
 const NAV_ITEMS = [
   {
     label: "Dashboard",
-    href: "/coach",
+    href: "/admin",
     icon: LayoutDashboard,
   },
   {
-    label: "Clients",
-    href: "/coach/clients",
+    label: "Coaches",
+    href: "/admin/coaches",
     icon: Users,
-  },
-  {
-    label: "Applications",
-    href: "/coach/applications",
-    icon: FileText,
-  },
-  {
-    label: "Plans",
-    href: "/coach/plans",
-    icon: ClipboardList,
     subItems: [
-      { label: "Nutrition Plans", href: "/coach/plans/nutrition" },
-      { label: "Training Plans", href: "/coach/plans/training" },
-      { label: "Create Plan", href: "/coach/plans/create" },
+      { label: "All Coaches", href: "/admin/coaches" },
+      { label: "Invite Coach", href: "/admin/coaches/invite" },
     ],
   },
   {
-    label: "Risk Flags",
-    href: "/coach/risk-flags",
-    icon: AlertTriangle,
-    badge: 3,
-  },
-  {
-    label: "Analytics",
-    href: "/coach/analytics",
-    icon: BarChart3,
-  },
-  {
-    label: "Subscriptions",
-    href: "/coach/subscriptions",
+    label: "Subscription Plans",
+    href: "/admin/plans",
     icon: CreditCard,
   },
   {
+    label: "Analytics",
+    href: "/admin/analytics",
+    icon: BarChart3,
+  },
+  {
     label: "Settings",
-    href: "/coach/settings",
+    href: "/admin/settings",
     icon: Settings,
   },
 ];
 
-export default function CoachLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -98,8 +78,8 @@ export default function CoachLayout({
   };
 
   const isActive = (href: string) => {
-    if (href === "/coach") {
-      return pathname === "/coach";
+    if (href === "/admin") {
+      return pathname === "/admin";
     }
     return pathname.startsWith(href);
   };
@@ -114,26 +94,26 @@ export default function CoachLayout({
         />
       )}
 
-      {/* Sidebar - Admin sidebar uses dark theme */}
+      {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 h-full w-64 bg-slate-900 border-r border-slate-800 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
-          <Link href="/coach" className="flex items-center gap-2">
-            <Dumbbell className="w-8 h-8 text-primary" />
+        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-800">
+          <Link href="/admin" className="flex items-center gap-2">
+            <Dumbbell className="w-8 h-8 text-violet-500" />
             <div>
-              <span className="text-xl font-bold text-sidebar-foreground">Strenx</span>
-              <span className="ml-2 text-xs px-1.5 py-0.5 bg-primary text-primary-foreground rounded">
+              <span className="text-xl font-bold text-white">Strenx</span>
+              <span className="ml-2 text-xs px-1.5 py-0.5 bg-violet-600 text-white rounded">
                 Admin
               </span>
             </div>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 text-sidebar-foreground/60 hover:text-sidebar-foreground"
+            className="lg:hidden p-2 text-slate-400 hover:text-white"
           >
             <X className="w-5 h-5" />
           </button>
@@ -154,8 +134,8 @@ export default function CoachLayout({
                     onClick={() => toggleExpanded(item.label)}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       active
-                        ? "bg-sidebar-primary/20 text-sidebar-primary"
-                        : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        ? "bg-violet-600/20 text-violet-400"
+                        : "text-slate-400 hover:bg-slate-800 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -174,19 +154,14 @@ export default function CoachLayout({
                     onClick={() => setSidebarOpen(false)}
                     className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       active
-                        ? "bg-sidebar-primary/20 text-sidebar-primary"
-                        : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        ? "bg-violet-600/20 text-violet-400"
+                        : "text-slate-400 hover:bg-slate-800 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <Icon className="w-5 h-5" />
                       {item.label}
                     </div>
-                    {"badge" in item && item.badge && item.badge > 0 && (
-                      <span className="px-2 py-0.5 text-xs font-bold bg-destructive text-destructive-foreground rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
                   </Link>
                 )}
 
@@ -200,8 +175,8 @@ export default function CoachLayout({
                         onClick={() => setSidebarOpen(false)}
                         className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
                           pathname === subItem.href
-                            ? "bg-sidebar-primary/10 text-sidebar-primary"
-                            : "text-sidebar-foreground/50 hover:text-sidebar-foreground/80"
+                            ? "bg-violet-600/10 text-violet-400"
+                            : "text-slate-500 hover:text-slate-300"
                         }`}
                       >
                         {subItem.label}
@@ -215,21 +190,21 @@ export default function CoachLayout({
         </nav>
 
         {/* User section */}
-        <div className="p-3 border-t border-sidebar-border">
+        <div className="p-3 border-t border-slate-800">
           <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <User className="w-4 h-4 text-primary-foreground" />
+            <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center">
+              <Shield className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">
-                Coach
+              <p className="text-sm font-medium text-white truncate">
+                Admin
               </p>
-              <p className="text-xs text-sidebar-foreground/50 truncate">Administrator</p>
+              <p className="text-xs text-slate-500 truncate">System Administrator</p>
             </div>
           </div>
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-3 py-2.5 mt-2 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 mt-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors"
           >
             <LogOut className="w-5 h-5" />
             Sign Out
@@ -250,12 +225,12 @@ export default function CoachLayout({
 
           <div className="hidden lg:block">
             <h1 className="text-lg font-semibold text-foreground">
-              Coach Dashboard
+              Admin Dashboard
             </h1>
           </div>
 
-          <Link href="/coach" className="lg:hidden flex items-center gap-2">
-            <Dumbbell className="w-6 h-6 text-primary" />
+          <Link href="/admin" className="lg:hidden flex items-center gap-2">
+            <Dumbbell className="w-6 h-6 text-violet-500" />
             <span className="font-bold text-foreground">
               Strenx
             </span>

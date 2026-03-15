@@ -62,9 +62,22 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
   const handleArrayToggle = (field: keyof SkinHairData, value: string) => {
     setFormData((prev) => {
       const arr = prev[field] as string[];
+
+      // If selecting "None", clear all other selections
+      if (value === "None") {
+        return {
+          ...prev,
+          [field]: arr.includes("None") ? [] : ["None"],
+        };
+      }
+
+      // If selecting any other option, remove "None" if present
+      const filteredArr = arr.filter((v) => v !== "None");
       return {
         ...prev,
-        [field]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value],
+        [field]: filteredArr.includes(value)
+          ? filteredArr.filter((v) => v !== value)
+          : [...filteredArr, value],
       };
     });
   };
@@ -112,7 +125,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
       {/* Skin Type */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What is your skin type? *
+          What is your skin type?
         </label>
         <div className="grid grid-cols-2 gap-3">
           {SKIN_TYPES.map((type) => (
@@ -140,7 +153,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
       {/* Skin Concerns */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Any skin concerns? *
+          Any skin concerns?
         </label>
         <div className="flex flex-wrap gap-2">
           {SKIN_CONCERNS.map((concern) => (
@@ -166,7 +179,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
       {/* Hair Concerns */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Any hair concerns? *
+          Any hair concerns?
         </label>
         <div className="flex flex-wrap gap-2">
           {HAIR_CONCERNS.map((concern) => (
@@ -192,7 +205,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
       {/* Nail Concerns */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Any nail concerns? *
+          Any nail concerns?
         </label>
         <div className="flex flex-wrap gap-2">
           {NAIL_CONCERNS.map((concern) => (
@@ -218,7 +231,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
       {/* Recovery Issues */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Any recovery issues? *
+          Any recovery issues?
         </label>
         <div className="flex flex-wrap gap-2">
           {RECOVERY_ISSUES.map((issue) => (
@@ -244,7 +257,7 @@ export default function SkinHairForm({ data, onSave, onNext }: SkinHairFormProps
       {/* Digestive Issues */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Any digestive issues? *
+          Any digestive issues?
         </label>
         <div className="flex flex-wrap gap-2">
           {DIGESTIVE_ISSUES.map((issue) => (

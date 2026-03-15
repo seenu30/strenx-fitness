@@ -180,8 +180,8 @@ function AcceptInviteForm() {
         }
       }
 
-      // Redirect to onboarding (traditional invite flow)
-      router.push("/onboarding");
+      // Redirect to dashboard (onboarding already completed via application flow)
+      router.push("/dashboard");
     } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {

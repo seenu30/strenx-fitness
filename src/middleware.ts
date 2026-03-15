@@ -13,14 +13,11 @@ const PUBLIC_ROUTES = [
   '/accept-invite', // Client invite acceptance page
 ];
 
-// Routes for coaches/admins
-const COACH_ROUTES = ['/admin'];
+// Routes for coaches
+const COACH_ROUTES = ['/coach'];
 
-// Routes for super admins
-const SUPER_ADMIN_ROUTES = ['/super-admin'];
-
-// Routes for onboarding (authenticated but not onboarded)
-const ONBOARDING_ROUTES = ['/onboarding'];
+// Routes for admins
+const ADMIN_ROUTES = ['/admin'];
 
 export async function middleware(request: NextRequest) {
   const { supabase, supabaseResponse, user } = await createMiddlewareClient(request);
@@ -63,10 +60,10 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
 
     // Redirect based on role
-    if (userRole === 'super_admin') {
-      url.pathname = '/super-admin';
-    } else if (userRole === 'coach') {
+    if (userRole === 'admin') {
       url.pathname = '/admin';
+    } else if (userRole === 'coach') {
+      url.pathname = '/coach';
     } else {
       url.pathname = '/dashboard';
     }
@@ -96,49 +93,20 @@ export async function middleware(request: NextRequest) {
 
   const role = userProfile?.role || 'client';
 
-  // For clients, check onboarding status separately (more reliable than join with RLS)
-  let isOnboardingComplete = false;
-  if (role === 'client') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: clientProfile } = await (supabase as any)
-      .from('clients')
-      .select('onboarding_completed')
-      .eq('user_id', user.id)
-      .single();
-
-    isOnboardingComplete = clientProfile?.onboarding_completed ?? false;
-  }
-
-  // Check if user needs to complete onboarding
-  const isOnboardingRoute = ONBOARDING_ROUTES.some((route) => pathname.startsWith(route));
-
-  if (role === 'client' && !isOnboardingComplete && !isOnboardingRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/onboarding';
-    return NextResponse.redirect(url);
-  }
-
-  // If onboarding is complete, don't allow access to onboarding routes
-  if (isOnboardingComplete && isOnboardingRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
-  }
-
   // Role-based access control
   const isCoachRoute = COACH_ROUTES.some((route) => pathname.startsWith(route));
-  const isSuperAdminRoute = SUPER_ADMIN_ROUTES.some((route) => pathname.startsWith(route));
+  const isAdminRoute = ADMIN_ROUTES.some((route) => pathname.startsWith(route));
 
-  // Super admin can access everything
-  if (role === 'super_admin') {
+  // Admin can access everything
+  if (role === 'admin') {
     return supabaseResponse;
   }
 
   // Coach can access coach routes and client routes
   if (role === 'coach') {
-    if (isSuperAdminRoute) {
+    if (isAdminRoute) {
       const url = request.nextUrl.clone();
-      url.pathname = '/admin';
+      url.pathname = '/coach';
       return NextResponse.redirect(url);
     }
     return supabaseResponse;
@@ -146,7 +114,7 @@ export async function middleware(request: NextRequest) {
 
   // Client can only access client routes
   if (role === 'client') {
-    if (isCoachRoute || isSuperAdminRoute) {
+    if (isCoachRoute || isAdminRoute) {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return NextResponse.redirect(url);

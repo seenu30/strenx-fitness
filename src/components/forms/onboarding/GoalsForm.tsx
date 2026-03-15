@@ -31,6 +31,7 @@ const SECONDARY_GOALS = [
   "Increase flexibility",
   "Better mental clarity",
   "Boost confidence",
+  "Other",
 ];
 
 const TIMELINE_OPTIONS = [
@@ -58,6 +59,7 @@ export default function GoalsForm({
 
   const [formData, setFormData] = useState<GoalsData>(initialData);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [otherGoal, setOtherGoal] = useState("");
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -96,6 +98,9 @@ export default function GoalsForm({
     if (formData.secondaryGoals.length === 0) {
       newErrors.secondaryGoals = "Please select at least one secondary goal";
     }
+    if (formData.secondaryGoals.includes("Other") && !otherGoal.trim()) {
+      newErrors.secondaryGoals = "Please specify your other goal";
+    }
     if (!formData.targetWeightKg || formData.targetWeightKg < 30) {
       newErrors.targetWeightKg = "Please enter your target weight";
     }
@@ -110,7 +115,13 @@ export default function GoalsForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onSave("goals", formData);
+      const finalData = {
+        ...formData,
+        secondaryGoals: formData.secondaryGoals.includes("Other") && otherGoal.trim()
+          ? [...formData.secondaryGoals.filter(g => g !== "Other"), `Other: ${otherGoal.trim()}`]
+          : formData.secondaryGoals,
+      };
+      onSave("goals", finalData);
       onNext();
     }
   };
@@ -120,7 +131,7 @@ export default function GoalsForm({
       {/* Primary Goal */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What is your primary goal? *
+          What is your primary goal?
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {PRIMARY_GOALS.map((goal) => (
@@ -151,7 +162,7 @@ export default function GoalsForm({
       {/* Secondary Goals */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Secondary goals *
+          Secondary goals
         </label>
         <div className="flex flex-wrap gap-2">
           {SECONDARY_GOALS.map((goal) => (
@@ -169,6 +180,15 @@ export default function GoalsForm({
             </button>
           ))}
         </div>
+        {formData.secondaryGoals.includes("Other") && (
+          <input
+            type="text"
+            value={otherGoal}
+            onChange={(e) => setOtherGoal(e.target.value)}
+            placeholder="Please specify your other goal..."
+            className="mt-3 w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        )}
         {errors.secondaryGoals && (
           <p className="mt-2 text-sm text-red-500">{errors.secondaryGoals}</p>
         )}
@@ -180,7 +200,7 @@ export default function GoalsForm({
           htmlFor="targetWeightKg"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Target Weight (kg) *
+          Target Weight (kg)
         </label>
         <input
           id="targetWeightKg"
@@ -207,7 +227,7 @@ export default function GoalsForm({
           htmlFor="targetTimelineWeeks"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          How long do you want to achieve your goal? *
+          How long do you want to achieve your goal?
         </label>
         <select
           id="targetTimelineWeeks"
@@ -227,7 +247,7 @@ export default function GoalsForm({
       {/* Motivation Level */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          How motivated are you to achieve this goal? *
+          How motivated are you to achieve this goal?
         </label>
         <div className="space-y-2">
           <input
@@ -256,7 +276,7 @@ export default function GoalsForm({
           htmlFor="commitmentHoursPerWeek"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Hours per week you can commit to training *
+          Hours per week you can commit to training
         </label>
         <input
           id="commitmentHoursPerWeek"
@@ -284,7 +304,7 @@ export default function GoalsForm({
           htmlFor="previousAttempts"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Have you tried achieving this goal before? What happened? *
+          Have you tried achieving this goal before? What happened?
         </label>
         <textarea
           id="previousAttempts"

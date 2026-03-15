@@ -10,6 +10,11 @@ export interface PersonalInfoData {
   gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
   heightCm: number;
   weightKg: number;
+  // Body measurements (optional)
+  waistCm?: number;
+  chestCm?: number;
+  armsCm?: number;
+  hipsCm?: number;
   occupation: string;
   city: string;
 }
@@ -59,11 +64,25 @@ export interface MedicalHistoryData {
   otherConditions?: string;
 }
 
-// Blood Reports (Section 5) - Encrypted
+// Blood Report File (uploaded PDF)
+export interface BloodReportFile {
+  url: string;
+  path: string;
+  filename: string;
+  uploadedAt: string;
+  size?: number;
+}
+
+// Blood Reports (Section 5) - Client uploads PDFs
 export interface BloodReportsData {
   hasRecentReports: boolean;
   reportDate?: string;
   labName?: string;
+  uploadedReports: BloodReportFile[];
+}
+
+// Coach-entered blood values (separate from client data)
+export interface BloodReportValues {
   // CBC
   hemoglobin?: number;
   rbc?: number;
@@ -92,6 +111,9 @@ export interface BloodReportsData {
   // Kidney
   creatinine?: number;
   uricAcid?: number;
+  // Metadata
+  enteredBy?: string; // coach user id
+  enteredAt?: string; // timestamp
 }
 
 // Lifestyle (Section 6)
@@ -109,7 +131,7 @@ export interface LifestyleData {
 
 // Diet (Section 7)
 export interface DietData {
-  dietPreference: 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'vegan';
+  dietPreference: 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'vegan' | 'other' | string;
   mealsPerDay: number;
   mealTimings: string[];
   eatsOutFrequency: 'never' | 'rarely' | 'occasionally' | 'frequently' | 'daily';

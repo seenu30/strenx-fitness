@@ -71,10 +71,10 @@ function LoginForm() {
 
         // Override default redirect based on role (unless specific next URL provided)
         if (!searchParams.get("next")) {
-          if (role === 'super_admin') {
-            finalRedirect = '/super-admin'; // Super Admin dashboard
+          if (role === 'admin') {
+            finalRedirect = '/admin'; // Admin dashboard
           } else if (role === 'coach') {
-            finalRedirect = '/admin'; // Coach dashboard
+            finalRedirect = '/coach'; // Coach dashboard
           } else {
             finalRedirect = '/dashboard'; // Client dashboard
           }

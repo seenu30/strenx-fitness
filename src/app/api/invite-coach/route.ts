@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     const { firstName, lastName, email, specializations, experienceYears } = validation.data;
 
-    // Get the current authenticated user (super admin)
+    // Get the current authenticated user (admin)
     const supabase = await createClient();
     const { data: { user: adminUser }, error: authError } = await supabase.auth.getUser();
 
@@ -28,16 +28,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify user is a super admin
+    // Verify user is a admin
     const { data: adminProfile } = await supabase
       .from("users")
       .select("role")
       .eq("id", adminUser.id)
       .single() as { data: { role: string } | null };
 
-    if (!adminProfile || adminProfile.role !== "super_admin") {
+    if (!adminProfile || adminProfile.role !== "admin") {
       return NextResponse.json(
-        { error: "Only super admins can invite coaches" },
+        { error: "Only admins can invite coaches" },
         { status: 403 }
       );
     }

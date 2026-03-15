@@ -213,7 +213,7 @@ export default function PersonalInfoForm({
             htmlFor="firstName"
             className="block text-sm font-medium text-foreground mb-1"
           >
-            First Name *
+            First Name
           </label>
           <div className="relative">
             <input
@@ -247,7 +247,7 @@ export default function PersonalInfoForm({
             htmlFor="lastName"
             className="block text-sm font-medium text-foreground mb-1"
           >
-            Last Name *
+            Last Name
           </label>
           <div className="relative">
             <input
@@ -284,7 +284,7 @@ export default function PersonalInfoForm({
             htmlFor="dateOfBirth"
             className="block text-sm font-medium text-foreground mb-1"
           >
-            Date of Birth *
+            Date of Birth
           </label>
           <div className="relative">
             <input
@@ -318,7 +318,7 @@ export default function PersonalInfoForm({
             htmlFor="gender"
             className="block text-sm font-medium text-foreground mb-1"
           >
-            Gender *
+            Gender
           </label>
           <select
             id="gender"
@@ -351,7 +351,7 @@ export default function PersonalInfoForm({
             htmlFor="heightCm"
             className="block text-sm font-medium text-foreground mb-1"
           >
-            Height (cm) *
+            Height (cm)
           </label>
           <div className="relative">
             <input
@@ -387,7 +387,7 @@ export default function PersonalInfoForm({
             htmlFor="weightKg"
             className="block text-sm font-medium text-foreground mb-1"
           >
-            Weight (kg) *
+            Weight (kg)
           </label>
           <div className="relative">
             <input
@@ -455,6 +455,105 @@ export default function PersonalInfoForm({
         </div>
       )}
 
+      {/* Body Measurements (Optional) */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium text-foreground">Body Measurements (Optional)</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            These measurements help track your progress. Measure at the widest point for accurate results.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <label
+              htmlFor="waistCm"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              Waist (cm)
+            </label>
+            <input
+              id="waistCm"
+              name="waistCm"
+              type="number"
+              value={formData.waistCm || ""}
+              onChange={handleChange}
+              min="40"
+              max="200"
+              step="0.1"
+              placeholder="e.g., 80"
+              className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <FieldHint>Around navel</FieldHint>
+          </div>
+
+          <div>
+            <label
+              htmlFor="chestCm"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              Chest (cm)
+            </label>
+            <input
+              id="chestCm"
+              name="chestCm"
+              type="number"
+              value={formData.chestCm || ""}
+              onChange={handleChange}
+              min="50"
+              max="200"
+              step="0.1"
+              placeholder="e.g., 95"
+              className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <FieldHint>Widest point</FieldHint>
+          </div>
+
+          <div>
+            <label
+              htmlFor="armsCm"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              Arms (cm)
+            </label>
+            <input
+              id="armsCm"
+              name="armsCm"
+              type="number"
+              value={formData.armsCm || ""}
+              onChange={handleChange}
+              min="15"
+              max="60"
+              step="0.1"
+              placeholder="e.g., 32"
+              className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <FieldHint>Bicep flexed</FieldHint>
+          </div>
+
+          <div>
+            <label
+              htmlFor="hipsCm"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              Hips (cm)
+            </label>
+            <input
+              id="hipsCm"
+              name="hipsCm"
+              type="number"
+              value={formData.hipsCm || ""}
+              onChange={handleChange}
+              min="50"
+              max="200"
+              step="0.1"
+              placeholder="e.g., 100"
+              className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <FieldHint>Widest point</FieldHint>
+          </div>
+        </div>
+      </div>
+
       {/* Occupation & City */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -462,7 +561,7 @@ export default function PersonalInfoForm({
             htmlFor="occupation"
             className="block text-sm font-medium text-foreground mb-1"
           >
-            Occupation *
+            Occupation
           </label>
           <div className="relative">
             <input
@@ -496,7 +595,7 @@ export default function PersonalInfoForm({
             htmlFor="city"
             className="block text-sm font-medium text-foreground mb-1"
           >
-            City *
+            City
           </label>
           <div className="relative">
             <input

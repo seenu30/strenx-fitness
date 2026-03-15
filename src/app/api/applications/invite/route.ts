@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (!userProfile || (userProfile.role !== "coach" && userProfile.role !== "super_admin")) {
+    if (!userProfile || (userProfile.role !== "coach" && userProfile.role !== "admin")) {
       return NextResponse.json(
         { error: "Only coaches can send invitations" },
         { status: 403 }

@@ -10,7 +10,7 @@ export interface APIEndpoint {
   path: string;
   description: string;
   authentication: "required" | "optional" | "none";
-  roles?: ("client" | "coach" | "super_admin")[];
+  roles?: ("client" | "coach" | "admin")[];
   rateLimit?: string;
   requestBody?: {
     contentType: string;
@@ -115,61 +115,6 @@ export const API_DOCUMENTATION: APIGroup[] = [
         response: [
           { status: 200, description: "Password reset successful" },
           { status: 400, description: "Invalid or expired token" },
-        ],
-      },
-    ],
-  },
-
-  // ============================================
-  // Onboarding
-  // ============================================
-  {
-    name: "Onboarding",
-    basePath: "/api/onboarding",
-    description: "Client onboarding and assessment",
-    endpoints: [
-      {
-        method: "GET",
-        path: "/api/onboarding/status",
-        description: "Get current onboarding progress",
-        authentication: "required",
-        roles: ["client"],
-        response: [
-          {
-            status: 200,
-            description: "Onboarding status",
-            example: {
-              completed: false,
-              currentStep: 3,
-              completedSteps: [1, 2],
-            },
-          },
-        ],
-      },
-      {
-        method: "POST",
-        path: "/api/onboarding/[step]",
-        description: "Submit onboarding step data",
-        authentication: "required",
-        roles: ["client"],
-        requestBody: {
-          contentType: "application/json",
-          schema: "Varies by step (personalInfoSchema, goalsSchema, etc.)",
-        },
-        response: [
-          { status: 200, description: "Step saved successfully" },
-          { status: 400, description: "Validation error" },
-        ],
-      },
-      {
-        method: "POST",
-        path: "/api/onboarding/complete",
-        description: "Complete onboarding and generate risk flags",
-        authentication: "required",
-        roles: ["client"],
-        response: [
-          { status: 200, description: "Onboarding completed", example: { riskFlags: [] } },
-          { status: 400, description: "Missing required steps" },
         ],
       },
     ],
@@ -371,7 +316,7 @@ export const API_DOCUMENTATION: APIGroup[] = [
         path: "/api/plans",
         description: "Create new plan (coach only)",
         authentication: "required",
-        roles: ["coach", "super_admin"],
+        roles: ["coach", "admin"],
         requestBody: {
           contentType: "application/json",
           schema: "nutritionPlanSchema | trainingPlanSchema",
@@ -386,7 +331,7 @@ export const API_DOCUMENTATION: APIGroup[] = [
         path: "/api/plans/[planId]/assign",
         description: "Assign plan to client (coach only)",
         authentication: "required",
-        roles: ["coach", "super_admin"],
+        roles: ["coach", "admin"],
         requestBody: {
           contentType: "application/json",
           schema: "{ clientId: uuid, startDate: date }",
@@ -504,7 +449,7 @@ export const API_DOCUMENTATION: APIGroup[] = [
         path: "/api/notifications/send",
         description: "Send push notification (coach only)",
         authentication: "required",
-        roles: ["coach", "super_admin"],
+        roles: ["coach", "admin"],
         requestBody: {
           contentType: "application/json",
           schema: "sendNotificationSchema",
@@ -529,7 +474,7 @@ export const API_DOCUMENTATION: APIGroup[] = [
         path: "/api/admin/clients",
         description: "Get client list with filters",
         authentication: "required",
-        roles: ["coach", "super_admin"],
+        roles: ["coach", "admin"],
         queryParams: [
           { name: "status", type: "active | inactive | all", required: false, description: "Filter by status" },
           { name: "search", type: "string", required: false, description: "Search by name/email" },
@@ -545,7 +490,7 @@ export const API_DOCUMENTATION: APIGroup[] = [
         path: "/api/admin/clients/[clientId]",
         description: "Get detailed client information",
         authentication: "required",
-        roles: ["coach", "super_admin"],
+        roles: ["coach", "admin"],
         response: [
           { status: 200, description: "Client details with assessment, plans, progress" },
           { status: 404, description: "Client not found" },
@@ -556,7 +501,7 @@ export const API_DOCUMENTATION: APIGroup[] = [
         path: "/api/admin/clients/invite",
         description: "Invite new client",
         authentication: "required",
-        roles: ["coach", "super_admin"],
+        roles: ["coach", "admin"],
         requestBody: {
           contentType: "application/json",
           schema: "{ email, firstName, lastName, planId? }",
@@ -571,7 +516,7 @@ export const API_DOCUMENTATION: APIGroup[] = [
         path: "/api/admin/risk-flags",
         description: "Get active risk flags",
         authentication: "required",
-        roles: ["coach", "super_admin"],
+        roles: ["coach", "admin"],
         queryParams: [
           { name: "severity", type: "low | medium | high | critical", required: false, description: "Filter by severity" },
           { name: "acknowledged", type: "boolean", required: false, description: "Filter by acknowledgment" },
@@ -585,7 +530,7 @@ export const API_DOCUMENTATION: APIGroup[] = [
         path: "/api/admin/risk-flags/[flagId]/acknowledge",
         description: "Acknowledge risk flag",
         authentication: "required",
-        roles: ["coach", "super_admin"],
+        roles: ["coach", "admin"],
         requestBody: {
           contentType: "application/json",
           schema: "{ notes?: string }",
@@ -599,7 +544,7 @@ export const API_DOCUMENTATION: APIGroup[] = [
         path: "/api/admin/analytics",
         description: "Get dashboard analytics",
         authentication: "required",
-        roles: ["coach", "super_admin"],
+        roles: ["coach", "admin"],
         response: [
           {
             status: 200,
@@ -638,7 +583,7 @@ export const API_DOCUMENTATION: APIGroup[] = [
         path: "/api/subscriptions/admin",
         description: "Get all subscriptions (coach only)",
         authentication: "required",
-        roles: ["coach", "super_admin"],
+        roles: ["coach", "admin"],
         queryParams: [
           { name: "status", type: "active | expiring | expired", required: false, description: "Filter" },
         ],
@@ -651,7 +596,7 @@ export const API_DOCUMENTATION: APIGroup[] = [
         path: "/api/subscriptions/[subscriptionId]/payment",
         description: "Update payment status (coach only)",
         authentication: "required",
-        roles: ["coach", "super_admin"],
+        roles: ["coach", "admin"],
         requestBody: {
           contentType: "application/json",
           schema: "paymentUpdateSchema",
@@ -781,7 +726,7 @@ export function getGroupEndpoints(groupName: string): APIEndpoint[] {
 /**
  * Get endpoints requiring specific role
  */
-export function getEndpointsByRole(role: "client" | "coach" | "super_admin"): APIEndpoint[] {
+export function getEndpointsByRole(role: "client" | "coach" | "admin"): APIEndpoint[] {
   const endpoints: APIEndpoint[] = [];
   for (const group of API_DOCUMENTATION) {
     for (const endpoint of group.endpoints) {

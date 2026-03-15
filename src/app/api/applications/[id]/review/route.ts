@@ -49,7 +49,7 @@ export async function POST(
       .eq("id", user.id)
       .single() as { data: { role: string } | null };
 
-    if (!userProfile || (userProfile.role !== "coach" && userProfile.role !== "super_admin")) {
+    if (!userProfile || (userProfile.role !== "coach" && userProfile.role !== "admin")) {
       return NextResponse.json(
         { error: "Only coaches can review applications" },
         { status: 403 }

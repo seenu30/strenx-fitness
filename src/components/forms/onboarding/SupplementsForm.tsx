@@ -30,6 +30,8 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
   const [formData, setFormData] = useState<SupplementsData>(initialData);
   const [newSupplement, setNewSupplement] = useState({ name: "", dosage: "", frequency: "" });
   const [newPastSupplement, setNewPastSupplement] = useState({ name: "", duration: "", reason_stopped: "" });
+  const [notTakingAny, setNotTakingAny] = useState(false);
+  const [noPastSupplements, setNoPastSupplements] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const addCurrentSupplement = () => {
@@ -68,10 +70,25 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
 
   const quickAddSupplement = (name: string) => {
     if (!formData.currentSupplements.some((s) => s.name === name)) {
+      setNotTakingAny(false);
       setFormData((prev) => ({
         ...prev,
         currentSupplements: [...prev.currentSupplements, { name, dosage: "", frequency: "daily" }],
       }));
+    }
+  };
+
+  const handleNotTakingAnyChange = (checked: boolean) => {
+    setNotTakingAny(checked);
+    if (checked) {
+      setFormData((prev) => ({ ...prev, currentSupplements: [] }));
+    }
+  };
+
+  const handleNoPastSupplementsChange = (checked: boolean) => {
+    setNoPastSupplements(checked);
+    if (checked) {
+      setFormData((prev) => ({ ...prev, pastSupplements: [] }));
     }
   };
 
@@ -103,151 +120,184 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
         </p>
       </div>
 
-      {/* Quick Add */}
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-3">
-          Quick add (click to add)
+      {/* Not Taking Any Checkbox */}
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="notTakingAny"
+          checked={notTakingAny}
+          onChange={(e) => handleNotTakingAnyChange(e.target.checked)}
+          className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
+        />
+        <label htmlFor="notTakingAny" className="text-sm font-medium text-foreground">
+          I&apos;m not currently taking any supplements
         </label>
-        <div className="flex flex-wrap gap-2">
-          {COMMON_SUPPLEMENTS.map((supp) => (
+      </div>
+
+      {!notTakingAny && (
+        <>
+          {/* Quick Add */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-3">
+              Quick add (click to add)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {COMMON_SUPPLEMENTS.map((supp) => (
+                <button
+                  key={supp}
+                  type="button"
+                  onClick={() => quickAddSupplement(supp)}
+                  disabled={formData.currentSupplements.some((s) => s.name === supp)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    formData.currentSupplements.some((s) => s.name === supp)
+                      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300"
+                      : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
+                  }`}
+                >
+                  {supp}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Current Supplements */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-foreground">
+              Current Supplements
+            </label>
+
+            {formData.currentSupplements.length > 0 && (
+              <div className="space-y-2">
+                {formData.currentSupplements.map((supp, index) => (
+                  <div key={index} className="flex items-center gap-2 p-3 bg-stone-50 dark:bg-stone-800/50 rounded-lg">
+                    <div className="flex-1">
+                      <span className="font-medium text-foreground">{supp.name}</span>
+                      {supp.dosage && (
+                        <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
+                          {supp.dosage}
+                        </span>
+                      )}
+                      {supp.frequency && (
+                        <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
+                          ({supp.frequency})
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeCurrentSupplement(index)}
+                      className="p-1 text-stone-400 hover:text-red-500"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+              <input
+                value={newSupplement.name}
+                onChange={(e) => setNewSupplement((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="Supplement name"
+                className="sm:col-span-2 px-3 py-2 rounded-lg border border-border bg-card text-sm"
+              />
+              <input
+                value={newSupplement.dosage}
+                onChange={(e) => setNewSupplement((prev) => ({ ...prev, dosage: e.target.value }))}
+                placeholder="Dosage"
+                className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
+              />
+              <button
+                type="button"
+                onClick={addCurrentSupplement}
+                className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-brown-500 text-white text-sm hover:bg-brown-600"
+              >
+                <Plus className="w-4 h-4" /> Add
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* No Past Supplements Checkbox */}
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="noPastSupplements"
+          checked={noPastSupplements}
+          onChange={(e) => handleNoPastSupplementsChange(e.target.checked)}
+          className="w-5 h-5 rounded border-stone-300 text-brown-500 focus:ring-primary"
+        />
+        <label htmlFor="noPastSupplements" className="text-sm font-medium text-foreground">
+          I haven&apos;t taken any supplements in the past
+        </label>
+      </div>
+
+      {!noPastSupplements && (
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-foreground">
+            Past Supplements (that you&apos;ve stopped taking)
+          </label>
+
+          {formData.pastSupplements.length > 0 && (
+            <div className="space-y-2">
+              {formData.pastSupplements.map((supp, index) => (
+                <div key={index} className="flex items-center gap-2 p-3 bg-stone-50 dark:bg-stone-800/50 rounded-lg">
+                  <div className="flex-1">
+                    <span className="font-medium text-foreground">{supp.name}</span>
+                    {supp.duration && (
+                      <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
+                        for {supp.duration}
+                      </span>
+                    )}
+                    {supp.reason_stopped && (
+                      <span className="text-sm text-stone-500 dark:text-stone-400 block">
+                        Stopped because: {supp.reason_stopped}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removePastSupplement(index)}
+                    className="p-1 text-stone-400 hover:text-red-500"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <input
+              value={newPastSupplement.name}
+              onChange={(e) => setNewPastSupplement((prev) => ({ ...prev, name: e.target.value }))}
+              placeholder="Supplement name"
+              className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
+            />
+            <input
+              value={newPastSupplement.duration}
+              onChange={(e) => setNewPastSupplement((prev) => ({ ...prev, duration: e.target.value }))}
+              placeholder="Duration (e.g., 3 months)"
+              className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
+            />
+            <input
+              value={newPastSupplement.reason_stopped}
+              onChange={(e) => setNewPastSupplement((prev) => ({ ...prev, reason_stopped: e.target.value }))}
+              placeholder="Why stopped?"
+              className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
+            />
             <button
-              key={supp}
               type="button"
-              onClick={() => quickAddSupplement(supp)}
-              disabled={formData.currentSupplements.some((s) => s.name === supp)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                formData.currentSupplements.some((s) => s.name === supp)
-                  ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
-              }`}
+              onClick={addPastSupplement}
+              className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-stone-200 dark:bg-stone-700 text-foreground text-sm hover:bg-stone-300"
             >
-              {supp}
+              <Plus className="w-4 h-4" /> Add
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Current Supplements */}
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-foreground">
-          Current Supplements
-        </label>
-
-        {formData.currentSupplements.length > 0 && (
-          <div className="space-y-2">
-            {formData.currentSupplements.map((supp, index) => (
-              <div key={index} className="flex items-center gap-2 p-3 bg-stone-50 dark:bg-stone-800/50 rounded-lg">
-                <div className="flex-1">
-                  <span className="font-medium text-foreground">{supp.name}</span>
-                  {supp.dosage && (
-                    <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
-                      {supp.dosage}
-                    </span>
-                  )}
-                  {supp.frequency && (
-                    <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
-                      ({supp.frequency})
-                    </span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeCurrentSupplement(index)}
-                  className="p-1 text-stone-400 hover:text-red-500"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
           </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-          <input
-            value={newSupplement.name}
-            onChange={(e) => setNewSupplement((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="Supplement name"
-            className="sm:col-span-2 px-3 py-2 rounded-lg border border-border bg-card text-sm"
-          />
-          <input
-            value={newSupplement.dosage}
-            onChange={(e) => setNewSupplement((prev) => ({ ...prev, dosage: e.target.value }))}
-            placeholder="Dosage"
-            className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
-          />
-          <button
-            type="button"
-            onClick={addCurrentSupplement}
-            className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-brown-500 text-white text-sm hover:bg-brown-600"
-          >
-            <Plus className="w-4 h-4" /> Add
-          </button>
         </div>
-      </div>
-
-      {/* Past Supplements */}
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-foreground">
-          Past Supplements (that you&apos;ve stopped taking)
-        </label>
-
-        {formData.pastSupplements.length > 0 && (
-          <div className="space-y-2">
-            {formData.pastSupplements.map((supp, index) => (
-              <div key={index} className="flex items-center gap-2 p-3 bg-stone-50 dark:bg-stone-800/50 rounded-lg">
-                <div className="flex-1">
-                  <span className="font-medium text-foreground">{supp.name}</span>
-                  {supp.duration && (
-                    <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
-                      for {supp.duration}
-                    </span>
-                  )}
-                  {supp.reason_stopped && (
-                    <span className="text-sm text-stone-500 dark:text-stone-400 block">
-                      Stopped because: {supp.reason_stopped}
-                    </span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removePastSupplement(index)}
-                  className="p-1 text-stone-400 hover:text-red-500"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-          <input
-            value={newPastSupplement.name}
-            onChange={(e) => setNewPastSupplement((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="Supplement name"
-            className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
-          />
-          <input
-            value={newPastSupplement.duration}
-            onChange={(e) => setNewPastSupplement((prev) => ({ ...prev, duration: e.target.value }))}
-            placeholder="Duration (e.g., 3 months)"
-            className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
-          />
-          <input
-            value={newPastSupplement.reason_stopped}
-            onChange={(e) => setNewPastSupplement((prev) => ({ ...prev, reason_stopped: e.target.value }))}
-            placeholder="Why stopped?"
-            className="px-3 py-2 rounded-lg border border-border bg-card text-sm"
-          />
-          <button
-            type="button"
-            onClick={addPastSupplement}
-            className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-stone-200 dark:bg-stone-700 text-foreground text-sm hover:bg-stone-300"
-          >
-            <Plus className="w-4 h-4" /> Add
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Willingness */}
       <div className="flex items-center gap-3">
@@ -266,7 +316,7 @@ export default function SupplementsForm({ data, onSave, onNext }: SupplementsFor
       {/* Budget */}
       <div>
         <label htmlFor="supplementBudget" className="block text-sm font-medium text-foreground mb-1">
-          Monthly budget for supplements *
+          Monthly budget for supplements
         </label>
         <input
           id="supplementBudget"

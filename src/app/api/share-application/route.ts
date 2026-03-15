@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify user is a coach or super_admin
-    if (userData.role !== "coach" && userData.role !== "super_admin") {
+    // Verify user is a coach or admin
+    if (userData.role !== "coach" && userData.role !== "admin") {
       return NextResponse.json(
         { error: "Only coaches can share application links" },
         { status: 403 }

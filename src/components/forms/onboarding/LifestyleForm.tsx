@@ -83,9 +83,22 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
   const handleArrayToggle = (field: keyof LifestyleData, value: string) => {
     setFormData((prev) => {
       const arr = prev[field] as string[];
+
+      // If selecting "None", clear all other selections
+      if (value === "None") {
+        return {
+          ...prev,
+          [field]: arr.includes("None") ? [] : ["None"],
+        };
+      }
+
+      // If selecting any other option, remove "None" if present
+      const filteredArr = arr.filter((v) => v !== "None");
       return {
         ...prev,
-        [field]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value],
+        [field]: filteredArr.includes(value)
+          ? filteredArr.filter((v) => v !== value)
+          : [...filteredArr, value],
       };
     });
   };
@@ -120,7 +133,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Sleep Hours */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          How many hours of sleep do you get on average? *
+          How many hours of sleep do you get on average?
         </label>
         <div className="flex items-center gap-4">
           <input
@@ -142,7 +155,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Sleep Quality */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          How would you rate your sleep quality? *
+          How would you rate your sleep quality?
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {SLEEP_QUALITY_OPTIONS.map((option) => (
@@ -170,7 +183,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Sleep Issues */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Do you have any sleep issues? *
+          Do you have any sleep issues?
         </label>
         <div className="flex flex-wrap gap-2">
           {SLEEP_ISSUES.map((issue) => (
@@ -196,7 +209,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Stress Level */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What is your typical stress level? *
+          What is your typical stress level?
         </label>
         <div className="space-y-2">
           <input
@@ -219,7 +232,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Stress Sources */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What are your main sources of stress? *
+          What are your main sources of stress?
         </label>
         <div className="flex flex-wrap gap-2">
           {STRESS_SOURCES.map((source) => (
@@ -245,7 +258,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Activity Level */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          What is your current activity level (outside of planned workouts)? *
+          What is your current activity level (outside of planned workouts)?
         </label>
         <div className="space-y-2">
           {ACTIVITY_LEVELS.map((level) => (
@@ -273,7 +286,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Daily Steps */}
       <div>
         <label htmlFor="dailySteps" className="block text-sm font-medium text-foreground mb-1">
-          Approximate daily steps *
+          Approximate daily steps
         </label>
         <input
           id="dailySteps"
@@ -294,7 +307,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Work Type */}
       <div>
         <label htmlFor="workType" className="block text-sm font-medium text-foreground mb-1">
-          What type of work do you do? *
+          What type of work do you do?
         </label>
         <select
           id="workType"
@@ -312,7 +325,7 @@ export default function LifestyleForm({ data, onSave, onNext }: LifestyleFormPro
       {/* Screen Time */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-3">
-          Daily screen time (hours) *
+          Daily screen time (hours)
         </label>
         <div className="flex items-center gap-4">
           <input

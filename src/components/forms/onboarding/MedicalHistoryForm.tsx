@@ -359,16 +359,32 @@ export default function MedicalHistoryForm({
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addMedication())}
             placeholder="Enter medication name"
             className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            disabled={formData.currentMedications.includes("None")}
           />
           <button
             type="button"
             onClick={addMedication}
-            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-foreground hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
+            disabled={formData.currentMedications.includes("None")}
+            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-foreground hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Add
           </button>
+          <button
+            type="button"
+            onClick={() => setFormData((prev) => ({
+              ...prev,
+              currentMedications: prev.currentMedications.includes("None") ? [] : ["None"]
+            }))}
+            className={`px-4 py-2.5 rounded-lg transition-colors ${
+              formData.currentMedications.includes("None")
+                ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
+            }`}
+          >
+            None
+          </button>
         </div>
-        {formData.currentMedications.length > 0 && (
+        {formData.currentMedications.length > 0 && !formData.currentMedications.includes("None") && (
           <div className="flex flex-wrap gap-2">
             {formData.currentMedications.map((med, index) => (
               <span
@@ -401,16 +417,32 @@ export default function MedicalHistoryForm({
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addAllergy())}
             placeholder="Enter allergy"
             className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            disabled={formData.allergies.includes("None")}
           />
           <button
             type="button"
             onClick={addAllergy}
-            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-foreground hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
+            disabled={formData.allergies.includes("None")}
+            className="px-4 py-2.5 rounded-lg bg-stone-200 dark:bg-stone-700 text-foreground hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Add
           </button>
+          <button
+            type="button"
+            onClick={() => setFormData((prev) => ({
+              ...prev,
+              allergies: prev.allergies.includes("None") ? [] : ["None"]
+            }))}
+            className={`px-4 py-2.5 rounded-lg transition-colors ${
+              formData.allergies.includes("None")
+                ? "bg-brown-100 dark:bg-brown-900/30 text-brown-600 dark:text-brown-400 border border-brown-300 dark:border-brown-600"
+                : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-brown-300"
+            }`}
+          >
+            None
+          </button>
         </div>
-        {formData.allergies.length > 0 && (
+        {formData.allergies.length > 0 && !formData.allergies.includes("None") && (
           <div className="flex flex-wrap gap-2">
             {formData.allergies.map((allergy, index) => (
               <span
@@ -437,7 +469,7 @@ export default function MedicalHistoryForm({
           htmlFor="otherConditions"
           className="block text-sm font-medium text-foreground mb-1"
         >
-          Any other medical conditions we should know about? *
+          Any other medical conditions we should know about?
         </label>
         <textarea
           id="otherConditions"
