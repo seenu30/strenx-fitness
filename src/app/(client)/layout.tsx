@@ -41,6 +41,7 @@ const NAV_ITEMS = [
     href: "/plans",
     icon: UtensilsCrossed,
     subItems: [
+      { label: "Transformation Plan", href: "/transformation-plan" },
       { label: "Nutrition Plan", href: "/plans/nutrition" },
       { label: "Training Plan", href: "/plans/training" },
     ],
@@ -56,11 +57,12 @@ const NAV_ITEMS = [
       { label: "Blood Reports", href: "/progress/blood-reports" },
     ],
   },
-  {
-    label: "Messages",
-    href: "/messages",
-    icon: MessageSquare,
-  },
+  // MESSAGING FEATURE - HIDDEN (not deleted)
+  // {
+  //   label: "Messages",
+  //   href: "/messages",
+  //   icon: MessageSquare,
+  // },
   {
     label: "Settings",
     href: "/settings",

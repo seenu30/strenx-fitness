@@ -25,6 +25,7 @@ interface WeeklyCheckinData {
   weekNumber: number;
   progressPhotos: ProgressPhoto[];
   measurements: {
+    neck: number | null;
     chest: number | null;
     waist: number | null;
     hips: number | null;
@@ -32,7 +33,11 @@ interface WeeklyCheckinData {
     rightArm: number | null;
     leftThigh: number | null;
     rightThigh: number | null;
+    leftCalf: number | null;
+    rightCalf: number | null;
   };
+  dietDeviations: number;
+  workoutDeviations: number;
   weeklyReflection: string;
   challenges: string;
   wins: string;
@@ -46,6 +51,7 @@ const PHOTO_ANGLES: Array<{ id: "front" | "side" | "back"; label: string; descri
 ];
 
 const MEASUREMENTS = [
+  { id: "neck", label: "Neck", unit: "cm" },
   { id: "chest", label: "Chest", unit: "cm" },
   { id: "waist", label: "Waist", unit: "cm" },
   { id: "hips", label: "Hips", unit: "cm" },
@@ -53,6 +59,8 @@ const MEASUREMENTS = [
   { id: "rightArm", label: "Right Arm", unit: "cm" },
   { id: "leftThigh", label: "Left Thigh", unit: "cm" },
   { id: "rightThigh", label: "Right Thigh", unit: "cm" },
+  { id: "leftCalf", label: "Left Calf", unit: "cm" },
+  { id: "rightCalf", label: "Right Calf", unit: "cm" },
 ];
 
 export default function WeeklyCheckinPage() {
@@ -65,6 +73,7 @@ export default function WeeklyCheckinPage() {
     weekNumber: Math.ceil((Date.now() - new Date("2026-01-01").getTime()) / (7 * 24 * 60 * 60 * 1000)),
     progressPhotos: [],
     measurements: {
+      neck: null,
       chest: null,
       waist: null,
       hips: null,
@@ -72,7 +81,11 @@ export default function WeeklyCheckinPage() {
       rightArm: null,
       leftThigh: null,
       rightThigh: null,
+      leftCalf: null,
+      rightCalf: null,
     },
+    dietDeviations: 0,
+    workoutDeviations: 0,
     weeklyReflection: "",
     challenges: "",
     wins: "",
@@ -180,6 +193,8 @@ export default function WeeklyCheckinPage() {
           challenges: formData.challenges || null,
           wins: formData.wins || null,
           questions_for_coach: formData.questionsForCoach || null,
+          diet_deviations: formData.dietDeviations,
+          workout_deviations: formData.workoutDeviations,
         })
         .select()
         .single();
@@ -197,6 +212,7 @@ export default function WeeklyCheckinPage() {
           .insert({
             client_id: clientId,
             measurement_date: weekStartDate,
+            neck_cm: formData.measurements.neck,
             chest_cm: formData.measurements.chest,
             waist_cm: formData.measurements.waist,
             hips_cm: formData.measurements.hips,
@@ -204,6 +220,8 @@ export default function WeeklyCheckinPage() {
             right_arm_cm: formData.measurements.rightArm,
             left_thigh_cm: formData.measurements.leftThigh,
             right_thigh_cm: formData.measurements.rightThigh,
+            left_calf_cm: formData.measurements.leftCalf,
+            right_calf_cm: formData.measurements.rightCalf,
             weekly_checkin_id: checkin.id,
           });
 
@@ -421,6 +439,65 @@ export default function WeeklyCheckinPage() {
                 placeholder="Anything you'd like to discuss or clarify..."
                 className="w-full px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-brown-500 resize-none"
               />
+            </div>
+
+            {/* Weekly Compliance */}
+            <div className="p-4 rounded-lg bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700">
+              <h3 className="font-medium text-stone-700 dark:text-stone-300 mb-4">
+                Weekly Compliance
+              </h3>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm text-stone-600 dark:text-stone-400 mb-2">
+                    Diet Deviations
+                  </label>
+                  <p className="text-xs text-stone-500 mb-2">Days you didn&apos;t follow the plan</p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, dietDeviations: Math.max(0, prev.dietDeviations - 1) }))}
+                      className="w-10 h-10 rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 font-bold text-lg transition-colors"
+                    >
+                      -
+                    </button>
+                    <span className="w-10 text-center text-xl font-bold text-stone-800 dark:text-stone-100">
+                      {formData.dietDeviations}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, dietDeviations: Math.min(7, prev.dietDeviations + 1) }))}
+                      className="w-10 h-10 rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 font-bold text-lg transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-stone-600 dark:text-stone-400 mb-2">
+                    Workout Deviations
+                  </label>
+                  <p className="text-xs text-stone-500 mb-2">Workouts you missed this week</p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, workoutDeviations: Math.max(0, prev.workoutDeviations - 1) }))}
+                      className="w-10 h-10 rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 font-bold text-lg transition-colors"
+                    >
+                      -
+                    </button>
+                    <span className="w-10 text-center text-xl font-bold text-stone-800 dark:text-stone-100">
+                      {formData.workoutDeviations}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, workoutDeviations: Math.min(7, prev.workoutDeviations + 1) }))}
+                      className="w-10 h-10 rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 font-bold text-lg transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         );

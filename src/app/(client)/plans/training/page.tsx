@@ -66,6 +66,7 @@ interface DbTrainingPlanVersion {
   id: string;
   version_number: number;
   created_at: string;
+  plan_id: string;
   training_plans: DbTrainingPlan | null;
 }
 
@@ -121,37 +122,59 @@ export default function TrainingPlanPage() {
 
       if (!client) return;
 
+      // First get the assignment with version info
       const { data: assignment } = await supabase
         .from("client_plan_assignments")
         .select(`
           id,
           is_active,
           created_at,
-          training_plan_versions(
-            id,
-            version_number,
-            created_at,
-            training_plans(
-              id,
-              name,
-              days_per_week,
-              goal,
-              updated_at,
-              created_at
-            )
-          )
+          training_plan_version_id
         `)
         .eq("client_id", client.id)
         .eq("is_active", true)
         .not("training_plan_version_id", "is", null)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single() as { data: DbPlanAssignment | null };
+        .single();
 
-      const trainingPlanVersion = assignment?.training_plan_versions;
-      const trainingPlan = trainingPlanVersion?.training_plans;
+      if (!assignment?.training_plan_version_id) {
+        setLoading(false);
+        return;
+      }
 
-      if (!trainingPlanVersion || !trainingPlan) {
+      // Get the training plan version
+      const { data: trainingPlanVersion } = await supabase
+        .from("training_plan_versions")
+        .select(`
+          id,
+          version_number,
+          created_at,
+          plan_id
+        `)
+        .eq("id", assignment.training_plan_version_id)
+        .single();
+
+      if (!trainingPlanVersion) {
+        setLoading(false);
+        return;
+      }
+
+      // Get the training plan details
+      const { data: trainingPlan } = await supabase
+        .from("training_plans")
+        .select(`
+          id,
+          name,
+          days_per_week,
+          goal,
+          updated_at,
+          created_at
+        `)
+        .eq("id", trainingPlanVersion.plan_id)
+        .single();
+
+      if (!trainingPlan) {
         setLoading(false);
         return;
       }
@@ -227,7 +250,7 @@ export default function TrainingPlanPage() {
       setPlan({
         name: trainingPlan.name || "Training Plan",
         version: String(trainingPlanVersion.version_number) || "1.0",
-        updatedAt: trainingPlan.updated_at || trainingPlan.created_at,
+        updatedAt: trainingPlan.updated_at || trainingPlan.created_at || new Date().toISOString(),
         weeklySchedule: {
           daysPerWeek: trainingPlan.days_per_week || (7 - restDays.length),
           restDays: restDays,
@@ -300,12 +323,14 @@ export default function TrainingPlanPage() {
           <p className="text-muted-foreground mb-4">
             Your coach will assign a training plan soon.
           </p>
+{/* MESSAGING FEATURE - HIDDEN (not deleted)
           <Link
             href="/messages"
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
             Contact Coach
           </Link>
+*/}
         </div>
       </div>
     );

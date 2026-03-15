@@ -11,10 +11,13 @@ export interface PersonalInfoData {
   heightCm: number;
   weightKg: number;
   // Body measurements (optional)
-  waistCm?: number;
+  neckCm?: number;
   chestCm?: number;
-  armsCm?: number;
+  bicepsCm?: number;
+  waistCm?: number;
   hipsCm?: number;
+  thighsCm?: number;
+  calvesCm?: number;
   occupation: string;
   city: string;
 }

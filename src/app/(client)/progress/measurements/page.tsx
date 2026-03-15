@@ -17,6 +17,7 @@ import {
 interface Measurement {
   date: string;
   week: number;
+  neck: number;
   chest: number;
   waist: number;
   hips: number;
@@ -24,17 +25,20 @@ interface Measurement {
   rightArm: number;
   leftThigh: number;
   rightThigh: number;
+  leftCalf: number;
+  rightCalf: number;
 }
 
-type MeasurementKey = "chest" | "waist" | "hips" | "leftArm" | "rightArm" | "leftThigh" | "rightThigh";
+type MeasurementKey = "neck" | "chest" | "waist" | "hips" | "leftArm" | "rightArm" | "leftThigh" | "rightThigh" | "leftCalf" | "rightCalf";
 
 interface ClientRow {
   id: string;
-  start_date: string | null;
+  created_at: string | null;
 }
 
 interface MeasurementRow {
-  measured_at: string;
+  measurement_date: string;
+  neck_cm: number | null;
   chest_cm: number | null;
   waist_cm: number | null;
   hips_cm: number | null;
@@ -42,6 +46,8 @@ interface MeasurementRow {
   right_arm_cm: number | null;
   left_thigh_cm: number | null;
   right_thigh_cm: number | null;
+  left_calf_cm: number | null;
+  right_calf_cm: number | null;
 }
 
 const MEASUREMENT_CONFIG: Array<{
@@ -49,13 +55,16 @@ const MEASUREMENT_CONFIG: Array<{
   label: string;
   color: string;
 }> = [
+  { key: "neck", label: "Neck", color: "text-cyan-500" },
   { key: "chest", label: "Chest", color: "text-blue-500" },
   { key: "waist", label: "Waist", color: "text-red-500" },
   { key: "hips", label: "Hips", color: "text-purple-500" },
   { key: "leftArm", label: "Left Arm", color: "text-green-500" },
   { key: "rightArm", label: "Right Arm", color: "text-green-600" },
-  { key: "leftThigh", label: "Left Thigh", color: "text-brown-500" },
-  { key: "rightThigh", label: "Right Thigh", color: "text-brown-500" },
+  { key: "leftThigh", label: "Left Thigh", color: "text-amber-600" },
+  { key: "rightThigh", label: "Right Thigh", color: "text-amber-700" },
+  { key: "leftCalf", label: "Left Calf", color: "text-orange-500" },
+  { key: "rightCalf", label: "Right Calf", color: "text-orange-600" },
 ];
 
 export default function MeasurementsPage() {
@@ -72,7 +81,7 @@ export default function MeasurementsPage() {
 
       const { data: client } = await supabase
         .from("clients")
-        .select("id, start_date")
+        .select("id, created_at")
         .eq("user_id", user.id)
         .single() as { data: ClientRow | null };
 
@@ -82,18 +91,19 @@ export default function MeasurementsPage() {
         .from("measurements")
         .select("*")
         .eq("client_id", client.id)
-        .order("measured_at", { ascending: true }) as { data: MeasurementRow[] | null };
+        .order("measurement_date", { ascending: true }) as { data: MeasurementRow[] | null };
 
       if (measurementsData && measurementsData.length > 0) {
-        const startDate = client.start_date ? new Date(client.start_date) : new Date(measurementsData[0].measured_at);
+        const startDate = client.created_at ? new Date(client.created_at) : new Date(measurementsData[0].measurement_date);
 
         const formatted = measurementsData.map((m: MeasurementRow) => {
-          const measureDate = new Date(m.measured_at);
+          const measureDate = new Date(m.measurement_date);
           const weekNum = Math.ceil((measureDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)) || 1;
 
           return {
-            date: m.measured_at,
+            date: m.measurement_date,
             week: weekNum,
+            neck: m.neck_cm || 0,
             chest: m.chest_cm || 0,
             waist: m.waist_cm || 0,
             hips: m.hips_cm || 0,
@@ -101,6 +111,8 @@ export default function MeasurementsPage() {
             rightArm: m.right_arm_cm || 0,
             leftThigh: m.left_thigh_cm || 0,
             rightThigh: m.right_thigh_cm || 0,
+            leftCalf: m.left_calf_cm || 0,
+            rightCalf: m.right_calf_cm || 0,
           };
         });
 

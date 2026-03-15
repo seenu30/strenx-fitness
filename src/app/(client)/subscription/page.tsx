@@ -221,6 +221,7 @@ export default function SubscriptionPage() {
           <p className="text-stone-500 mb-4">
             You don&apos;t have an active subscription yet. Contact your coach to get started.
           </p>
+{/* MESSAGING FEATURE - HIDDEN (not deleted)
           <button
             onClick={() => router.push("/messages")}
             className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg hover:bg-brown-600"
@@ -228,6 +229,7 @@ export default function SubscriptionPage() {
             <Zap className="w-4 h-4" />
             Contact Coach
           </button>
+*/}
         </div>
 
         {/* Available Plans */}
@@ -409,6 +411,7 @@ export default function SubscriptionPage() {
                 days. Contact your coach to renew and continue your transformation
                 journey.
               </p>
+{/* MESSAGING FEATURE - HIDDEN (not deleted)
               <button
                 onClick={() => router.push("/messages")}
                 className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg text-sm font-medium hover:bg-brown-600"
@@ -416,6 +419,7 @@ export default function SubscriptionPage() {
                 <Zap className="w-4 h-4" />
                 Contact Coach to Renew
               </button>
+*/}
             </div>
           </div>
         </div>

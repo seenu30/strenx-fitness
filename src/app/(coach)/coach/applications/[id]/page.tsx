@@ -33,6 +33,7 @@ import {
   ExternalLink,
   Download,
   Save,
+  ClipboardList,
 } from "lucide-react";
 import type { BloodReportFile, BloodReportValues } from "@/types/onboarding";
 import { createClient } from "@/lib/supabase/client";
@@ -52,6 +53,29 @@ interface SubscriptionPlan {
   is_active: boolean;
 }
 
+interface TrainingPlan {
+  id: string;
+  name: string;
+  description: string | null;
+  days_per_week: number;
+  plan_type: string;
+  goal: string | null;
+  is_active: boolean;
+}
+
+interface NutritionPlan {
+  id: string;
+  name: string;
+  description: string | null;
+  target_calories: number | null;
+  target_protein_g: number | null;
+  target_carbs_g: number | null;
+  target_fat_g: number | null;
+  diet_type: string | null;
+  meal_count: number;
+  is_active: boolean;
+}
+
 interface ApplicationWithPlan extends ClientApplication {
   plan?: {
     id: string;
@@ -66,6 +90,8 @@ interface ApplicationWithPlan extends ClientApplication {
       last_name: string;
     };
   } | null;
+  training_plan_id?: string | null;
+  nutrition_plan_id?: string | null;
 }
 
 export default function ApplicationDetailPage({
@@ -100,10 +126,19 @@ export default function ApplicationDetailPage({
   const [isSavingBloodValues, setIsSavingBloodValues] = useState(false);
   const [bloodValuesMessage, setBloodValuesMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Transformation plans state
+  const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>([]);
+  const [nutritionPlans, setNutritionPlans] = useState<NutritionPlan[]>([]);
+  const [selectedTrainingPlanId, setSelectedTrainingPlanId] = useState<string>("");
+  const [selectedNutritionPlanId, setSelectedNutritionPlanId] = useState<string>("");
+  const [isSavingPlans, setIsSavingPlans] = useState(false);
+  const [plansMessage, setPlansMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   useEffect(() => {
     loadApplication();
     loadPlans();
     loadBloodValues();
+    loadTransformationPlans();
   }, [resolvedParams.id]);
 
   async function loadApplication() {
@@ -113,6 +148,13 @@ export default function ApplicationDetailPage({
 
       if (data.success) {
         setApplication(data.application);
+        // Initialize selected plan IDs from application data
+        if (data.application.training_plan_id) {
+          setSelectedTrainingPlanId(data.application.training_plan_id);
+        }
+        if (data.application.nutrition_plan_id) {
+          setSelectedNutritionPlanId(data.application.nutrition_plan_id);
+        }
       } else {
         setError(data.error || "Failed to load application");
       }
@@ -133,6 +175,20 @@ export default function ApplicationDetailPage({
       .order("price_amount", { ascending: true });
 
     setPlans((data as SubscriptionPlan[]) || []);
+  }
+
+  async function loadTransformationPlans() {
+    try {
+      const response = await fetch("/api/plans?type=all");
+      const data = await response.json();
+
+      if (data.success) {
+        setTrainingPlans(data.trainingPlans || []);
+        setNutritionPlans(data.nutritionPlans || []);
+      }
+    } catch (err) {
+      console.error("Error loading transformation plans:", err);
+    }
   }
 
   async function loadBloodValues() {
@@ -187,6 +243,45 @@ export default function ApplicationDetailPage({
       [field]: numValue,
     }));
   };
+
+  async function handleSaveTransformationPlans() {
+    setIsSavingPlans(true);
+    setPlansMessage(null);
+
+    try {
+      const response = await fetch(
+        `/api/applications/${resolvedParams.id}/plans`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            training_plan_id: selectedTrainingPlanId || null,
+            nutrition_plan_id: selectedNutritionPlanId || null,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setPlansMessage({ type: 'success', text: 'Plans saved successfully' });
+        // Update local application state
+        setApplication(prev => prev ? {
+          ...prev,
+          training_plan_id: selectedTrainingPlanId || null,
+          nutrition_plan_id: selectedNutritionPlanId || null,
+        } : null);
+        setTimeout(() => setPlansMessage(null), 3000);
+      } else {
+        setPlansMessage({ type: 'error', text: data.error || 'Failed to save plans' });
+      }
+    } catch (err) {
+      console.error("Error saving plans:", err);
+      setPlansMessage({ type: 'error', text: 'Failed to save plans' });
+    } finally {
+      setIsSavingPlans(false);
+    }
+  }
 
   async function handleApprove() {
     if (!selectedPlanId) {
@@ -773,6 +868,194 @@ export default function ApplicationDetailPage({
           </p>
         )}
       </div>
+
+      {/* Transformation Plans Section */}
+      {application.status !== "rejected" && application.status !== "draft" && (
+        <div className="bg-card border border-border rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <ClipboardList className="w-5 h-5" />
+              Transformation Plans
+            </h2>
+            {plansMessage && (
+              <span className={`text-sm ${
+                plansMessage.type === 'success'
+                  ? 'text-green-600'
+                  : 'text-red-600'
+              }`}>
+                {plansMessage.text}
+              </span>
+            )}
+          </div>
+
+          {application.status === "invited" || application.status === "completed" ? (
+            <div className="p-4 rounded-lg bg-muted">
+              <p className="text-sm text-muted-foreground mb-2">
+                Plans have been assigned to this client. To modify plans, go to the client profile.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Training Plan</p>
+                  <p className="font-medium text-foreground">
+                    {trainingPlans.find(p => p.id === application.training_plan_id)?.name || "Not assigned"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Nutrition Plan</p>
+                  <p className="font-medium text-foreground">
+                    {nutritionPlans.find(p => p.id === application.nutrition_plan_id)?.name || "Not assigned"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground mb-4">
+                Select the training and nutrition plans to assign to this client when the invite is sent.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Training Plan Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Training Plan
+                  </label>
+                  {trainingPlans.length > 0 ? (
+                    <select
+                      value={selectedTrainingPlanId}
+                      onChange={(e) => setSelectedTrainingPlanId(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">Select a training plan...</option>
+                      {trainingPlans.map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} ({plan.days_per_week} days/week)
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="p-4 rounded-lg bg-muted text-center">
+                      <p className="text-sm text-muted-foreground">
+                        No training plans available.
+                      </p>
+                      <Link
+                        href="/coach/plans"
+                        className="text-sm text-primary hover:underline mt-1 inline-block"
+                      >
+                        Create a training plan
+                      </Link>
+                    </div>
+                  )}
+                  {selectedTrainingPlanId && (
+                    <div className="mt-2 p-3 rounded-lg bg-muted/50">
+                      {(() => {
+                        const plan = trainingPlans.find(p => p.id === selectedTrainingPlanId);
+                        return plan ? (
+                          <div className="text-sm">
+                            <p className="font-medium text-foreground">{plan.name}</p>
+                            {plan.description && (
+                              <p className="text-muted-foreground mt-1">{plan.description}</p>
+                            )}
+                            <div className="flex gap-4 mt-2 text-muted-foreground">
+                              <span>{plan.days_per_week} days/week</span>
+                              <span>{plan.plan_type}</span>
+                              {plan.goal && <span>{plan.goal}</span>}
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Nutrition Plan Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Nutrition Plan
+                  </label>
+                  {nutritionPlans.length > 0 ? (
+                    <select
+                      value={selectedNutritionPlanId}
+                      onChange={(e) => setSelectedNutritionPlanId(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">Select a nutrition plan...</option>
+                      {nutritionPlans.map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} ({plan.target_calories ? `${plan.target_calories} cal` : `${plan.meal_count} meals`})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="p-4 rounded-lg bg-muted text-center">
+                      <p className="text-sm text-muted-foreground">
+                        No nutrition plans available.
+                      </p>
+                      <Link
+                        href="/coach/plans"
+                        className="text-sm text-primary hover:underline mt-1 inline-block"
+                      >
+                        Create a nutrition plan
+                      </Link>
+                    </div>
+                  )}
+                  {selectedNutritionPlanId && (
+                    <div className="mt-2 p-3 rounded-lg bg-muted/50">
+                      {(() => {
+                        const plan = nutritionPlans.find(p => p.id === selectedNutritionPlanId);
+                        return plan ? (
+                          <div className="text-sm">
+                            <p className="font-medium text-foreground">{plan.name}</p>
+                            {plan.description && (
+                              <p className="text-muted-foreground mt-1">{plan.description}</p>
+                            )}
+                            <div className="flex gap-4 mt-2 text-muted-foreground">
+                              {plan.target_calories && <span>{plan.target_calories} cal</span>}
+                              {plan.target_protein_g && <span>{plan.target_protein_g}g protein</span>}
+                              <span>{plan.meal_count} meals/day</span>
+                              {plan.diet_type && <span>{plan.diet_type}</span>}
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={handleSaveTransformationPlans}
+                  disabled={isSavingPlans}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {isSavingPlans ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Save Plans
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Warning if no plans selected before invite */}
+              {application.status === "payment_received" && !selectedTrainingPlanId && !selectedNutritionPlanId && (
+                <div className="mt-4 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                    <strong>Note:</strong> No plans selected. The client will not have any training or nutrition plans assigned when invited.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Blood Reports Section */}
       {(() => {

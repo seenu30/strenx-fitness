@@ -444,7 +444,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
     { id: "checkins", label: "Check-ins", icon: Calendar },
     { id: "progress", label: "Progress", icon: TrendingUp },
     { id: "plans", label: "Plans", icon: Activity },
-    { id: "messages", label: "Messages", icon: MessageSquare },
+    // MESSAGING FEATURE - HIDDEN (not deleted)
+    // { id: "messages", label: "Messages", icon: MessageSquare },
   ];
 
   if (loading) {
@@ -1166,6 +1167,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
           </div>
         )}
 
+{/* MESSAGING FEATURE - HIDDEN (not deleted)
         {activeTab === "messages" && (
           <div className="p-6">
             <div className="text-center py-8">
@@ -1180,6 +1182,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
             </div>
           </div>
         )}
+*/}
       </div>
     </div>
   );

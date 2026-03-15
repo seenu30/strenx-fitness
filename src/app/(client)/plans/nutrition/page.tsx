@@ -327,12 +327,14 @@ export default function NutritionPlanPage() {
           <p className="text-muted-foreground mb-4">
             Your coach will assign a nutrition plan soon.
           </p>
+{/* MESSAGING FEATURE - HIDDEN (not deleted)
           <Link
             href="/messages"
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
             Contact Coach
           </Link>
+*/}
         </div>
       </div>
     );

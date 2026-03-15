@@ -11,6 +11,7 @@ import {
   Activity,
   ChevronRight,
   Loader2,
+  Footprints,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -19,6 +20,13 @@ interface ProgressData {
   currentWeight: number;
   targetWeight: number;
   weightHistory: Array<{ date: string; weight: number }>;
+  stepsHistory: Array<{ date: string; steps: number }>;
+  stepsStats: {
+    average: number;
+    max: number;
+    today: number;
+    totalDays: number;
+  };
   measurements: {
     start: { chest: number; waist: number; hips: number; arm: number; thigh: number };
     current: { chest: number; waist: number; hips: number; arm: number; thigh: number };
@@ -31,7 +39,7 @@ interface ProgressData {
 
 interface ClientRow {
   id: string;
-  start_weight_kg: number | null;
+  current_weight_kg: number | null;
   target_weight_kg: number | null;
 }
 
@@ -52,11 +60,18 @@ interface CheckinRow {
   id: string;
 }
 
+interface StepCheckinRow {
+  checkin_date: string;
+  step_count: number | null;
+}
+
 const DEFAULT_DATA: ProgressData = {
   startWeight: 0,
   currentWeight: 0,
   targetWeight: 0,
   weightHistory: [],
+  stepsHistory: [],
+  stepsStats: { average: 0, max: 0, today: 0, totalDays: 0 },
   measurements: {
     start: { chest: 0, waist: 0, hips: 0, arm: 0, thigh: 0 },
     current: { chest: 0, waist: 0, hips: 0, arm: 0, thigh: 0 },
@@ -83,7 +98,7 @@ export default function ProgressPage() {
 
         const { data: client } = await supabase
           .from("clients")
-          .select("id, start_weight_kg, target_weight_kg")
+          .select("id, current_weight_kg, target_weight_kg")
           .eq("user_id", user.id)
           .single() as { data: ClientRow | null };
 
@@ -104,9 +119,28 @@ export default function ProgressPage() {
           weight: w.morning_weight_kg ?? 0,
         }));
 
-        const startWeight = client.start_weight_kg || (weightHistory.length > 0 ? weightHistory[0].weight : 0);
+        const startWeight = weightHistory.length > 0 ? weightHistory[0].weight : 0;
         const currentWeight = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].weight : startWeight;
         const targetWeight = client.target_weight_kg || startWeight - 10;
+
+        // Fetch step data
+        const { data: stepCheckins } = await supabase
+          .from("daily_checkins")
+          .select("checkin_date, step_count")
+          .eq("client_id", client.id)
+          .not("step_count", "is", null)
+          .order("checkin_date", { ascending: true }) as { data: StepCheckinRow[] | null };
+
+        const stepsHistory = (stepCheckins || []).map((s: StepCheckinRow) => ({
+          date: new Date(s.checkin_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          steps: s.step_count ?? 0,
+        }));
+
+        // Calculate step stats
+        const totalSteps = stepsHistory.reduce((sum, d) => sum + d.steps, 0);
+        const avgSteps = stepsHistory.length > 0 ? Math.round(totalSteps / stepsHistory.length) : 0;
+        const maxSteps = stepsHistory.length > 0 ? Math.max(...stepsHistory.map(d => d.steps)) : 0;
+        const todaySteps = stepsHistory.length > 0 ? stepsHistory[stepsHistory.length - 1].steps : 0;
 
         const { data: measurementsData } = await supabase
           .from("measurements")
@@ -160,6 +194,13 @@ export default function ProgressPage() {
           currentWeight,
           targetWeight,
           weightHistory,
+          stepsHistory,
+          stepsStats: {
+            average: avgSteps,
+            max: maxSteps,
+            today: todaySteps,
+            totalDays: stepsHistory.length,
+          },
           measurements: {
             start: startMeasurements,
             current: currentMeasurements,
@@ -339,6 +380,122 @@ export default function ProgressPage() {
             {progressPercent}% to goal
           </p>
         </div>
+      </div>
+
+      {/* Step Count Trends Card */}
+      <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Footprints className="w-5 h-5 text-blue-500" />
+            <h2 className="font-semibold text-stone-800 dark:text-stone-100">
+              Step Count Trends
+            </h2>
+          </div>
+        </div>
+
+        {/* Stats Row - 3 columns: Average, Today, Best */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="text-center p-3 rounded-lg bg-stone-50 dark:bg-stone-800/50">
+            <p className="text-xs text-stone-500 mb-1">Average</p>
+            <p className="text-lg font-bold text-stone-800 dark:text-stone-100">
+              {data.stepsStats.average > 0 ? data.stepsStats.average.toLocaleString() : "-"}
+            </p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+            <p className="text-xs text-stone-500 mb-1">Latest</p>
+            <p className="text-lg font-bold text-blue-500">
+              {data.stepsStats.today > 0 ? data.stepsStats.today.toLocaleString() : "-"}
+            </p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
+            <p className="text-xs text-stone-500 mb-1">Best Day</p>
+            <p className="text-lg font-bold text-green-600">
+              {data.stepsStats.max > 0 ? data.stepsStats.max.toLocaleString() : "-"}
+            </p>
+          </div>
+        </div>
+
+        {/* SVG Line Chart - same pattern as weight */}
+        <div className="h-48 relative">
+          {(() => {
+            const maxSteps = data.stepsHistory.length > 0
+              ? Math.max(...data.stepsHistory.map((d) => d.steps))
+              : 10000;
+            const minSteps = data.stepsHistory.length > 0
+              ? Math.min(...data.stepsHistory.map((d) => d.steps))
+              : 0;
+            const stepsRange = maxSteps - minSteps || 1;
+
+            return (
+              <svg className="w-full h-full" viewBox="0 0 400 150" preserveAspectRatio="none">
+                {/* Grid lines */}
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <line
+                    key={i}
+                    x1="0"
+                    y1={i * 37.5}
+                    x2="400"
+                    y2={i * 37.5}
+                    stroke="currentColor"
+                    strokeWidth="0.5"
+                    className="text-stone-200 dark:text-stone-700"
+                  />
+                ))}
+
+                {/* Line chart */}
+                {data.stepsHistory.length > 1 && (
+                  <polyline
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="text-blue-500"
+                    points={data.stepsHistory
+                      .map((d, i) => {
+                        const x = (i / (data.stepsHistory.length - 1)) * 380 + 10;
+                        const y = ((maxSteps - d.steps) / stepsRange) * 120 + 15;
+                        return `${x},${y}`;
+                      })
+                      .join(" ")}
+                  />
+                )}
+
+                {/* Data points */}
+                {data.stepsHistory.map((d, i) => {
+                  const x = data.stepsHistory.length > 1
+                    ? (i / (data.stepsHistory.length - 1)) * 380 + 10
+                    : 200;
+                  const y = ((maxSteps - d.steps) / stepsRange) * 120 + 15;
+                  return (
+                    <circle
+                      key={i}
+                      cx={x}
+                      cy={y}
+                      r="4"
+                      fill="currentColor"
+                      className="text-blue-500"
+                    />
+                  );
+                })}
+              </svg>
+            );
+          })()}
+
+          {/* X-axis labels */}
+          <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-stone-500 px-2">
+            {data.stepsHistory.length === 0 ? (
+              <span className="w-full text-center">No step data yet</span>
+            ) : data.stepsHistory.filter((_, i) => i % 2 === 0).map((d, i) => (
+              <span key={i}>{d.date}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Days tracked info */}
+        <p className="text-center text-sm text-stone-500 mt-4">
+          {data.stepsStats.totalDays > 0
+            ? `${data.stepsStats.totalDays} days tracked`
+            : "Start tracking your daily steps in check-ins"}
+        </p>
       </div>
 
       {/* Quick Stats Grid */}

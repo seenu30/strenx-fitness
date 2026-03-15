@@ -216,6 +216,63 @@ export async function POST(
       });
     }
 
+    // Create plan assignments if training/nutrition plans were selected
+    if (application.training_plan_id || application.nutrition_plan_id) {
+      let trainingPlanVersionId = null;
+      let nutritionPlanVersionId = null;
+
+      // Get current training plan version
+      if (application.training_plan_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: trainingVersion } = await (adminClient as any)
+          .from("training_plan_versions")
+          .select("id")
+          .eq("plan_id", application.training_plan_id)
+          .eq("is_current", true)
+          .single();
+
+        if (trainingVersion) {
+          trainingPlanVersionId = trainingVersion.id;
+        }
+      }
+
+      // Get current nutrition plan version
+      if (application.nutrition_plan_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: nutritionVersion } = await (adminClient as any)
+          .from("nutrition_plan_versions")
+          .select("id")
+          .eq("plan_id", application.nutrition_plan_id)
+          .eq("is_current", true)
+          .single();
+
+        if (nutritionVersion) {
+          nutritionPlanVersionId = nutritionVersion.id;
+        }
+      }
+
+      // Create the plan assignment if we have at least one version
+      if (trainingPlanVersionId || nutritionPlanVersionId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: assignmentError } = await (adminClient as any)
+          .from("client_plan_assignments")
+          .insert({
+            client_id: clientData.id,
+            assigned_by: coach?.id || application.reviewed_by,
+            training_plan_version_id: trainingPlanVersionId,
+            nutrition_plan_version_id: nutritionPlanVersionId,
+            start_date: new Date().toISOString().split("T")[0],
+            is_active: true,
+            assignment_notes: "Assigned during application invite",
+          });
+
+        if (assignmentError) {
+          console.error("Error creating plan assignment:", assignmentError);
+          // Don't fail the invite - plans can be assigned later
+        }
+      }
+    }
+
     // Update application status
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (adminClient as any)

@@ -526,6 +526,7 @@ export default function DashboardPage() {
                 Progress Photos
               </span>
             </Link>
+{/* MESSAGING FEATURE - HIDDEN (not deleted)
             <Link
               href="/messages"
               className="flex items-center gap-3 p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
@@ -535,10 +536,11 @@ export default function DashboardPage() {
                 Message Coach
               </span>
             </Link>
+*/}
           </div>
         </div>
 
-        {/* Recent Messages */}
+{/* MESSAGING FEATURE - HIDDEN (not deleted)
         <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-foreground">
@@ -577,6 +579,7 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+*/}
       </div>
     </div>
   );

@@ -214,6 +214,7 @@ export default function BloodReportsPage() {
             Upload your blood test reports to track your health markers over time.
             Your coach can help analyze the results and optimize your nutrition plan.
           </p>
+{/* MESSAGING FEATURE - HIDDEN (not deleted)
           <Link
             href="/messages"
             className="inline-flex items-center gap-2 px-6 py-3 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 transition-colors"
@@ -221,6 +222,7 @@ export default function BloodReportsPage() {
             <Plus className="w-5 h-5" />
             Contact Coach to Add Report
           </Link>
+*/}
         </div>
 
         {/* Info Notice */}
@@ -261,6 +263,7 @@ export default function BloodReportsPage() {
             Monitor your health markers over time
           </p>
         </div>
+{/* MESSAGING FEATURE - HIDDEN (not deleted)
         <Link
           href="/messages"
           className="inline-flex items-center gap-2 px-4 py-2 bg-brown-500 text-white rounded-lg font-medium hover:bg-brown-600 transition-colors"
@@ -268,6 +271,7 @@ export default function BloodReportsPage() {
           <Plus className="w-4 h-4" />
           Add Report
         </Link>
+*/}
       </div>
 
       {/* Latest Report Summary */}

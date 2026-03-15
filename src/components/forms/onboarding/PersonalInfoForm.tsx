@@ -460,30 +460,46 @@ export default function PersonalInfoForm({
         <div>
           <h3 className="text-sm font-medium text-foreground">Body Measurements (Optional)</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            These measurements help track your progress. Measure at the widest point for accurate results.
+            These measurements help track your progress. Use the reference image below for accurate measurement positions.
           </p>
         </div>
+
+        {/* Reference Image */}
+        <div className="flex justify-center">
+          <div className="relative w-full max-w-md">
+            <img
+              src="https://jcqgzwdbpfqfqcufuvjd.supabase.co/storage/v1/object/public/static-images/measurements-mapping.png"
+              alt="Body measurements reference - shows where to measure neck, chest, biceps, waist, hips, thighs, and calves"
+              className="w-full rounded-lg border border-border"
+            />
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Reference: Where to take each measurement
+            </p>
+          </div>
+        </div>
+
+        {/* Measurement inputs - 7 fields */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <label
-              htmlFor="waistCm"
+              htmlFor="neckCm"
               className="block text-sm font-medium text-foreground mb-1"
             >
-              Waist (cm)
+              Neck (cm)
             </label>
             <input
-              id="waistCm"
-              name="waistCm"
+              id="neckCm"
+              name="neckCm"
               type="number"
-              value={formData.waistCm || ""}
+              value={formData.neckCm || ""}
               onChange={handleChange}
-              min="40"
-              max="200"
+              min="25"
+              max="60"
               step="0.1"
-              placeholder="e.g., 80"
+              placeholder="e.g., 38"
               className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <FieldHint>Around navel</FieldHint>
+            <FieldHint>Around Adam&apos;s apple</FieldHint>
           </div>
 
           <div>
@@ -510,16 +526,16 @@ export default function PersonalInfoForm({
 
           <div>
             <label
-              htmlFor="armsCm"
+              htmlFor="bicepsCm"
               className="block text-sm font-medium text-foreground mb-1"
             >
-              Arms (cm)
+              Biceps (cm)
             </label>
             <input
-              id="armsCm"
-              name="armsCm"
+              id="bicepsCm"
+              name="bicepsCm"
               type="number"
-              value={formData.armsCm || ""}
+              value={formData.bicepsCm || ""}
               onChange={handleChange}
               min="15"
               max="60"
@@ -527,7 +543,29 @@ export default function PersonalInfoForm({
               placeholder="e.g., 32"
               className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <FieldHint>Bicep flexed</FieldHint>
+            <FieldHint>Flexed, widest point</FieldHint>
+          </div>
+
+          <div>
+            <label
+              htmlFor="waistCm"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              Waist (cm)
+            </label>
+            <input
+              id="waistCm"
+              name="waistCm"
+              type="number"
+              value={formData.waistCm || ""}
+              onChange={handleChange}
+              min="40"
+              max="200"
+              step="0.1"
+              placeholder="e.g., 80"
+              className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <FieldHint>Around navel</FieldHint>
           </div>
 
           <div>
@@ -547,6 +585,50 @@ export default function PersonalInfoForm({
               max="200"
               step="0.1"
               placeholder="e.g., 100"
+              className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <FieldHint>Widest point</FieldHint>
+          </div>
+
+          <div>
+            <label
+              htmlFor="thighsCm"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              Thighs (cm)
+            </label>
+            <input
+              id="thighsCm"
+              name="thighsCm"
+              type="number"
+              value={formData.thighsCm || ""}
+              onChange={handleChange}
+              min="30"
+              max="100"
+              step="0.1"
+              placeholder="e.g., 55"
+              className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <FieldHint>Upper thigh, widest</FieldHint>
+          </div>
+
+          <div>
+            <label
+              htmlFor="calvesCm"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              Calves (cm)
+            </label>
+            <input
+              id="calvesCm"
+              name="calvesCm"
+              type="number"
+              value={formData.calvesCm || ""}
+              onChange={handleChange}
+              min="20"
+              max="60"
+              step="0.1"
+              placeholder="e.g., 38"
               className="w-full px-4 py-2.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <FieldHint>Widest point</FieldHint>

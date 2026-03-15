@@ -116,12 +116,13 @@ export function createSafeString(maxLength: number, minLength: number = 0) {
 }
 
 // Pre-defined safe string schemas for common uses
+export const safeString50 = createSafeString(50);
 export const safeString100 = createSafeString(100);
 export const safeString200 = createSafeString(200);
 export const safeString500 = createSafeString(500);
+export const safeStringRequired50 = createSafeString(50, 1);
 export const safeStringRequired100 = createSafeString(100, 1);
 export const safeStringRequired200 = createSafeString(200, 1);
-export const safeStringRequired50 = createSafeString(50, 1);
 
 /**
  * Long text schema (for notes, descriptions)
@@ -480,6 +481,99 @@ export const dateRangeSchema = z.object({
   return true;
 }, {
   message: "Start date must be before end date",
+});
+
+// ============================================
+// Transformation Plan Schemas
+// ============================================
+
+export const transformationPlanStatusSchema = z.enum(['draft', 'published', 'archived']);
+
+export const transformationPlanSectionTypeSchema = z.enum([
+  'header',
+  'blood_report_strategy',
+  'daily_macros',
+  'meal_timing',
+  'morning_drinks',
+  'bedtime_drink',
+  'meal_plan',
+  'snack_ideas',
+  'supplements',
+  'training_program',
+  'progression_strategy',
+  'recovery_rules',
+  'checkin_protocol',
+  'coach_credentials',
+  'custom',
+]);
+
+export const drinkTypeSchema = z.enum(['morning', 'bedtime', 'pre_workout', 'post_workout', 'other']);
+
+export const supplementCategorySchema = z.enum(['vitamin', 'mineral', 'protein', 'performance', 'health']);
+
+/** Create transformation plan request */
+export const createTransformationPlanSchema = z.object({
+  client_id: uuidSchema,
+  plan_name: safeStringRequired100.optional(),
+  phase: safeString100.optional(),
+  duration_weeks: z.number().min(1).max(52).optional(),
+  nutrition_plan_version_id: uuidSchema.optional(),
+  training_plan_version_id: uuidSchema.optional(),
+  assessment_id: uuidSchema.optional(),
+});
+
+/** Update transformation plan request */
+export const updateTransformationPlanSchema = z.object({
+  plan_name: safeStringRequired100.optional(),
+  phase: safeString100.optional(),
+  duration_weeks: z.number().min(1).max(52).optional(),
+  nutrition_plan_version_id: uuidSchema.optional().nullable(),
+  training_plan_version_id: uuidSchema.optional().nullable(),
+  assessment_id: uuidSchema.optional().nullable(),
+  status: transformationPlanStatusSchema.optional(),
+});
+
+/** Upsert section request */
+export const upsertSectionSchema = z.object({
+  section_type: transformationPlanSectionTypeSchema,
+  title: safeString100.optional().nullable(),
+  content: z.record(z.string(), z.unknown()),
+  is_visible: z.boolean().optional(),
+  sort_order: z.number().min(0).max(100).optional(),
+});
+
+/** Publish plan request */
+export const publishPlanSchema = z.object({
+  change_notes: longTextSchema.optional(),
+});
+
+/** Supplement library item */
+export const supplementLibrarySchema = z.object({
+  name: safeStringRequired100,
+  category: supplementCategorySchema.optional().nullable(),
+  brand: safeString100.optional().nullable(),
+  default_dosage: safeString100.optional().nullable(),
+  default_timing: safeString100.optional().nullable(),
+  benefits: z.array(safeString200).optional().nullable(),
+  target_deficiencies: z.array(safeString100).optional().nullable(),
+  is_active: z.boolean().optional(),
+});
+
+/** Drink recipe ingredient */
+export const drinkIngredientSchema = z.object({
+  name: safeStringRequired100,
+  quantity: safeStringRequired50,
+  unit: safeString50.optional(),
+});
+
+/** Drink recipe library item */
+export const drinkRecipeLibrarySchema = z.object({
+  name: safeStringRequired100,
+  drink_type: drinkTypeSchema.optional().nullable(),
+  ingredients: z.array(drinkIngredientSchema),
+  preparation: longTextSchema.optional().nullable(),
+  benefits: z.array(safeString200).optional().nullable(),
+  is_active: z.boolean().optional(),
 });
 
 // ============================================
