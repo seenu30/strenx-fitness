@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   ArrowRight,
   Shield,
-  Zap,
   Target,
   ChevronDown,
   Award,
@@ -185,21 +184,34 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Meteor Streaks - Fixed position, behind nav but visible */}
-      <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
-        <div className="meteor-streak meteor-1" />
-        <div className="meteor-streak meteor-2" />
-        <div className="meteor-streak meteor-3" />
-        <div className="meteor-streak meteor-4" />
+      {/* Full-page background elements - fixed position */}
+      <div className="fixed inset-0 pointer-events-none z-[5]">
+        {/* Dot grid pattern - throughout homepage */}
+        <div className="absolute inset-0 dot-pattern opacity-40" />
+      </div>
+
+      {/* Full-page grid lines - fixed position, above navbar */}
+      <div className="fixed inset-0 pointer-events-none z-[60]">
+        {/* Vertical lines (3) - from top to above footer */}
+        <div className="absolute left-6 sm:left-9 lg:left-12 xl:left-[max(3rem,calc(50%-640px+3rem))] top-0 bottom-20 w-px hero-grid-line" />
+        <div className="absolute left-1/2 top-0 bottom-20 w-px hero-grid-line" />
+        <div className="absolute right-6 sm:right-9 lg:right-12 xl:right-[max(3rem,calc(50%-640px+3rem))] top-0 bottom-20 w-px hero-grid-line" />
+        {/* Bottom horizontal line - above footer */}
+        <div className="absolute left-0 right-0 bottom-20 h-px hero-grid-line" />
+      </div>
+
+      {/* Animated noise overlay - covers navbar + hero only */}
+      <div className="fixed top-0 left-0 right-0 h-screen pointer-events-none z-[45] overflow-hidden noise-container">
+        <div className="noise-overlay" />
       </div>
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="fixed top-0 left-0 right-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 sm:px-9 lg:px-12 xl:px-[max(3rem,calc(50%-640px+3rem))]">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
               <Dumbbell className="w-8 h-8 text-primary" />
-              <span className="text-xl font-bold text-foreground">ZK Fitness</span>
+              <span className="text-xl font-bold text-foreground">ZKF</span>
             </Link>
 
             {/* Desktop Nav Links */}
@@ -277,96 +289,100 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section id="hero" className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 hero-gradient overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="text-left">
-              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
-                <Zap className="w-4 h-4" />
+      <section id="hero" className="relative min-h-screen pt-32 pb-20 px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))] overflow-hidden">
+        {/* Scrolling horizontal line below navbar */}
+        <div className="absolute left-0 right-0 top-16 h-px hero-grid-line z-[5]" />
+
+        {/* Meteor Streaks - Only in hero section */}
+        <div className="absolute inset-0 pointer-events-none z-[5] overflow-hidden">
+          <div className="meteor-streak meteor-1" />
+          <div className="meteor-streak meteor-2" />
+          <div className="meteor-streak meteor-3" />
+          <div className="meteor-streak meteor-4" />
+        </div>
+
+        {/* Radial gradient glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(205,133,63,0.2),transparent)]" />
+
+        {/* Background Glow Shapes */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-[2]">
+          {/* Top-right glow blob */}
+          <div
+            className="absolute -top-1/4 -right-1/4 w-[60%] h-[60%] rounded-full opacity-40"
+            style={{
+              background: 'radial-gradient(circle, rgba(205,127,50,0.6) 0%, rgba(205,127,50,0.2) 40%, transparent 70%)',
+              filter: 'blur(80px)',
+            }}
+          />
+
+          {/* Center-left glow blob */}
+          <div
+            className="absolute top-1/4 -left-1/4 w-[50%] h-[50%] rounded-full opacity-35"
+            style={{
+              background: 'radial-gradient(circle, rgba(255,140,0,0.5) 0%, rgba(205,127,50,0.15) 50%, transparent 70%)',
+              filter: 'blur(100px)',
+            }}
+          />
+
+          {/* Bottom-center glow blob */}
+          <div
+            className="absolute bottom-0 left-1/4 w-[70%] h-[40%] rounded-full opacity-30"
+            style={{
+              background: 'radial-gradient(ellipse, rgba(205,127,50,0.4) 0%, rgba(255,140,0,0.1) 50%, transparent 70%)',
+              filter: 'blur(120px)',
+            }}
+          />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto">
+          <div className="max-w-3xl mx-auto text-center">
+            <div
+              className="relative inline-flex items-center justify-center px-3 py-[7px] mb-6 rounded-[15px] backdrop-blur-[5px] shadow-[0_3px_10px_0_rgba(205,133,63,0.5)]"
+              style={{ border: '1px solid rgba(205, 133, 63, 0.6)' }}
+            >
+              <p className="text-sm text-white font-normal">
                 Transform Your Body
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
-                Empowering Your{" "}
-                <span className="gradient-text">Fitness Journey</span>{" "}
-                with Expert Coaching
-              </h1>
-
-              <p className="text-lg text-muted-foreground mb-8 max-w-xl">
-                Our personalized coaching transforms your health by combining science-backed training with tailored nutrition plans designed for your unique goals.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Link
-                  href="/apply"
-                  className="group inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 rounded-xl font-semibold text-lg transition-all animate-pulse-glow"
-                >
-                  Get Started
-                  <ArrowRight className="w-5 h-5 arrow-hover" />
-                </Link>
-                <a
-                  href="#features"
-                  className="inline-flex items-center justify-center gap-2 bg-card hover:bg-accent text-foreground px-8 py-4 rounded-xl font-semibold text-lg border border-border transition-colors"
-                >
-                  Learn More
-                </a>
-              </div>
-
-              <p className="text-sm text-muted-foreground">
-                <span className="text-foreground font-semibold">Trusted already by 500+</span> clients worldwide
               </p>
             </div>
 
-            {/* Hero Visual */}
-            <div className="relative hidden lg:block">
-              <div className="relative w-full aspect-square">
-                {/* Gradient Orb */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-80 h-80 rounded-full bg-gradient-to-br from-primary/40 via-primary/20 to-transparent blur-3xl animate-float" />
-                </div>
-                {/* Stats Cards */}
-                <div className="absolute top-10 right-10 bg-card/80 backdrop-blur-sm border border-border rounded-xl p-4 shadow-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-foreground">95%</p>
-                      <p className="text-xs text-muted-foreground">Success Rate</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute bottom-20 left-0 bg-card/80 backdrop-blur-sm border border-border rounded-xl p-4 shadow-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
-                      <Users className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-foreground">500+</p>
-                      <p className="text-xs text-muted-foreground">Happy Clients</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute bottom-40 right-0 bg-card/80 backdrop-blur-sm border border-border rounded-xl p-4 shadow-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
-                      <Award className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-foreground">10+</p>
-                      <p className="text-xs text-muted-foreground">Years Experience</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-none tracking-tight mb-6">
+              Empowering Your{" "}
+              <span className="gradient-text">Fitness Journey</span>{" "}
+              with Expert Coaching
+            </h1>
+
+            <p className="text-base text-muted-foreground mb-8 max-w-xl mx-auto">
+              Our personalized coaching transforms your health by combining science-backed training with tailored nutrition plans designed for your unique goals.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-2.5 mb-8 justify-center">
+              <Link
+                href="/apply"
+                className="group inline-flex items-center justify-center gap-2.5 bg-white/85 hover:bg-white text-black pl-4 pr-1.5 py-2 rounded-[20px] text-xs font-normal transition-all"
+              >
+                Get Started
+                <span className="bg-black rounded-full p-1.5">
+                  <ArrowRight className="w-3 h-3 text-white" />
+                </span>
+              </Link>
+              <a
+                href="#features"
+                className="inline-flex items-center justify-center bg-[rgba(138,138,138,0.3)] hover:bg-[rgba(138,138,138,0.4)] text-white px-4 py-2 rounded-[20px] text-xs font-normal transition-colors backdrop-blur-sm shadow-[inset_0_0_6px_3px_rgba(138,138,138,0.3)]"
+              >
+                Learn More
+              </a>
             </div>
+
+            <p className="text-sm text-muted-foreground">
+              <span className="text-foreground font-semibold">Trusted already by 500+</span> clients worldwide
+            </p>
           </div>
         </div>
       </section>
 
       {/* Logo Marquee Section */}
       <section className="py-12 border-y border-border bg-card/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div className="max-w-7xl mx-auto px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))] mb-8">
           <h2 className="text-center text-lg font-medium text-muted-foreground">
             Certified by leading fitness organizations
           </h2>
@@ -387,7 +403,7 @@ export default function Home() {
       </section>
 
       {/* Feature Showcase Card */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))]">
         <div className="max-w-7xl mx-auto">
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/20 via-card to-card border border-border">
             <div className="grid md:grid-cols-2 gap-8 p-8 md:p-12">
@@ -419,7 +435,7 @@ export default function Home() {
       </section>
 
       {/* Bento Grid Benefits Section */}
-      <section id="benefits" className="py-20 px-4 sm:px-6 lg:px-8 bg-card/50">
+      <section id="benefits" className="py-20 px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))] bg-card/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
@@ -486,7 +502,7 @@ export default function Home() {
       </section>
 
       {/* Features with Links Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8">
+      <section id="features" className="py-20 px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
@@ -515,7 +531,7 @@ export default function Home() {
       </section>
 
       {/* 6-Item Feature Grid */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-card/50">
+      <section className="py-20 px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))] bg-card/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">
@@ -562,7 +578,7 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
@@ -579,7 +595,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-card/50">
+      <section id="pricing" className="py-20 px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))] bg-card/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
@@ -626,7 +642,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section id="testimonials" className="py-20 px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))] overflow-hidden">
         <div className="max-w-7xl mx-auto mb-12">
           <div className="text-center">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
@@ -658,7 +674,7 @@ export default function Home() {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-20 px-4 sm:px-6 lg:px-8 bg-card/50">
+      <section id="faq" className="py-20 px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))] bg-card/50">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
@@ -681,7 +697,7 @@ export default function Home() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))]">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
             Start Your Transformation Today
@@ -700,12 +716,12 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-border">
+      <footer className="py-12 px-20 sm:px-24 lg:px-32 xl:px-[max(8rem,calc(50%-640px+8rem))] border-t border-border">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col items-center gap-8">
             <Link href="/" className="flex items-center gap-2">
               <Dumbbell className="w-8 h-8 text-primary" />
-              <span className="text-xl font-bold text-foreground">ZK Fitness</span>
+              <span className="text-xl font-bold text-foreground">ZKF</span>
             </Link>
 
             <div className="flex flex-wrap justify-center gap-6 text-sm">
@@ -721,7 +737,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 text-sm text-muted-foreground">
-              <span>&copy; {new Date().getFullYear()} ZK Fitness. All rights reserved.</span>
+              <span>&copy; {new Date().getFullYear()} ZKF. All rights reserved.</span>
               <div className="flex gap-4">
                 <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
                 <a href="#" className="hover:text-foreground transition-colors">Terms</a>
