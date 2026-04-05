@@ -5,7 +5,7 @@
 @variant dark (&:where(.dark, .dark *));
 
 /* ============================================
-   Strenx Fitness - Global Styles
+   ZK Fitness - Global Styles
    Theme variables are defined in /styles/theme.css
    ============================================ */
 
@@ -43,27 +43,29 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
 
-  /* Brown color palette */
-  --color-brown-50: #FDF8F4;
-  --color-brown-100: #F8E8DD;
-  --color-brown-200: #F0D0BA;
-  --color-brown-300: #E5B08A;
-  --color-brown-400: #D49060;
-  --color-brown-500: #8B4513;
-  --color-brown-600: #A5673F;
-  --color-brown-700: #6B3410;
-  --color-brown-800: #4A240B;
-  --color-brown-900: #2D1607;
+  /* Premium Bronze/Brown color palette */
+  --color-brown-50: #FDF8F2;
+  --color-brown-100: #F5E6D3;
+  --color-brown-200: #E8CCA8;
+  --color-brown-300: #D4A574;
+  --color-brown-400: #CD853F;
+  --color-brown-500: #B8860B;
+  --color-brown-600: #996B09;
+  --color-brown-700: #7A5607;
+  --color-brown-800: #5C4105;
+  --color-brown-900: #3D2B03;
 
-  /* Tan accent */
-  --color-tan: #C49A6C;
+  /* Bronze/Gold accents */
+  --color-bronze: #CD7F32;
+  --color-gold: #FFD700;
+  --color-tan: #D4A574;
 
-  /* Chart colors */
-  --color-chart-1: #8B4513;
+  /* Chart colors - Bronze theme */
+  --color-chart-1: #B8860B;
   --color-chart-2: #16A34A;
-  --color-chart-3: #D97706;
-  --color-chart-4: #3B82F6;
-  --color-chart-5: #8B5CF6;
+  --color-chart-3: #CD853F;
+  --color-chart-4: #D4A574;
+  --color-chart-5: #996B09;
 
   /* Sidebar */
   --color-sidebar: var(--secondary);
@@ -160,4 +162,245 @@ body {
 .risk-low {
   background-color: var(--color-success);
   color: #FFFFFF;
+}
+
+/* ============================================
+   Landing Page Animations
+   ============================================ */
+
+/* Marquee animation for logo scroll */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Testimonial scroll animation */
+@keyframes testimonial-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-testimonial {
+  animation: testimonial-scroll 40s linear infinite;
+}
+
+.animate-testimonial-reverse {
+  animation: testimonial-scroll 40s linear infinite reverse;
+}
+
+/* FAQ Accordion */
+.accordion-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease-out;
+}
+
+.accordion-content.open {
+  grid-template-rows: 1fr;
+}
+
+.accordion-inner {
+  overflow: hidden;
+}
+
+/* Gradient text effect */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--color-tan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effect for cards */
+.glow-card {
+  position: relative;
+}
+
+.glow-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(135deg, var(--primary) 0%, transparent 50%, var(--primary) 100%);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.glow-card:hover::before {
+  opacity: 0.5;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hero gradient background */
+.hero-gradient {
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(205, 133, 63, 0.15), transparent);
+}
+
+/* Animated gradient orb */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Pulse glow for CTAs */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(205, 133, 63, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(205, 133, 63, 0.5);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Arrow hover animation */
+.arrow-hover {
+  transition: transform 0.2s ease;
+}
+
+.group:hover .arrow-hover {
+  transform: translateX(4px);
+}
+
+/* ============================================
+   Meteor/Comet Shooting Animation
+   ============================================ */
+
+/* Each meteor spawns at a different height */
+@keyframes meteor-shoot-1 {
+  0% { transform: translateY(90vh); opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: translateY(-100px); opacity: 0; }
+}
+
+@keyframes meteor-shoot-2 {
+  0% { transform: translateY(70vh); opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: translateY(-100px); opacity: 0; }
+}
+
+@keyframes meteor-shoot-3 {
+  0% { transform: translateY(50vh); opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: translateY(-100px); opacity: 0; }
+}
+
+@keyframes meteor-shoot-4 {
+  0% { transform: translateY(80vh); opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: translateY(-100px); opacity: 0; }
+}
+
+@keyframes meteor-shoot-5 {
+  0% { transform: translateY(60vh); opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: translateY(-100px); opacity: 0; }
+}
+
+@keyframes meteor-shoot-6 {
+  0% { transform: translateY(40vh); opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: translateY(-100px); opacity: 0; }
+}
+
+.meteor-streak {
+  position: absolute;
+  width: 1px;
+  background: linear-gradient(
+    to top,
+    transparent 0%,
+    rgba(255, 107, 53, 0.1) 30%,
+    rgba(255, 107, 53, 0.4) 50%,
+    #FF6B35 70%,
+    var(--primary) 100%
+  );
+  border-radius: 100px;
+  pointer-events: none;
+}
+
+/* Different meteor instances with varying heights, positions, speeds, and bezier curves */
+.meteor-1 {
+  height: 35px;
+  left: 15%;
+  /* Starts slow, speeds away */
+  animation: meteor-shoot-1 1.6s cubic-bezier(0.4, 0, 1, 1) infinite;
+  animation-delay: 0s;
+}
+
+.meteor-2 {
+  height: 50px;
+  left: 40%;
+  /* Starts fast, slows down */
+  animation: meteor-shoot-2 2.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  animation-delay: 0.5s;
+}
+
+.meteor-3 {
+  height: 30px;
+  left: 60%;
+  /* Starts fast, slows in middle, speeds up again */
+  animation: meteor-shoot-3 2s cubic-bezier(0.68, -0.1, 0.32, 1.1) infinite;
+  animation-delay: 1s;
+}
+
+.meteor-4 {
+  height: 45px;
+  left: 85%;
+  /* Starts slow, speeds away aggressively */
+  animation: meteor-shoot-4 2.3s cubic-bezier(0.55, 0, 1, 0.45) infinite;
+  animation-delay: 0.3s;
+}
+
+/* Mobile menu animation */
+@keyframes slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobile-menu-enter {
+  animation: slide-down 0.2s ease-out;
 }
